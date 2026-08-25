@@ -306,27 +306,6 @@ body {
   color: #ff8a8a;
 }
 
-/* ---------- Notes ---------- */
-
-.notes-tree {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 10px;
-}
-
-.notes-group {
-  background: rgba(255, 255, 255, 0.06);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 3px;
-  padding: 10px 14px;
-}
-
-.notes-group h3 {
-  margin-top: 0;
-  font-weight: 500;
-  color: #aebbe0;
-}
-
 /* ---------- Schema (weekly timetable) ---------- */
 
 .subjects-panel {
@@ -433,6 +412,145 @@ body {
 .doc-new-btn:hover {
   background: rgba(255, 255, 255, 0.1);
   border-color: hsl(var(--hue) 70% 70% / 0.5);
+}
+
+/* ---------- Mindmap (groups) ---------- */
+
+.group-selector li {
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.group-selector li:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.group-selector li.active {
+  background: hsl(var(--hue) 60% 40% / 0.25);
+  border-color: hsl(var(--hue) 100% 75% / 0.7);
+  color: #ffffff;
+}
+
+.new-group-row {
+  margin: 10px 0 16px;
+}
+
+.new-group-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.new-group-form[hidden] {
+  display: none;
+}
+
+.new-group-form .doc-title-input {
+  font-size: 0.82rem;
+  padding: 6px 8px;
+}
+
+.doc-list-title {
+  margin-top: 0;
+}
+
+/* ---------- GroupDock ---------- */
+
+.groupdock-intro {
+  margin: 0 0 14px;
+  font-size: 0.85rem;
+}
+
+.group-dock-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.group-box {
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.group-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.group-box-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.group-box-name {
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.group-box-meta {
+  font-size: 0.78rem;
+  color: #8b96b8;
+}
+
+.group-box-toggle {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  color: #cdd6ec;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.group-box.collapsed .group-box-toggle {
+  transform: rotate(-90deg);
+}
+
+.group-box-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 12px 12px;
+}
+
+.group-box.collapsed .group-box-body {
+  display: none;
+}
+
+.group-dock-item {
+  padding: 6px 8px;
+  font-size: 0.85rem;
+  color: #cdd6ec;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.group-dock-item:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: hsl(var(--hue) 70% 70% / 0.5);
+}
+
+.group-dock-item-empty {
+  padding: 6px 8px;
+  font-size: 0.82rem;
+  color: #6c7aa3;
 }
 
 /* ---------- Mindmap (editor) ---------- */

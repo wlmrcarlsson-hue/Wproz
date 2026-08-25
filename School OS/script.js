@@ -162,15 +162,27 @@ document.addEventListener("click", (event) => {
 const initialTheme = loadTheme();
 applyTheme(initialTheme.hue, initialTheme.sat);
 
-// ---------- Mindmap (documents: text notes + drawings) ----------
+// ---------- Mindmap (documents: text notes + drawings, in groups) ----------
 
 const MINDMAP_STORAGE_KEY = "schoolos-mindmap-docs";
+const GROUPS_STORAGE_KEY = "schoolos-mindmap-groups";
+
+const DEFAULT_GROUPS = [{ id: "grp-math", name: "Matematik 2b", collapsed: false }];
 const DEFAULT_DOCS = [
   {
     id: "seed-1",
     title: "Idéer inför nationella prov",
     type: "text",
     content: "Saker att öva på:\n- Ekvationer med två okända\n- Källkritik i historia\n- Oregelbundna verb i engelska",
+    groupId: "grp-math",
+    updatedAt: Date.now(),
+  },
+  {
+    id: "seed-2",
+    title: "Formelblad",
+    type: "draw",
+    content: "",
+    groupId: "grp-math",
     updatedAt: Date.now(),
   },
 ];
@@ -191,9 +203,18 @@ const eraserBtn = document.getElementById("eraserBtn");
 const clearCanvasBtn = document.getElementById("clearCanvasBtn");
 const undoDrawBtn = document.getElementById("undoDrawBtn");
 const mindmapEmpty = document.getElementById("mindmapEmpty");
+const groupSelector = document.getElementById("groupSelector");
+const newGroupBtn = document.getElementById("newGroupBtn");
+const newGroupForm = document.getElementById("newGroupForm");
+const newGroupInput = document.getElementById("newGroupInput");
+const confirmNewGroupBtn = document.getElementById("confirmNewGroupBtn");
+const groupDockList = document.getElementById("groupDockList");
+const groupDockCatalog = document.getElementById("groupDockCatalog");
 
 let mindmapDocs = loadMindmapDocs();
+let mindmapGroups = loadGroups();
 let currentDocId = null;
+let activeGroupId = null;
 let currentColor = "#1a1a2e";
 let eraserActive = false;
 let isDrawingStroke = false;
@@ -216,6 +237,57 @@ function saveMindmapDocs() {
   localStorage.setItem(MINDMAP_STORAGE_KEY, JSON.stringify(mindmapDocs));
 }
 
+function loadGroups() {
+  const raw = localStorage.getItem(GROUPS_STORAGE_KEY);
+  if (raw === null) return DEFAULT_GROUPS.slice();
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+  } catch (e) {
+    // ignore malformed storage
+  }
+  return [];
+}
+
+function saveGroups() {
+  localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(mindmapGroups));
+}
+
+function renderGroupSelector() {
+  groupSelector.innerHTML = "";
+
+  const noneItem = document.createElement("li");
+  noneItem.textContent = "Ingen grupp";
+  if (activeGroupId === null) noneItem.classList.add("active");
+  noneItem.addEventListener("click", () => {
+    activeGroupId = null;
+    renderGroupSelector();
+  });
+  groupSelector.appendChild(noneItem);
+
+  mindmapGroups.forEach((group) => {
+    const item = document.createElement("li");
+    item.textContent = `🗂 ${group.name}`;
+    if (group.id === activeGroupId) item.classList.add("active");
+    item.addEventListener("click", () => {
+      activeGroupId = group.id;
+      renderGroupSelector();
+    });
+    groupSelector.appendChild(item);
+  });
+}
+
+function createGroup(name) {
+  const trimmed = name.trim();
+  if (!trimmed) return;
+
+  const group = { id: `grp-${Date.now()}`, name: trimmed, collapsed: false };
+  mindmapGroups.push(group);
+  saveGroups();
+  activeGroupId = group.id;
+  renderGroupSelector();
+}
+
 function renderDocList() {
   docList.innerHTML = "";
 
@@ -227,13 +299,150 @@ function renderDocList() {
     return;
   }
 
-  mindmapDocs.forEach((doc) => {
+  function appendDocItem(doc) {
     const item = document.createElement("li");
     item.textContent = `${doc.type === "draw" ? "🎨" : "📝"} ${doc.title}`;
     if (doc.id === currentDocId) item.classList.add("active");
     item.addEventListener("click", () => selectDoc(doc.id));
     docList.appendChild(item);
+  }
+
+  function appendGroupHeader(text) {
+    const header = document.createElement("li");
+    header.className = "doc-list-empty";
+    header.textContent = text;
+    docList.appendChild(header);
+  }
+
+  const ungrouped = mindmapDocs.filter((d) => !d.groupId);
+  const hasGroups = mindmapGroups.length > 0;
+
+  if (hasGroups && ungrouped.length > 0) appendGroupHeader("Ingen grupp");
+  ungrouped.forEach(appendDocItem);
+
+  mindmapGroups.forEach((group) => {
+    const docsInGroup = mindmapDocs.filter((d) => d.groupId === group.id);
+    if (docsInGroup.length === 0) return;
+    appendGroupHeader(`🗂 ${group.name}`);
+    docsInGroup.forEach(appendDocItem);
   });
+}
+
+function pluralizeDrawings(count) {
+  return count === 1 ? "ritning" : "ritningar";
+}
+
+function groupMetaLabel(docsInGroup) {
+  const textCount = docsInGroup.filter((d) => d.type === "text").length;
+  const drawCount = docsInGroup.filter((d) => d.type === "draw").length;
+  const typeParts = [];
+  if (textCount > 0) typeParts.push(`${textCount} dokument`);
+  if (drawCount > 0) typeParts.push(`${drawCount} ${pluralizeDrawings(drawCount)}`);
+  const typeLabel = typeParts.length > 0 ? typeParts.join(", ") : "inga projekt";
+  return `${docsInGroup.length} projekt · ${typeLabel}`;
+}
+
+function goToMindmapDoc(docId) {
+  const mindmapPage = document.getElementById("mindmap");
+  tabButtons.forEach((btn) => btn.classList.remove("active"));
+  pages.forEach((page) => page.classList.remove("active"));
+  mindmapTabBtn.classList.add("active");
+  mindmapPage.classList.add("active");
+  selectDoc(docId);
+}
+
+function buildGroupBox(name, groupId, docsInGroup, collapsed, onToggle) {
+  const box = document.createElement("div");
+  box.className = "group-box";
+  if (collapsed) box.classList.add("collapsed");
+  if (groupId) box.id = `group-box-${groupId}`;
+
+  const header = document.createElement("div");
+  header.className = "group-box-header";
+
+  const heading = document.createElement("div");
+  heading.className = "group-box-heading";
+  const nameEl = document.createElement("span");
+  nameEl.className = "group-box-name";
+  nameEl.textContent = `🗂 ${name}`;
+  const metaEl = document.createElement("span");
+  metaEl.className = "group-box-meta";
+  metaEl.textContent = groupMetaLabel(docsInGroup);
+  heading.appendChild(nameEl);
+  heading.appendChild(metaEl);
+
+  const toggle = document.createElement("button");
+  toggle.className = "group-box-toggle";
+  toggle.type = "button";
+  toggle.textContent = "▾";
+  toggle.setAttribute("aria-label", "Minimera grupp");
+
+  header.appendChild(heading);
+  header.appendChild(toggle);
+  header.addEventListener("click", onToggle);
+
+  const body = document.createElement("div");
+  body.className = "group-box-body";
+
+  if (docsInGroup.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "group-dock-item-empty";
+    empty.textContent = "Inga projekt än.";
+    body.appendChild(empty);
+  } else {
+    docsInGroup.forEach((doc) => {
+      const item = document.createElement("div");
+      item.className = "group-dock-item";
+      item.textContent = `${doc.type === "draw" ? "🎨" : "📝"} ${doc.title}`;
+      item.addEventListener("click", () => goToMindmapDoc(doc.id));
+      body.appendChild(item);
+    });
+  }
+
+  box.appendChild(header);
+  box.appendChild(body);
+  return box;
+}
+
+function renderGroupDock() {
+  groupDockList.innerHTML = "";
+  groupDockCatalog.innerHTML = "";
+
+  mindmapGroups.forEach((group) => {
+    const docsInGroup = mindmapDocs.filter((d) => d.groupId === group.id);
+    const box = buildGroupBox(group.name, group.id, docsInGroup, group.collapsed, () => {
+      group.collapsed = !group.collapsed;
+      saveGroups();
+      renderGroupDock();
+    });
+    groupDockList.appendChild(box);
+
+    const catalogItem = document.createElement("li");
+    catalogItem.textContent = group.name;
+    catalogItem.addEventListener("click", () => {
+      document.getElementById(`group-box-${group.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    groupDockCatalog.appendChild(catalogItem);
+  });
+
+  const ungrouped = mindmapDocs.filter((d) => !d.groupId);
+  if (ungrouped.length > 0) {
+    const box = buildGroupBox("Ogrupperat", null, ungrouped, false, (event) => {
+      event.currentTarget.closest(".group-box").classList.toggle("collapsed");
+    });
+    groupDockList.appendChild(box);
+
+    const catalogItem = document.createElement("li");
+    catalogItem.textContent = "Ogrupperat";
+    groupDockCatalog.appendChild(catalogItem);
+  }
+
+  if (mindmapGroups.length === 0 && ungrouped.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = "Inga grupper eller dokument än. Skapa en grupp i Mindmap för att komma igång.";
+    groupDockList.appendChild(empty);
+  }
 }
 
 function showEmptyState() {
@@ -296,6 +505,7 @@ function createDoc(type) {
     title: type === "draw" ? "Namnlös ritning" : "Namnlöst dokument",
     type,
     content: "",
+    groupId: activeGroupId,
     updatedAt: Date.now(),
   };
   mindmapDocs.unshift(doc);
@@ -470,6 +680,27 @@ mindmapTabBtn.addEventListener("click", () => {
     resizeDrawCanvas(doc);
   }
 });
+
+const groupDockTabBtn = document.querySelector('.tab-btn[data-tab="groupdock"]');
+groupDockTabBtn.addEventListener("click", renderGroupDock);
+
+newGroupBtn.addEventListener("click", () => {
+  newGroupForm.hidden = !newGroupForm.hidden;
+  if (!newGroupForm.hidden) newGroupInput.focus();
+});
+
+function submitNewGroup() {
+  createGroup(newGroupInput.value);
+  newGroupInput.value = "";
+  newGroupForm.hidden = true;
+}
+
+confirmNewGroupBtn.addEventListener("click", submitNewGroup);
+newGroupInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") submitNewGroup();
+});
+
+renderGroupSelector();
 
 if (mindmapDocs.length > 0) {
   selectDoc(mindmapDocs[0].id);
