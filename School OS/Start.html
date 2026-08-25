@@ -16,6 +16,7 @@
       <button class="tab-btn" data-tab="assignments">✓ Uppgifter</button>
       <button class="tab-btn" data-tab="notes">📝 Anteckningar</button>
       <button class="tab-btn" data-tab="calendar">🗓 Kalender</button>
+      <button class="tab-btn" data-tab="mindmap">🧠 Mindmap</button>
     </nav>
   </header>
 
@@ -225,6 +226,52 @@
               <li><span class="muted">Nästa vecka</span> — Fysikprov</li>
               <li><span class="muted">Om 2 veckor</span> — Svenska-uppsats</li>
             </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MINDMAP -->
+    <section id="mindmap" class="page">
+      <div class="page-layout">
+        <aside class="catalog">
+          <h4 class="catalog-title">Dokument</h4>
+          <ul id="docList" class="catalog-list doc-list"></ul>
+
+          <div class="doc-new-buttons">
+            <button id="newTextDoc" class="doc-new-btn">📝 Nytt dokument</button>
+            <button id="newDrawDoc" class="doc-new-btn">🎨 Ny ritning</button>
+          </div>
+        </aside>
+
+        <div class="page-body">
+          <div class="panel mindmap-panel">
+            <h3>Mindmap</h3>
+
+            <div id="docToolbar" class="doc-toolbar" hidden>
+              <input id="docTitleInput" class="doc-title-input" type="text" placeholder="Namnlöst dokument" />
+              <button id="deleteDocBtn" class="doc-delete-btn" title="Ta bort dokument" aria-label="Ta bort dokument">🗑</button>
+            </div>
+
+            <textarea id="textEditor" class="text-editor" placeholder="Skriv dina anteckningar här..." hidden></textarea>
+
+            <div id="drawArea" class="draw-area" hidden>
+              <div class="draw-toolbar">
+                <button class="color-swatch-btn active" data-color="#1a1a2e" style="background:#1a1a2e"></button>
+                <button class="color-swatch-btn" data-color="#e63946" style="background:#e63946"></button>
+                <button class="color-swatch-btn" data-color="#f4a261" style="background:#f4a261"></button>
+                <button class="color-swatch-btn" data-color="#2a9d8f" style="background:#2a9d8f"></button>
+                <button class="color-swatch-btn" data-color="#4361ee" style="background:#4361ee"></button>
+                <input id="brushSize" type="range" min="1" max="20" value="3" title="Penselstorlek" />
+                <button id="eraserBtn" class="draw-tool-btn" title="Sudd">🧽 Sudd</button>
+                <button id="clearCanvasBtn" class="draw-tool-btn" title="Rensa allt">Rensa</button>
+              </div>
+              <div class="draw-canvas-wrap">
+                <canvas id="drawCanvas" class="draw-canvas"></canvas>
+              </div>
+            </div>
+
+            <p id="mindmapEmpty" class="muted mindmap-empty">Välj ett dokument i listan till vänster, eller skapa ett nytt.</p>
           </div>
         </div>
       </div>

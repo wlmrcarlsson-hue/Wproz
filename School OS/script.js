@@ -161,3 +161,251 @@ document.addEventListener("click", (event) => {
 
 const initialTheme = loadTheme();
 applyTheme(initialTheme.hue, initialTheme.sat);
+
+// ---------- Mindmap (documents: text notes + drawings) ----------
+
+const MINDMAP_STORAGE_KEY = "schoolos-mindmap-docs";
+const DEFAULT_DOCS = [
+  {
+    id: "seed-1",
+    title: "Idéer inför nationella prov",
+    type: "text",
+    content: "Saker att öva på:\n- Ekvationer med två okända\n- Källkritik i historia\n- Oregelbundna verb i engelska",
+    updatedAt: Date.now(),
+  },
+];
+
+const docList = document.getElementById("docList");
+const newTextDocBtn = document.getElementById("newTextDoc");
+const newDrawDocBtn = document.getElementById("newDrawDoc");
+const docToolbar = document.getElementById("docToolbar");
+const docTitleInput = document.getElementById("docTitleInput");
+const deleteDocBtn = document.getElementById("deleteDocBtn");
+const textEditor = document.getElementById("textEditor");
+const drawArea = document.getElementById("drawArea");
+const drawCanvas = document.getElementById("drawCanvas");
+const drawCtx = drawCanvas.getContext("2d");
+const colorSwatchBtns = document.querySelectorAll(".color-swatch-btn");
+const brushSizeInput = document.getElementById("brushSize");
+const eraserBtn = document.getElementById("eraserBtn");
+const clearCanvasBtn = document.getElementById("clearCanvasBtn");
+const mindmapEmpty = document.getElementById("mindmapEmpty");
+
+let mindmapDocs = loadMindmapDocs();
+let currentDocId = null;
+let currentColor = "#1a1a2e";
+let eraserActive = false;
+let isDrawingStroke = false;
+
+function loadMindmapDocs() {
+  const raw = localStorage.getItem(MINDMAP_STORAGE_KEY);
+  if (raw === null) return DEFAULT_DOCS.slice();
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+  } catch (e) {
+    // ignore malformed storage
+  }
+  return [];
+}
+
+function saveMindmapDocs() {
+  localStorage.setItem(MINDMAP_STORAGE_KEY, JSON.stringify(mindmapDocs));
+}
+
+function renderDocList() {
+  docList.innerHTML = "";
+
+  if (mindmapDocs.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "doc-list-empty";
+    empty.textContent = "Inga dokument än.";
+    docList.appendChild(empty);
+    return;
+  }
+
+  mindmapDocs.forEach((doc) => {
+    const item = document.createElement("li");
+    item.textContent = `${doc.type === "draw" ? "🎨" : "📝"} ${doc.title}`;
+    if (doc.id === currentDocId) item.classList.add("active");
+    item.addEventListener("click", () => selectDoc(doc.id));
+    docList.appendChild(item);
+  });
+}
+
+function showEmptyState() {
+  currentDocId = null;
+  docToolbar.hidden = true;
+  textEditor.hidden = true;
+  drawArea.hidden = true;
+  mindmapEmpty.hidden = false;
+  renderDocList();
+}
+
+function resizeDrawCanvas(doc) {
+  const rect = drawCanvas.parentElement.getBoundingClientRect();
+  drawCanvas.width = Math.max(1, Math.floor(rect.width));
+  drawCanvas.height = Math.max(1, Math.floor(rect.height));
+
+  drawCtx.fillStyle = "#ffffff";
+  drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
+
+  if (doc.content) {
+    const img = new Image();
+    img.onload = () => {
+      drawCtx.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height);
+    };
+    img.src = doc.content;
+  }
+}
+
+function selectDoc(id) {
+  const doc = mindmapDocs.find((d) => d.id === id);
+  if (!doc) return;
+
+  currentDocId = id;
+  mindmapEmpty.hidden = true;
+  docToolbar.hidden = false;
+  docTitleInput.value = doc.title;
+
+  if (doc.type === "text") {
+    textEditor.hidden = false;
+    drawArea.hidden = true;
+    textEditor.value = doc.content || "";
+  } else {
+    textEditor.hidden = true;
+    drawArea.hidden = false;
+    resizeDrawCanvas(doc);
+  }
+
+  renderDocList();
+}
+
+function createDoc(type) {
+  const doc = {
+    id: `doc-${Date.now()}`,
+    title: type === "draw" ? "Namnlös ritning" : "Namnlöst dokument",
+    type,
+    content: "",
+    updatedAt: Date.now(),
+  };
+  mindmapDocs.unshift(doc);
+  saveMindmapDocs();
+  selectDoc(doc.id);
+}
+
+function deleteCurrentDoc() {
+  if (!currentDocId) return;
+  if (!window.confirm("Ta bort dokumentet? Detta kan inte ångras.")) return;
+
+  mindmapDocs = mindmapDocs.filter((d) => d.id !== currentDocId);
+  saveMindmapDocs();
+
+  if (mindmapDocs.length > 0) {
+    selectDoc(mindmapDocs[0].id);
+  } else {
+    showEmptyState();
+  }
+}
+
+newTextDocBtn.addEventListener("click", () => createDoc("text"));
+newDrawDocBtn.addEventListener("click", () => createDoc("draw"));
+deleteDocBtn.addEventListener("click", deleteCurrentDoc);
+
+docTitleInput.addEventListener("input", () => {
+  const doc = mindmapDocs.find((d) => d.id === currentDocId);
+  if (!doc) return;
+  doc.title = docTitleInput.value.trim() || (doc.type === "draw" ? "Namnlös ritning" : "Namnlöst dokument");
+  doc.updatedAt = Date.now();
+  saveMindmapDocs();
+  renderDocList();
+});
+
+textEditor.addEventListener("input", () => {
+  const doc = mindmapDocs.find((d) => d.id === currentDocId);
+  if (!doc) return;
+  doc.content = textEditor.value;
+  doc.updatedAt = Date.now();
+  saveMindmapDocs();
+});
+
+function getCanvasPos(event) {
+  const rect = drawCanvas.getBoundingClientRect();
+  return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+}
+
+function saveCanvasToDoc() {
+  const doc = mindmapDocs.find((d) => d.id === currentDocId);
+  if (!doc) return;
+  doc.content = drawCanvas.toDataURL("image/png");
+  doc.updatedAt = Date.now();
+  saveMindmapDocs();
+}
+
+drawCanvas.addEventListener("pointerdown", (event) => {
+  isDrawingStroke = true;
+  drawCanvas.setPointerCapture(event.pointerId);
+  const pos = getCanvasPos(event);
+  drawCtx.beginPath();
+  drawCtx.moveTo(pos.x, pos.y);
+});
+
+drawCanvas.addEventListener("pointermove", (event) => {
+  if (!isDrawingStroke) return;
+  const pos = getCanvasPos(event);
+  drawCtx.strokeStyle = eraserActive ? "#ffffff" : currentColor;
+  drawCtx.lineWidth = Number(brushSizeInput.value);
+  drawCtx.lineCap = "round";
+  drawCtx.lineJoin = "round";
+  drawCtx.lineTo(pos.x, pos.y);
+  drawCtx.stroke();
+});
+
+drawCanvas.addEventListener("pointerup", () => {
+  if (!isDrawingStroke) return;
+  isDrawingStroke = false;
+  saveCanvasToDoc();
+});
+
+colorSwatchBtns.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    currentColor = btn.dataset.color;
+    eraserActive = false;
+    eraserBtn.classList.remove("active");
+    colorSwatchBtns.forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+  });
+});
+
+eraserBtn.addEventListener("click", () => {
+  eraserActive = !eraserActive;
+  eraserBtn.classList.toggle("active", eraserActive);
+});
+
+clearCanvasBtn.addEventListener("click", () => {
+  if (!window.confirm("Rensa hela ritningen?")) return;
+  drawCtx.fillStyle = "#ffffff";
+  drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
+  saveCanvasToDoc();
+});
+
+window.addEventListener("resize", () => {
+  const doc = mindmapDocs.find((d) => d.id === currentDocId);
+  if (doc && doc.type === "draw" && !drawArea.hidden) {
+    resizeDrawCanvas(doc);
+  }
+});
+
+const mindmapTabBtn = document.querySelector('.tab-btn[data-tab="mindmap"]');
+mindmapTabBtn.addEventListener("click", () => {
+  const doc = mindmapDocs.find((d) => d.id === currentDocId);
+  if (doc && doc.type === "draw") {
+    resizeDrawCanvas(doc);
+  }
+});
+
+if (mindmapDocs.length > 0) {
+  selectDoc(mindmapDocs[0].id);
+} else {
+  showEmptyState();
+}
