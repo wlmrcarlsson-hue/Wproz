@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sv">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,20 +12,20 @@
     <h1 class="logo">SCHOOL OS</h1>
 
     <nav class="tabs">
-      <button class="tab-btn active" data-tab="home">🏠 Home</button>
-      <button class="tab-btn" data-tab="subjects">📚 Subjects</button>
-      <button class="tab-btn" data-tab="assignments">✓ Assignments</button>
-      <button class="tab-btn" data-tab="notes">📝 Notes</button>
-      <button class="tab-btn" data-tab="calendar">🗓 Calendar</button>
+      <button class="tab-btn active" data-tab="home">🏠 Hem</button>
+      <button class="tab-btn" data-tab="subjects">📚 Ämnen</button>
+      <button class="tab-btn" data-tab="assignments">✓ Uppgifter</button>
+      <button class="tab-btn" data-tab="notes">📝 Anteckningar</button>
+      <button class="tab-btn" data-tab="calendar">🗓 Kalender</button>
     </nav>
   </header>
 
-  <button id="settingsBtn" class="settings-btn" aria-label="Theme settings" title="Theme settings">⚙️</button>
+  <button id="settingsBtn" class="settings-btn" aria-label="Temainställningar" title="Temainställningar">⚙️</button>
 
   <div id="themePanel" class="theme-panel" hidden>
     <div class="theme-panel-header">
-      <span>Theme color</span>
-      <button id="closeTheme" class="theme-close" aria-label="Close theme settings">✕</button>
+      <span>Temafärg</span>
+      <button id="closeTheme" class="theme-close" aria-label="Stäng tema-inställningar">✕</button>
     </div>
 
     <canvas id="colorWheel" class="color-wheel" width="180" height="180"></canvas>
@@ -35,7 +35,7 @@
       <span id="themeLabel" class="muted">hsl(224, 63%, 55%)</span>
     </div>
 
-    <button id="resetTheme" class="theme-reset">Reset to default</button>
+    <button id="resetTheme" class="theme-reset">Återställ till standard</button>
   </div>
 
   <main class="content">
@@ -44,40 +44,40 @@
     <section id="home" class="page active">
       <div class="page-layout">
         <aside class="catalog">
-          <h4 class="catalog-title">On this page</h4>
+          <h4 class="catalog-title">På den här sidan</h4>
           <ul class="catalog-list">
-            <li>Today</li>
-            <li>Upcoming</li>
-            <li>Recent feedback</li>
+            <li>Idag</li>
+            <li>Kommande</li>
+            <li>Senaste feedback</li>
           </ul>
         </aside>
 
         <div class="page-body">
-          <h2>Good morning</h2>
+          <h2>God morgon</h2>
 
           <div class="panel-grid">
             <div class="panel">
-              <h3>Today</h3>
+              <h3>Idag</h3>
               <ul class="list">
-                <li><span class="time">08:30</span> Mathematics</li>
-                <li><span class="time">10:15</span> Swedish</li>
-                <li><span class="time">13:00</span> Physics</li>
+                <li><span class="time">08:30</span> Matematik 2b</li>
+                <li><span class="time">10:15</span> Svenska 3</li>
+                <li><span class="time">13:00</span> Fysik 2</li>
               </ul>
             </div>
 
             <div class="panel">
-              <h3>Upcoming</h3>
+              <h3>Kommande</h3>
               <ul class="list">
-                <li>Math assignment — <span class="muted">Friday</span></li>
-                <li>Physics test — <span class="muted">Next week</span></li>
-                <li>Swedish essay — <span class="muted">In 2 weeks</span></li>
+                <li>Matte-inlämning — <span class="muted">Fredag</span></li>
+                <li>Fysikprov — <span class="muted">Nästa vecka</span></li>
+                <li>Svenska-uppsats — <span class="muted">Om 2 veckor</span></li>
               </ul>
             </div>
 
             <div class="panel">
-              <h3>Recent feedback</h3>
+              <h3>Senaste feedback</h3>
               <ul class="list">
-                <li>History essay — <span class="muted">"Good structure, work on sources"</span></li>
+                <li>Historieuppsats — <span class="muted">"Bra struktur, jobba på källorna"</span></li>
               </ul>
             </div>
           </div>
@@ -89,44 +89,44 @@
     <section id="subjects" class="page">
       <div class="page-layout">
         <aside class="catalog">
-          <h4 class="catalog-title">Subjects</h4>
+          <h4 class="catalog-title">Ämnen</h4>
           <ul class="catalog-list">
-            <li>Mathematics</li>
-            <li>Swedish</li>
-            <li>English</li>
-            <li>Physics</li>
-            <li>History</li>
-            <li>Programming</li>
+            <li>Matematik 2b</li>
+            <li>Svenska 3</li>
+            <li>Engelska 6</li>
+            <li>Fysik 2</li>
+            <li>Historia 1b</li>
+            <li>Programmering 1</li>
           </ul>
         </aside>
 
         <div class="page-body">
-          <h2>Subjects</h2>
+          <h2>Ämnen</h2>
 
           <div class="card-grid">
             <div class="card">
-              <h3>Mathematics</h3>
-              <p class="muted">3 assignments · 12 notes</p>
+              <h3>Matematik 2b</h3>
+              <p class="muted">3 uppgifter · 12 anteckningar</p>
             </div>
             <div class="card">
-              <h3>Swedish</h3>
-              <p class="muted">1 assignment · 5 notes</p>
+              <h3>Svenska 3</h3>
+              <p class="muted">1 uppgift · 5 anteckningar</p>
             </div>
             <div class="card">
-              <h3>English</h3>
-              <p class="muted">2 assignments · 4 notes</p>
+              <h3>Engelska 6</h3>
+              <p class="muted">2 uppgifter · 4 anteckningar</p>
             </div>
             <div class="card">
-              <h3>Physics</h3>
-              <p class="muted">2 assignments · 8 notes</p>
+              <h3>Fysik 2</h3>
+              <p class="muted">2 uppgifter · 8 anteckningar</p>
             </div>
             <div class="card">
-              <h3>History</h3>
-              <p class="muted">1 assignment · 6 notes</p>
+              <h3>Historia 1b</h3>
+              <p class="muted">1 uppgift · 6 anteckningar</p>
             </div>
             <div class="card">
-              <h3>Programming</h3>
-              <p class="muted">0 assignments · 3 notes</p>
+              <h3>Programmering 1</h3>
+              <p class="muted">1 uppgift · 3 anteckningar</p>
             </div>
           </div>
         </div>
@@ -137,59 +137,66 @@
     <section id="assignments" class="page">
       <div class="page-layout">
         <aside class="catalog">
-          <h4 class="catalog-title">Subjects</h4>
+          <h4 class="catalog-title">Ämnen</h4>
           <ul class="catalog-list">
-            <li>Mathematics</li>
-            <li>Physics</li>
-            <li>Swedish</li>
-            <li>History</li>
-            <li>English</li>
+            <li>Matematik 2b</li>
+            <li>Fysik 2</li>
+            <li>Svenska 3</li>
+            <li>Historia 1b</li>
+            <li>Engelska 6</li>
+            <li>Programmering 1</li>
           </ul>
         </aside>
 
         <div class="page-body">
-          <h2>Assignments</h2>
+          <h2>Uppgifter</h2>
 
           <div class="panel">
             <table class="table">
               <thead>
                 <tr>
-                  <th>Assignment</th>
-                  <th>Subject</th>
-                  <th>Due</th>
-                  <th>Status</th>
+                  <th>Uppgift</th>
+                  <th>Ämne</th>
+                  <th>Deadline</th>
+                  <th>Betyg</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td>Algebra problem set</td>
-                  <td>Mathematics</td>
-                  <td>Friday</td>
-                  <td><span class="status status-progress">In progress</span></td>
+                  <td>Algebra-inlämning</td>
+                  <td>Matematik 2b</td>
+                  <td>Fredag</td>
+                  <td><span class="status status-progress">Pågår</span></td>
                 </tr>
                 <tr>
-                  <td>Electricity lab report</td>
-                  <td>Physics</td>
-                  <td>Next week</td>
-                  <td><span class="status status-notstarted">Not started</span></td>
+                  <td>Laborationsrapport: Elektricitet</td>
+                  <td>Fysik 2</td>
+                  <td>Nästa vecka</td>
+                  <td><span class="status status-notstarted">Ej påbörjad</span></td>
                 </tr>
                 <tr>
-                  <td>Short story analysis</td>
-                  <td>Swedish</td>
-                  <td>In 2 weeks</td>
-                  <td><span class="status status-notstarted">Not started</span></td>
+                  <td>Novellanalys</td>
+                  <td>Svenska 3</td>
+                  <td>Om 2 veckor</td>
+                  <td><span class="status status-notstarted">Ej påbörjad</span></td>
                 </tr>
                 <tr>
-                  <td>WWII source review</td>
-                  <td>History</td>
-                  <td>Yesterday</td>
-                  <td><span class="status status-submitted">Submitted</span></td>
+                  <td>Källkritisk uppgift: Andra världskriget</td>
+                  <td>Historia 1b</td>
+                  <td>Igår</td>
+                  <td><span class="status status-submitted">Väntar på betyg</span></td>
                 </tr>
                 <tr>
-                  <td>Grammar exercises</td>
-                  <td>English</td>
-                  <td>Last week</td>
-                  <td><span class="status status-completed">Completed</span></td>
+                  <td>Grammatikövningar</td>
+                  <td>Engelska 6</td>
+                  <td>Förra veckan</td>
+                  <td><span class="status status-completed">Betyg: B</span></td>
+                </tr>
+                <tr>
+                  <td>Programmeringsprojekt</td>
+                  <td>Programmering 1</td>
+                  <td>2 veckor sedan</td>
+                  <td><span class="status status-fail">Betyg: F</span></td>
                 </tr>
               </tbody>
             </table>
@@ -202,38 +209,38 @@
     <section id="notes" class="page">
       <div class="page-layout">
         <aside class="catalog">
-          <h4 class="catalog-title">Note groups</h4>
+          <h4 class="catalog-title">Anteckningsgrupper</h4>
           <ul class="catalog-list">
-            <li>Mathematics</li>
-            <li>Physics</li>
-            <li>Personal</li>
+            <li>Matematik 2b</li>
+            <li>Fysik 2</li>
+            <li>Personligt</li>
           </ul>
         </aside>
 
         <div class="page-body">
-          <h2>Notes</h2>
+          <h2>Anteckningar</h2>
 
           <div class="notes-tree">
             <div class="notes-group">
-              <h3>Mathematics</h3>
+              <h3>Matematik 2b</h3>
               <ul class="list">
                 <li>Algebra</li>
-                <li>Functions</li>
+                <li>Funktioner</li>
               </ul>
             </div>
 
             <div class="notes-group">
-              <h3>Physics</h3>
+              <h3>Fysik 2</h3>
               <ul class="list">
-                <li>Electricity</li>
+                <li>Elektricitet</li>
               </ul>
             </div>
 
             <div class="notes-group">
-              <h3>Personal</h3>
+              <h3>Personligt</h3>
               <ul class="list">
-                <li>Study schedule</li>
-                <li>Exam ideas</li>
+                <li>Studieschema</li>
+                <li>Tentaidéer</li>
               </ul>
             </div>
           </div>
@@ -245,24 +252,24 @@
     <section id="calendar" class="page">
       <div class="page-layout">
         <aside class="catalog">
-          <h4 class="catalog-title">Upcoming</h4>
+          <h4 class="catalog-title">Kommande</h4>
           <ul class="catalog-list">
-            <li>Today</li>
-            <li>Friday</li>
-            <li>Next week</li>
-            <li>In 2 weeks</li>
+            <li>Idag</li>
+            <li>Fredag</li>
+            <li>Nästa vecka</li>
+            <li>Om 2 veckor</li>
           </ul>
         </aside>
 
         <div class="page-body">
-          <h2>Calendar</h2>
+          <h2>Kalender</h2>
 
           <div class="panel">
             <ul class="list calendar-list">
-              <li><span class="muted">Today</span> — Mathematics, Swedish, Physics</li>
-              <li><span class="muted">Friday</span> — Math assignment due</li>
-              <li><span class="muted">Next week</span> — Physics test</li>
-              <li><span class="muted">In 2 weeks</span> — Swedish essay due</li>
+              <li><span class="muted">Idag</span> — Matematik 2b, Svenska 3, Fysik 2</li>
+              <li><span class="muted">Fredag</span> — Matte-inlämning</li>
+              <li><span class="muted">Nästa vecka</span> — Fysikprov</li>
+              <li><span class="muted">Om 2 veckor</span> — Svenska-uppsats</li>
             </ul>
           </div>
         </div>

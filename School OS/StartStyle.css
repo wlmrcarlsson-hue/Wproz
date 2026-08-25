@@ -291,6 +291,11 @@ body {
   color: #6fe3ab;
 }
 
+.status-fail {
+  background: rgba(255, 90, 90, 0.15);
+  color: #ff8a8a;
+}
+
 /* ---------- Notes ---------- */
 
 .notes-tree {
