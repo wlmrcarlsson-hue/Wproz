@@ -189,6 +189,7 @@ const colorSwatchBtns = document.querySelectorAll(".color-swatch-btn");
 const brushSizeInput = document.getElementById("brushSize");
 const eraserBtn = document.getElementById("eraserBtn");
 const clearCanvasBtn = document.getElementById("clearCanvasBtn");
+const undoDrawBtn = document.getElementById("undoDrawBtn");
 const mindmapEmpty = document.getElementById("mindmapEmpty");
 
 let mindmapDocs = loadMindmapDocs();
@@ -196,6 +197,8 @@ let currentDocId = null;
 let currentColor = "#1a1a2e";
 let eraserActive = false;
 let isDrawingStroke = false;
+let undoStack = [];
+const UNDO_LIMIT = 20;
 
 function loadMindmapDocs() {
   const raw = localStorage.getItem(MINDMAP_STORAGE_KEY);
@@ -271,6 +274,8 @@ function selectDoc(id) {
   docTitleInput.value = doc.title;
   deleteDocArm.disarm();
   clearCanvasArm.disarm();
+  undoStack = [];
+  updateUndoButtonState();
 
   if (doc.type === "text") {
     textEditor.hidden = false;
@@ -376,8 +381,34 @@ function saveCanvasToDoc() {
   saveMindmapDocs();
 }
 
+function updateUndoButtonState() {
+  undoDrawBtn.disabled = undoStack.length === 0;
+}
+
+function pushUndoSnapshot() {
+  undoStack.push(drawCanvas.toDataURL("image/png"));
+  if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+  updateUndoButtonState();
+}
+
+function undoLastStroke() {
+  if (undoStack.length === 0) return;
+  const snapshot = undoStack.pop();
+  const img = new Image();
+  img.onload = () => {
+    drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+    drawCtx.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height);
+    saveCanvasToDoc();
+  };
+  img.src = snapshot;
+  updateUndoButtonState();
+}
+
+undoDrawBtn.addEventListener("click", undoLastStroke);
+
 drawCanvas.addEventListener("pointerdown", (event) => {
   isDrawingStroke = true;
+  pushUndoSnapshot();
   drawCanvas.setPointerCapture(event.pointerId);
   const pos = getCanvasPos(event);
   drawCtx.beginPath();
@@ -417,6 +448,7 @@ eraserBtn.addEventListener("click", () => {
 });
 
 function clearCanvas() {
+  pushUndoSnapshot();
   drawCtx.fillStyle = "#ffffff";
   drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
   saveCanvasToDoc();

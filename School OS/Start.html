@@ -12,10 +12,9 @@
     <h1 class="logo">SCHOOL OS</h1>
 
     <nav class="tabs">
-      <button class="tab-btn active" data-tab="subjects">📚 Ämnen</button>
       <button class="tab-btn" data-tab="assignments">✓ Uppgifter</button>
       <button class="tab-btn" data-tab="notes">📝 Anteckningar</button>
-      <button class="tab-btn" data-tab="calendar">🗓 Kalender</button>
+      <button class="tab-btn active" data-tab="calendar">🗓 Schema</button>
       <button class="tab-btn" data-tab="mindmap">🧠 Mindmap</button>
     </nav>
   </header>
@@ -39,55 +38,6 @@
   </div>
 
   <main class="content">
-
-    <!-- SUBJECTS -->
-    <section id="subjects" class="page active">
-      <div class="page-layout">
-        <aside class="catalog">
-          <h4 class="catalog-title">Ämnen</h4>
-          <ul class="catalog-list">
-            <li>Matematik 2b</li>
-            <li>Svenska 3</li>
-            <li>Engelska 6</li>
-            <li>Fysik 2</li>
-            <li>Historia 1b</li>
-            <li>Programmering 1</li>
-          </ul>
-        </aside>
-
-        <div class="page-body">
-          <div class="panel">
-            <h3>Ämnen</h3>
-            <div class="card-grid">
-              <div class="card">
-                <h3>Matematik 2b</h3>
-                <p class="muted">3 uppgifter · 12 anteckningar</p>
-              </div>
-              <div class="card">
-                <h3>Svenska 3</h3>
-                <p class="muted">1 uppgift · 5 anteckningar</p>
-              </div>
-              <div class="card">
-                <h3>Engelska 6</h3>
-                <p class="muted">2 uppgifter · 4 anteckningar</p>
-              </div>
-              <div class="card">
-                <h3>Fysik 2</h3>
-                <p class="muted">2 uppgifter · 8 anteckningar</p>
-              </div>
-              <div class="card">
-                <h3>Historia 1b</h3>
-                <p class="muted">1 uppgift · 6 anteckningar</p>
-              </div>
-              <div class="card">
-                <h3>Programmering 1</h3>
-                <p class="muted">1 uppgift · 3 anteckningar</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- ASSIGNMENTS -->
     <section id="assignments" class="page">
@@ -204,28 +154,99 @@
       </div>
     </section>
 
-    <!-- CALENDAR -->
-    <section id="calendar" class="page">
+    <!-- CALENDAR / SCHEMA -->
+    <section id="calendar" class="page active">
       <div class="page-layout">
         <aside class="catalog">
-          <h4 class="catalog-title">Kommande</h4>
+          <h4 class="catalog-title">Ämnen</h4>
           <ul class="catalog-list">
-            <li>Idag</li>
-            <li>Fredag</li>
-            <li>Nästa vecka</li>
-            <li>Om 2 veckor</li>
+            <li>Matematik 2b</li>
+            <li>Svenska 3</li>
+            <li>Engelska 6</li>
+            <li>Fysik 2</li>
+            <li>Historia 1b</li>
+            <li>Programmering 1</li>
           </ul>
         </aside>
 
         <div class="page-body">
           <div class="panel">
-            <h3>Kalender</h3>
-            <ul class="list calendar-list">
-              <li><span class="muted">Idag</span> — Matematik 2b, Svenska 3, Fysik 2</li>
-              <li><span class="muted">Fredag</span> — Matte-inlämning</li>
-              <li><span class="muted">Nästa vecka</span> — Fysikprov</li>
-              <li><span class="muted">Om 2 veckor</span> — Svenska-uppsats</li>
-            </ul>
+            <h3>Schema — Naturvetenskapsprogrammet</h3>
+
+            <div class="schedule-scroll">
+            <div class="schedule-grid">
+              <div class="schedule-day-col" style="grid-column: 2; grid-row: 2 / 18;"></div>
+              <div class="schedule-day-col" style="grid-column: 3; grid-row: 2 / 18;"></div>
+              <div class="schedule-day-col" style="grid-column: 4; grid-row: 2 / 18;"></div>
+              <div class="schedule-day-col" style="grid-column: 5; grid-row: 2 / 18;"></div>
+              <div class="schedule-day-col" style="grid-column: 6; grid-row: 2 / 18;"></div>
+
+              <div class="schedule-day-header" style="grid-column: 2;">Måndag</div>
+              <div class="schedule-day-header" style="grid-column: 3;">Tisdag</div>
+              <div class="schedule-day-header" style="grid-column: 4;">Onsdag</div>
+              <div class="schedule-day-header" style="grid-column: 5;">Torsdag</div>
+              <div class="schedule-day-header" style="grid-column: 6;">Fredag</div>
+
+              <div class="schedule-time" style="grid-row: 2 / 4;">08:00</div>
+              <div class="schedule-time" style="grid-row: 4 / 6;">09:00</div>
+              <div class="schedule-time" style="grid-row: 6 / 8;">10:00</div>
+              <div class="schedule-time" style="grid-row: 8 / 10;">11:00</div>
+              <div class="schedule-time" style="grid-row: 10 / 12;">12:00</div>
+              <div class="schedule-time" style="grid-row: 12 / 14;">13:00</div>
+              <div class="schedule-time" style="grid-row: 14 / 16;">14:00</div>
+              <div class="schedule-time" style="grid-row: 16 / 18;">15:00</div>
+              <div class="schedule-time schedule-time-end" style="grid-row: 18 / 19;">16:00</div>
+
+              <div class="schedule-lesson" style="grid-column: 2; grid-row: 2 / 5;">Matematik 2b</div>
+              <div class="schedule-lesson" style="grid-column: 2; grid-row: 7 / 10;">Fysik 2</div>
+              <div class="schedule-lesson" style="grid-column: 2; grid-row: 12 / 15;">Svenska 3</div>
+
+              <div class="schedule-lesson" style="grid-column: 3; grid-row: 2 / 5;">Engelska 6</div>
+              <div class="schedule-lesson" style="grid-column: 3; grid-row: 6 / 9;">Historia 1b</div>
+              <div class="schedule-lesson" style="grid-column: 3; grid-row: 12 / 17;">Programmering 1</div>
+
+              <div class="schedule-lesson" style="grid-column: 4; grid-row: 4 / 7;">Matematik 2b</div>
+              <div class="schedule-lesson" style="grid-column: 4; grid-row: 7 / 10;">Fysik 2</div>
+              <div class="schedule-lesson" style="grid-column: 4; grid-row: 12 / 15;">Svenska 3</div>
+
+              <div class="schedule-lesson" style="grid-column: 5; grid-row: 2 / 5;">Historia 1b</div>
+              <div class="schedule-lesson" style="grid-column: 5; grid-row: 6 / 9;">Engelska 6</div>
+              <div class="schedule-lesson" style="grid-column: 5; grid-row: 12 / 15;">Programmering 1</div>
+
+              <div class="schedule-lesson" style="grid-column: 6; grid-row: 4 / 7;">Matematik 2b</div>
+              <div class="schedule-lesson" style="grid-column: 6; grid-row: 8 / 11;">Svenska 3</div>
+            </div>
+            </div>
+          </div>
+
+          <div class="panel subjects-panel">
+            <h3>Ämnen</h3>
+            <div class="card-grid">
+              <div class="card">
+                <h3>Matematik 2b</h3>
+                <p class="muted">3 uppgifter · 12 anteckningar</p>
+              </div>
+              <div class="card">
+                <h3>Svenska 3</h3>
+                <p class="muted">1 uppgift · 5 anteckningar</p>
+              </div>
+              <div class="card">
+                <h3>Engelska 6</h3>
+                <p class="muted">2 uppgifter · 4 anteckningar</p>
+              </div>
+              <div class="card">
+                <h3>Fysik 2</h3>
+                <p class="muted">2 uppgifter · 8 anteckningar</p>
+              </div>
+              <div class="card">
+                <h3>Historia 1b</h3>
+                <p class="muted">1 uppgift · 6 anteckningar</p>
+              </div>
+              <div class="card">
+                <h3>Programmering 1</h3>
+                <p class="muted">1 uppgift · 3 anteckningar</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -263,6 +284,7 @@
                 <button class="color-swatch-btn" data-color="#2a9d8f" style="background:#2a9d8f"></button>
                 <button class="color-swatch-btn" data-color="#4361ee" style="background:#4361ee"></button>
                 <input id="brushSize" type="range" min="1" max="20" value="3" title="Penselstorlek" />
+                <button id="undoDrawBtn" class="draw-tool-btn" title="Ångra senaste strecket">↩ Ångra</button>
                 <button id="eraserBtn" class="draw-tool-btn" title="Sudd">🧽 Sudd</button>
                 <button id="clearCanvasBtn" class="draw-tool-btn" title="Rensa allt">Rensa</button>
               </div>
