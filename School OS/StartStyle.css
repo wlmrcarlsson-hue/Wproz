@@ -199,7 +199,7 @@ body {
   padding: 12px 14px;
 }
 
-.panel h3 {
+.panel > h3 {
   margin: 0 0 10px;
   padding-bottom: 8px;
   font-size: 1rem;
