@@ -66,8 +66,8 @@ body {
 
 .content {
   max-width: 900px;
-  margin: 0 auto;
-  padding: 10px 20px 60px;
+  margin: 0;
+  padding: 10px 20px 60px 48px;
 }
 
 .page {
