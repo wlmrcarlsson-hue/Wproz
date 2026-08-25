@@ -239,6 +239,8 @@ function showEmptyState() {
   textEditor.hidden = true;
   drawArea.hidden = true;
   mindmapEmpty.hidden = false;
+  deleteDocArm.disarm();
+  clearCanvasArm.disarm();
   renderDocList();
 }
 
@@ -267,6 +269,8 @@ function selectDoc(id) {
   mindmapEmpty.hidden = true;
   docToolbar.hidden = false;
   docTitleInput.value = doc.title;
+  deleteDocArm.disarm();
+  clearCanvasArm.disarm();
 
   if (doc.type === "text") {
     textEditor.hidden = false;
@@ -294,9 +298,39 @@ function createDoc(type) {
   selectDoc(doc.id);
 }
 
+// Browser confirm()/alert() dialogs are blocked in some sandboxed
+// preview environments, which would make destructive buttons appear
+// to do nothing. Use a "click again to confirm" pattern instead --
+// it needs no native dialog and works everywhere.
+function armConfirm(button, confirmLabel, onConfirm) {
+  const originalLabel = button.textContent;
+  let armed = false;
+  let timer = null;
+
+  function disarm() {
+    armed = false;
+    clearTimeout(timer);
+    button.textContent = originalLabel;
+    button.classList.remove("confirm-armed");
+  }
+
+  button.addEventListener("click", () => {
+    if (!armed) {
+      armed = true;
+      button.textContent = confirmLabel;
+      button.classList.add("confirm-armed");
+      timer = setTimeout(disarm, 3000);
+    } else {
+      disarm();
+      onConfirm();
+    }
+  });
+
+  return { disarm };
+}
+
 function deleteCurrentDoc() {
   if (!currentDocId) return;
-  if (!window.confirm("Ta bort dokumentet? Detta kan inte ångras.")) return;
 
   mindmapDocs = mindmapDocs.filter((d) => d.id !== currentDocId);
   saveMindmapDocs();
@@ -310,7 +344,7 @@ function deleteCurrentDoc() {
 
 newTextDocBtn.addEventListener("click", () => createDoc("text"));
 newDrawDocBtn.addEventListener("click", () => createDoc("draw"));
-deleteDocBtn.addEventListener("click", deleteCurrentDoc);
+const deleteDocArm = armConfirm(deleteDocBtn, "Säker? Klicka igen", deleteCurrentDoc);
 
 docTitleInput.addEventListener("input", () => {
   const doc = mindmapDocs.find((d) => d.id === currentDocId);
@@ -382,12 +416,13 @@ eraserBtn.addEventListener("click", () => {
   eraserBtn.classList.toggle("active", eraserActive);
 });
 
-clearCanvasBtn.addEventListener("click", () => {
-  if (!window.confirm("Rensa hela ritningen?")) return;
+function clearCanvas() {
   drawCtx.fillStyle = "#ffffff";
   drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
   saveCanvasToDoc();
-});
+}
+
+const clearCanvasArm = armConfirm(clearCanvasBtn, "Säker? Klicka igen", clearCanvas);
 
 window.addEventListener("resize", () => {
   const doc = mindmapDocs.find((d) => d.id === currentDocId);
