@@ -55,8 +55,8 @@ body {
   font-weight: 500;
   color: #cdd6ec;
   background: radial-gradient(circle at 50% 0%, hsl(var(--hue) 68% 57% / 0.35), hsl(var(--hue) 50% 24% / 0.25));
-  border: 1px solid hsl(var(--hue) 69% 69% / 0.25);
-  border-radius: 10px;
+  border: 1px solid hsl(var(--hue) 69% 69% / 0.4);
+  border-radius: 6px;
   cursor: pointer;
   transition: background 0.25s ease, border-color 0.25s ease, transform 0.15s ease;
 }
@@ -99,13 +99,15 @@ body {
 .page-layout {
   display: flex;
   align-items: flex-start;
-  gap: 36px;
+  gap: 28px;
 }
 
 .catalog {
   flex: 0 0 180px;
   position: sticky;
   top: 20px;
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
+  padding-right: 20px;
 }
 
 .catalog-title {
@@ -147,6 +149,10 @@ body {
     position: static;
     flex: none;
     width: 100%;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+    padding-right: 0;
+    padding-bottom: 16px;
   }
 }
 
@@ -192,10 +198,9 @@ body {
 
 .panel {
   background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
   padding: 18px 20px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .panel h3 {
@@ -215,16 +220,15 @@ body {
 
 .card {
   background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
   padding: 20px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
   transition: background 0.25s ease, border-color 0.25s ease;
 }
 
 .card:hover {
   background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(150, 180, 255, 0.35);
+  border-color: hsl(var(--hue) 70% 70% / 0.45);
 }
 
 .card h3 {
@@ -297,10 +301,9 @@ body {
 
 .notes-group {
   background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
   padding: 16px 20px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .notes-group h3 {
