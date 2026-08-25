@@ -332,6 +332,23 @@ const confirmNewGroupBtn = document.getElementById("confirmNewGroupBtn");
 const groupDockList = document.getElementById("groupDockList");
 const groupDockCatalog = document.getElementById("groupDockCatalog");
 const groupDockSubjects = document.getElementById("groupDockSubjects");
+const appModalOverlay = document.getElementById("appModalOverlay");
+const appModalTitle = document.getElementById("appModalTitle");
+const appModalMessage = document.getElementById("appModalMessage");
+const appModalOkBtn = document.getElementById("appModalOkBtn");
+
+function showAppModal(title, message) {
+  appModalTitle.textContent = title;
+  appModalMessage.textContent = message;
+  appModalOverlay.hidden = false;
+}
+
+appModalOkBtn.addEventListener("click", () => {
+  appModalOverlay.hidden = true;
+});
+appModalOverlay.addEventListener("click", (event) => {
+  if (event.target === appModalOverlay) appModalOverlay.hidden = true;
+});
 
 let mindmapDocs = loadMindmapDocs();
 let mindmapGroups = loadGroups();
@@ -505,10 +522,23 @@ function renderDocList() {
     label.textContent = `🗂 ${group.name}`;
     header.appendChild(label);
 
+    const actions = document.createElement("span");
+    actions.className = "doc-list-group-actions";
+
+    actions.appendChild(
+      createDeleteControl({
+        category: "groups",
+        compact: true,
+        onDelete: () => deleteGroupById(group.id),
+      })
+    );
+
     const toggle = document.createElement("span");
     toggle.className = "doc-list-group-toggle";
     toggle.textContent = "▾";
-    header.appendChild(toggle);
+    actions.appendChild(toggle);
+
+    header.appendChild(actions);
 
     header.addEventListener("click", () => {
       group.collapsed = !group.collapsed;
@@ -838,7 +868,21 @@ function submitNewDoc() {
   const title = newDocInput.value.trim();
   if (!title) return;
 
-  createDoc(newDocType.value, title, newDocSubject.value);
+  const targetGroup = mindmapGroups.find((g) => g.id === activeGroupId);
+  let subject = newDocSubject.value;
+
+  if (targetGroup && targetGroup.subject) {
+    if (subject && subject !== targetGroup.subject) {
+      showAppModal(
+        "Kan inte lägga till dokumentet",
+        `Gruppen "${targetGroup.name}" har ämnet "${targetGroup.subject}". En grupp kan bara innehålla ett ämne, så ett dokument med ett annat ämne kan inte läggas till. Välj samma ämne, eller lämna ämnesfältet på "Inget ämne" så sätts det automatiskt till gruppens ämne.`
+      );
+      return;
+    }
+    subject = targetGroup.subject;
+  }
+
+  createDoc(newDocType.value, title, subject);
   newDocInput.value = "";
   newDocSubject.value = "";
   newDocType.value = "text";
