@@ -162,6 +162,117 @@ document.addEventListener("click", (event) => {
 const initialTheme = loadTheme();
 applyTheme(initialTheme.hue, initialTheme.sat);
 
+// ---------- Delete warnings (shared by groups/docs/drawings) ----------
+
+const DELETE_WARNINGS_KEY = "schoolos-delete-warnings";
+const DEFAULT_DELETE_WARNINGS = { groups: true, docs: true, drawings: true };
+
+const warnGroupsCheckbox = document.getElementById("warnGroups");
+const warnDocsCheckbox = document.getElementById("warnDocs");
+const warnDrawingsCheckbox = document.getElementById("warnDrawings");
+
+function loadDeleteWarnings() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(DELETE_WARNINGS_KEY));
+    if (parsed && typeof parsed === "object") {
+      return { ...DEFAULT_DELETE_WARNINGS, ...parsed };
+    }
+  } catch (e) {
+    // ignore malformed storage
+  }
+  return { ...DEFAULT_DELETE_WARNINGS };
+}
+
+let deleteWarnings = loadDeleteWarnings();
+
+function saveDeleteWarnings() {
+  localStorage.setItem(DELETE_WARNINGS_KEY, JSON.stringify(deleteWarnings));
+}
+
+function syncDeleteWarningToggles() {
+  warnGroupsCheckbox.checked = deleteWarnings.groups;
+  warnDocsCheckbox.checked = deleteWarnings.docs;
+  warnDrawingsCheckbox.checked = deleteWarnings.drawings;
+}
+
+function setDeleteWarning(category, value) {
+  deleteWarnings[category] = value;
+  saveDeleteWarnings();
+  syncDeleteWarningToggles();
+}
+
+warnGroupsCheckbox.addEventListener("change", () => setDeleteWarning("groups", warnGroupsCheckbox.checked));
+warnDocsCheckbox.addEventListener("change", () => setDeleteWarning("docs", warnDocsCheckbox.checked));
+warnDrawingsCheckbox.addEventListener("change", () => setDeleteWarning("drawings", warnDrawingsCheckbox.checked));
+
+syncDeleteWarningToggles();
+
+// A small "X" that turns into an inline confirm (Radera / Fråga inte
+// igen) instead of a native confirm() dialog -- same reasoning as
+// armConfirm(): native dialogs are blocked in some sandboxed previews.
+// "Fråga inte igen" both deletes now AND remembers the choice in
+// Settings, so it stays in sync with the checkboxes there.
+function createDeleteControl({ category, compact, onDelete }) {
+  const wrap = document.createElement("span");
+  wrap.className = compact ? "delete-control delete-control-compact" : "delete-control";
+  let revertTimer = null;
+
+  function renderIdle() {
+    clearTimeout(revertTimer);
+    wrap.innerHTML = "";
+    const xBtn = document.createElement("button");
+    xBtn.type = "button";
+    xBtn.className = "delete-x-btn";
+    xBtn.textContent = "✕";
+    xBtn.title = "Ta bort";
+    xBtn.setAttribute("aria-label", "Ta bort");
+    xBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (!deleteWarnings[category]) {
+        onDelete();
+        return;
+      }
+      renderConfirm();
+    });
+    wrap.appendChild(xBtn);
+  }
+
+  function renderConfirm() {
+    clearTimeout(revertTimer);
+    wrap.innerHTML = "";
+
+    const confirmBtn = document.createElement("button");
+    confirmBtn.type = "button";
+    confirmBtn.className = "delete-confirm-btn";
+    confirmBtn.textContent = compact ? "✓" : "Radera";
+    confirmBtn.title = "Bekräfta radering";
+    confirmBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      clearTimeout(revertTimer);
+      onDelete();
+    });
+
+    const dontAskBtn = document.createElement("button");
+    dontAskBtn.type = "button";
+    dontAskBtn.className = "delete-dontask-btn";
+    dontAskBtn.textContent = compact ? "🔕" : "Fråga inte igen";
+    dontAskBtn.title = "Radera och fråga inte igen för den här typen";
+    dontAskBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      clearTimeout(revertTimer);
+      setDeleteWarning(category, false);
+      onDelete();
+    });
+
+    wrap.appendChild(confirmBtn);
+    wrap.appendChild(dontAskBtn);
+    revertTimer = setTimeout(renderIdle, 4000);
+  }
+
+  renderIdle();
+  return wrap;
+}
+
 // ---------- Mindmap (documents: text notes + drawings, in groups) ----------
 
 const MINDMAP_STORAGE_KEY = "schoolos-mindmap-docs";
@@ -288,6 +399,25 @@ function createGroup(name) {
   renderGroupSelector();
 }
 
+// Deleting a group only removes the group itself -- its documents are
+// ungrouped (groupId set to null), not deleted, same as removing a
+// folder shouldn't destroy the files inside it.
+function deleteGroupById(id) {
+  mindmapDocs.forEach((doc) => {
+    if (doc.groupId === id) doc.groupId = null;
+  });
+  saveMindmapDocs();
+
+  mindmapGroups = mindmapGroups.filter((g) => g.id !== id);
+  saveGroups();
+
+  if (activeGroupId === id) activeGroupId = null;
+
+  renderGroupSelector();
+  renderDocList();
+  renderGroupDock();
+}
+
 function renderDocList() {
   docList.innerHTML = "";
 
@@ -301,9 +431,22 @@ function renderDocList() {
 
   function appendDocItem(doc) {
     const item = document.createElement("li");
-    item.textContent = `${doc.type === "draw" ? "🎨" : "📝"} ${doc.title}`;
     if (doc.id === currentDocId) item.classList.add("active");
     item.addEventListener("click", () => selectDoc(doc.id));
+
+    const label = document.createElement("span");
+    label.className = "doc-list-label";
+    label.textContent = `${doc.type === "draw" ? "🎨" : "📝"} ${doc.title}`;
+    item.appendChild(label);
+
+    item.appendChild(
+      createDeleteControl({
+        category: doc.type === "draw" ? "drawings" : "docs",
+        compact: true,
+        onDelete: () => deleteDocById(doc.id),
+      })
+    );
+
     docList.appendChild(item);
   }
 
@@ -351,7 +494,7 @@ function goToMindmapDoc(docId) {
   selectDoc(docId);
 }
 
-function buildGroupBox(name, groupId, docsInGroup, collapsed, onToggle) {
+function buildGroupBox(name, groupId, docsInGroup, collapsed, onToggle, showDelete) {
   const box = document.createElement("div");
   box.className = "group-box";
   if (collapsed) box.classList.add("collapsed");
@@ -378,6 +521,17 @@ function buildGroupBox(name, groupId, docsInGroup, collapsed, onToggle) {
   toggle.setAttribute("aria-label", "Minimera grupp");
 
   header.appendChild(heading);
+
+  if (showDelete) {
+    header.appendChild(
+      createDeleteControl({
+        category: "groups",
+        compact: false,
+        onDelete: () => deleteGroupById(groupId),
+      })
+    );
+  }
+
   header.appendChild(toggle);
   header.addEventListener("click", onToggle);
 
@@ -410,11 +564,18 @@ function renderGroupDock() {
 
   mindmapGroups.forEach((group) => {
     const docsInGroup = mindmapDocs.filter((d) => d.groupId === group.id);
-    const box = buildGroupBox(group.name, group.id, docsInGroup, group.collapsed, () => {
-      group.collapsed = !group.collapsed;
-      saveGroups();
-      renderGroupDock();
-    });
+    const box = buildGroupBox(
+      group.name,
+      group.id,
+      docsInGroup,
+      group.collapsed,
+      () => {
+        group.collapsed = !group.collapsed;
+        saveGroups();
+        renderGroupDock();
+      },
+      true
+    );
     groupDockList.appendChild(box);
 
     const catalogItem = document.createElement("li");
@@ -427,9 +588,16 @@ function renderGroupDock() {
 
   const ungrouped = mindmapDocs.filter((d) => !d.groupId);
   if (ungrouped.length > 0) {
-    const box = buildGroupBox("Ogrupperat", null, ungrouped, false, (event) => {
-      event.currentTarget.closest(".group-box").classList.toggle("collapsed");
-    });
+    const box = buildGroupBox(
+      "Ogrupperat",
+      null,
+      ungrouped,
+      false,
+      (event) => {
+        event.currentTarget.closest(".group-box").classList.toggle("collapsed");
+      },
+      false
+    );
     groupDockList.appendChild(box);
 
     const catalogItem = document.createElement("li");
@@ -544,17 +712,27 @@ function armConfirm(button, confirmLabel, onConfirm) {
   return { disarm };
 }
 
-function deleteCurrentDoc() {
-  if (!currentDocId) return;
-
-  mindmapDocs = mindmapDocs.filter((d) => d.id !== currentDocId);
+function deleteDocById(id) {
+  const wasCurrent = id === currentDocId;
+  mindmapDocs = mindmapDocs.filter((d) => d.id !== id);
   saveMindmapDocs();
 
-  if (mindmapDocs.length > 0) {
-    selectDoc(mindmapDocs[0].id);
+  if (wasCurrent) {
+    if (mindmapDocs.length > 0) {
+      selectDoc(mindmapDocs[0].id);
+    } else {
+      showEmptyState();
+    }
   } else {
-    showEmptyState();
+    renderDocList();
   }
+
+  renderGroupDock();
+}
+
+function deleteCurrentDoc() {
+  if (!currentDocId) return;
+  deleteDocById(currentDocId);
 }
 
 newTextDocBtn.addEventListener("click", () => createDoc("text"));

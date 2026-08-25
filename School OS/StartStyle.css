@@ -370,8 +370,17 @@ body {
 /* ---------- Mindmap (document list) ---------- */
 
 .doc-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.doc-list-label {
+  min-width: 0;
+  flex: 1;
 }
 
 .doc-list li:hover {
@@ -477,7 +486,6 @@ body {
 .group-box-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
   padding: 10px 12px;
   cursor: pointer;
@@ -488,6 +496,7 @@ body {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  flex: 1;
 }
 
 .group-box-name {
@@ -823,4 +832,89 @@ body {
 .theme-reset:hover {
   color: #ffffff;
   border-color: hsl(var(--hue) 60% 65% / 0.5);
+}
+
+.theme-panel-divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.delete-warnings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.theme-panel-subtitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6c7aa3;
+}
+
+.delete-warning-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #cdd6ec;
+  cursor: pointer;
+}
+
+.delete-warning-row input {
+  accent-color: hsl(var(--hue) 70% 55%);
+  cursor: pointer;
+}
+
+/* ---------- Delete controls (X + inline confirm) ---------- */
+
+.delete-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.delete-x-btn,
+.delete-confirm-btn,
+.delete-dontask-btn {
+  padding: 3px 7px;
+  font-size: 0.75rem;
+  line-height: 1;
+  color: #8b96b8;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.delete-x-btn:hover {
+  color: #ff8a8a;
+  background: rgba(255, 90, 90, 0.12);
+  border-color: rgba(255, 90, 90, 0.4);
+}
+
+.delete-confirm-btn {
+  color: #ff8a8a;
+  border-color: rgba(255, 90, 90, 0.4);
+}
+
+.delete-confirm-btn:hover {
+  background: rgba(255, 90, 90, 0.2);
+}
+
+.delete-dontask-btn:hover {
+  color: #ffffff;
+  border-color: hsl(var(--hue) 70% 70% / 0.5);
+}
+
+.delete-control-compact .delete-x-btn,
+.delete-control-compact .delete-confirm-btn,
+.delete-control-compact .delete-dontask-btn {
+  padding: 2px 5px;
+  font-size: 0.7rem;
 }
