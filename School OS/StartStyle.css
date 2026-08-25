@@ -397,13 +397,33 @@ body {
   font-size: 0.85rem;
   color: #6c7aa3;
   padding: 5px 8px;
+  cursor: default;
+}
+
+.doc-list-empty:hover {
+  background: transparent;
+}
+
+.doc-list-group-header {
+  font-weight: 600;
+  color: #8b96b8;
+}
+
+.doc-list-group-toggle {
+  font-size: 0.7rem;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.doc-list-group-header.collapsed .doc-list-group-toggle {
+  transform: rotate(-90deg);
 }
 
 .doc-new-buttons {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-top: 12px;
+  margin: 0 0 12px;
 }
 
 .doc-new-btn {
@@ -460,6 +480,15 @@ body {
   padding: 6px 8px;
 }
 
+.group-subject-select {
+  padding: 6px 8px;
+  font-size: 0.82rem;
+  color: #cdd6ec;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
 .doc-list-title {
   margin-top: 0;
 }
@@ -469,6 +498,19 @@ body {
 .groupdock-intro {
   margin: 0 0 14px;
   font-size: 0.85rem;
+}
+
+.groupdock-subtitle {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6c7aa3;
+}
+
+.groupdock-subjects {
+  margin-bottom: 18px;
 }
 
 .group-dock-list {

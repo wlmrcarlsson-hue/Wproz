@@ -278,7 +278,9 @@ function createDeleteControl({ category, compact, onDelete }) {
 const MINDMAP_STORAGE_KEY = "schoolos-mindmap-docs";
 const GROUPS_STORAGE_KEY = "schoolos-mindmap-groups";
 
-const DEFAULT_GROUPS = [{ id: "grp-math", name: "Matematik 2b", collapsed: false }];
+const SUBJECTS = ["Matematik 2b", "Svenska 3", "Engelska 6", "Fysik 2", "Historia 1b", "Programmering 1"];
+
+const DEFAULT_GROUPS = [{ id: "grp-math", name: "Matematik 2b", collapsed: false, subject: "Matematik 2b" }];
 const DEFAULT_DOCS = [
   {
     id: "seed-1",
@@ -318,9 +320,11 @@ const groupSelector = document.getElementById("groupSelector");
 const newGroupBtn = document.getElementById("newGroupBtn");
 const newGroupForm = document.getElementById("newGroupForm");
 const newGroupInput = document.getElementById("newGroupInput");
+const newGroupSubject = document.getElementById("newGroupSubject");
 const confirmNewGroupBtn = document.getElementById("confirmNewGroupBtn");
 const groupDockList = document.getElementById("groupDockList");
 const groupDockCatalog = document.getElementById("groupDockCatalog");
+const groupDockSubjects = document.getElementById("groupDockSubjects");
 
 let mindmapDocs = loadMindmapDocs();
 let mindmapGroups = loadGroups();
@@ -388,15 +392,16 @@ function renderGroupSelector() {
   });
 }
 
-function createGroup(name) {
+function createGroup(name, subject) {
   const trimmed = name.trim();
   if (!trimmed) return;
 
-  const group = { id: `grp-${Date.now()}`, name: trimmed, collapsed: false };
+  const group = { id: `grp-${Date.now()}`, name: trimmed, collapsed: false, subject: subject || "" };
   mindmapGroups.push(group);
   saveGroups();
   activeGroupId = group.id;
   renderGroupSelector();
+  renderGroupDock();
 }
 
 // Deleting a group only removes the group itself -- its documents are
@@ -450,24 +455,48 @@ function renderDocList() {
     docList.appendChild(item);
   }
 
-  function appendGroupHeader(text) {
+  function appendStaticHeader(text) {
     const header = document.createElement("li");
     header.className = "doc-list-empty";
     header.textContent = text;
     docList.appendChild(header);
   }
 
+  function appendGroupHeader(group) {
+    const header = document.createElement("li");
+    header.className = "doc-list-group-header";
+    if (group.collapsed) header.classList.add("collapsed");
+
+    const label = document.createElement("span");
+    label.className = "doc-list-label";
+    label.textContent = `🗂 ${group.name}`;
+    header.appendChild(label);
+
+    const toggle = document.createElement("span");
+    toggle.className = "doc-list-group-toggle";
+    toggle.textContent = "▾";
+    header.appendChild(toggle);
+
+    header.addEventListener("click", () => {
+      group.collapsed = !group.collapsed;
+      saveGroups();
+      renderDocList();
+    });
+
+    docList.appendChild(header);
+  }
+
   const ungrouped = mindmapDocs.filter((d) => !d.groupId);
   const hasGroups = mindmapGroups.length > 0;
 
-  if (hasGroups && ungrouped.length > 0) appendGroupHeader("Ingen grupp");
+  if (hasGroups && ungrouped.length > 0) appendStaticHeader("Ingen grupp");
   ungrouped.forEach(appendDocItem);
 
   mindmapGroups.forEach((group) => {
     const docsInGroup = mindmapDocs.filter((d) => d.groupId === group.id);
     if (docsInGroup.length === 0) return;
-    appendGroupHeader(`🗂 ${group.name}`);
-    docsInGroup.forEach(appendDocItem);
+    appendGroupHeader(group);
+    if (!group.collapsed) docsInGroup.forEach(appendDocItem);
   });
 }
 
@@ -475,14 +504,15 @@ function pluralizeDrawings(count) {
   return count === 1 ? "ritning" : "ritningar";
 }
 
-function groupMetaLabel(docsInGroup) {
+function groupMetaLabel(docsInGroup, subject) {
   const textCount = docsInGroup.filter((d) => d.type === "text").length;
   const drawCount = docsInGroup.filter((d) => d.type === "draw").length;
   const typeParts = [];
   if (textCount > 0) typeParts.push(`${textCount} dokument`);
   if (drawCount > 0) typeParts.push(`${drawCount} ${pluralizeDrawings(drawCount)}`);
   const typeLabel = typeParts.length > 0 ? typeParts.join(", ") : "inga projekt";
-  return `${docsInGroup.length} projekt · ${typeLabel}`;
+  const base = `${docsInGroup.length} projekt · ${typeLabel}`;
+  return subject ? `${base} · ${subject}` : base;
 }
 
 function goToMindmapDoc(docId) {
@@ -494,7 +524,7 @@ function goToMindmapDoc(docId) {
   selectDoc(docId);
 }
 
-function buildGroupBox(name, groupId, docsInGroup, collapsed, onToggle, showDelete) {
+function buildGroupBox(name, groupId, docsInGroup, collapsed, onToggle, showDelete, subject) {
   const box = document.createElement("div");
   box.className = "group-box";
   if (collapsed) box.classList.add("collapsed");
@@ -510,7 +540,7 @@ function buildGroupBox(name, groupId, docsInGroup, collapsed, onToggle, showDele
   nameEl.textContent = `🗂 ${name}`;
   const metaEl = document.createElement("span");
   metaEl.className = "group-box-meta";
-  metaEl.textContent = groupMetaLabel(docsInGroup);
+  metaEl.textContent = groupMetaLabel(docsInGroup, subject);
   heading.appendChild(nameEl);
   heading.appendChild(metaEl);
 
@@ -558,9 +588,30 @@ function buildGroupBox(name, groupId, docsInGroup, collapsed, onToggle, showDele
   return box;
 }
 
+function renderGroupDockSubjects() {
+  groupDockSubjects.innerHTML = "";
+
+  SUBJECTS.forEach((subject) => {
+    const groupsForSubject = mindmapGroups.filter((g) => g.subject === subject);
+    const noteCount = mindmapDocs.filter((d) => groupsForSubject.some((g) => g.id === d.groupId)).length;
+
+    const card = document.createElement("div");
+    card.className = "card";
+    const nameEl = document.createElement("h3");
+    nameEl.textContent = subject;
+    const countEl = document.createElement("p");
+    countEl.className = "muted";
+    countEl.textContent = `${noteCount} ${noteCount === 1 ? "anteckning" : "anteckningar"}`;
+    card.appendChild(nameEl);
+    card.appendChild(countEl);
+    groupDockSubjects.appendChild(card);
+  });
+}
+
 function renderGroupDock() {
   groupDockList.innerHTML = "";
   groupDockCatalog.innerHTML = "";
+  renderGroupDockSubjects();
 
   mindmapGroups.forEach((group) => {
     const docsInGroup = mindmapDocs.filter((d) => d.groupId === group.id);
@@ -573,8 +624,10 @@ function renderGroupDock() {
         group.collapsed = !group.collapsed;
         saveGroups();
         renderGroupDock();
+        renderDocList();
       },
-      true
+      true,
+      group.subject
     );
     groupDockList.appendChild(box);
 
@@ -868,8 +921,9 @@ newGroupBtn.addEventListener("click", () => {
 });
 
 function submitNewGroup() {
-  createGroup(newGroupInput.value);
+  createGroup(newGroupInput.value, newGroupSubject.value);
   newGroupInput.value = "";
+  newGroupSubject.value = "";
   newGroupForm.hidden = true;
 }
 
