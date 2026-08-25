@@ -20,6 +20,24 @@
     </nav>
   </header>
 
+  <button id="settingsBtn" class="settings-btn" aria-label="Theme settings" title="Theme settings">⚙️</button>
+
+  <div id="themePanel" class="theme-panel" hidden>
+    <div class="theme-panel-header">
+      <span>Theme color</span>
+      <button id="closeTheme" class="theme-close" aria-label="Close theme settings">✕</button>
+    </div>
+
+    <canvas id="colorWheel" class="color-wheel" width="180" height="180"></canvas>
+
+    <div class="theme-preview">
+      <span id="themeSwatch" class="theme-swatch"></span>
+      <span id="themeLabel" class="muted">hsl(224, 63%, 55%)</span>
+    </div>
+
+    <button id="resetTheme" class="theme-reset">Reset to default</button>
+  </div>
+
   <main class="content">
 
     <!-- HOME -->
