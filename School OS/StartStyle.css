@@ -125,12 +125,14 @@ body {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 3px;
 }
 
 .catalog-list li {
   padding: 5px 8px;
-  border-left: 2px solid hsl(var(--hue) 100% 75% / 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-left: 2px solid hsl(var(--hue) 100% 75% / 0.5);
+  border-radius: 2px;
   font-size: 0.88rem;
   color: #b7c2e2;
 }
@@ -170,15 +172,15 @@ body {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .list li {
-  padding: 5px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.list li:last-child {
-  border-bottom: none;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
 }
 
 .time {
@@ -188,13 +190,7 @@ body {
   font-weight: 600;
 }
 
-/* ---------- Panels (Home) ---------- */
-
-.panel-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
-}
+/* ---------- Panels (Assignments table wrap, Calendar) ---------- */
 
 .panel {
   background: rgba(255, 255, 255, 0.06);
@@ -246,13 +242,24 @@ body {
 .table {
   width: 100%;
   border-collapse: collapse;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .table th,
 .table td {
   text-align: left;
   padding: 8px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.table th:last-child,
+.table td:last-child {
+  border-right: none;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
 }
 
 .table th {
@@ -266,6 +273,7 @@ body {
 .status {
   display: inline-block;
   padding: 4px 10px;
+  border: 1px solid currentColor;
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 500;
