@@ -288,6 +288,7 @@ const DEFAULT_DOCS = [
     type: "text",
     content: "Saker att öva på:\n- Ekvationer med två okända\n- Källkritik i historia\n- Oregelbundna verb i engelska",
     groupId: "grp-math",
+    subject: "Matematik 2b",
     updatedAt: Date.now(),
   },
   {
@@ -296,6 +297,7 @@ const DEFAULT_DOCS = [
     type: "draw",
     content: "",
     groupId: "grp-math",
+    subject: "Matematik 2b",
     updatedAt: Date.now(),
   },
 ];
@@ -304,6 +306,7 @@ const docList = document.getElementById("docList");
 const newDocBtn = document.getElementById("newDocBtn");
 const newDocForm = document.getElementById("newDocForm");
 const newDocInput = document.getElementById("newDocInput");
+const newDocSubject = document.getElementById("newDocSubject");
 const newDocType = document.getElementById("newDocType");
 const confirmNewDocBtn = document.getElementById("confirmNewDocBtn");
 const docToolbar = document.getElementById("docToolbar");
@@ -595,8 +598,7 @@ function renderGroupDockSubjects() {
   groupDockSubjects.innerHTML = "";
 
   SUBJECTS.forEach((subject) => {
-    const groupsForSubject = mindmapGroups.filter((g) => g.subject === subject);
-    const noteCount = mindmapDocs.filter((d) => groupsForSubject.some((g) => g.id === d.groupId)).length;
+    const noteCount = mindmapDocs.filter((d) => d.subject === subject).length;
 
     const card = document.createElement("div");
     card.className = "card";
@@ -723,13 +725,14 @@ function selectDoc(id) {
   renderDocList();
 }
 
-function createDoc(type, title) {
+function createDoc(type, title, subject) {
   const doc = {
     id: `doc-${Date.now()}`,
     title,
     type,
     content: "",
     groupId: activeGroupId,
+    subject: subject || "",
     updatedAt: Date.now(),
   };
   mindmapDocs.unshift(doc);
@@ -801,8 +804,9 @@ function submitNewDoc() {
   const title = newDocInput.value.trim();
   if (!title) return;
 
-  createDoc(newDocType.value, title);
+  createDoc(newDocType.value, title, newDocSubject.value);
   newDocInput.value = "";
+  newDocSubject.value = "";
   newDocType.value = "text";
   newDocForm.hidden = true;
 }
