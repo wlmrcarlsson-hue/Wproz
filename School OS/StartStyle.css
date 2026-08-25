@@ -66,7 +66,7 @@ body {
 /* ---------- Page content ---------- */
 
 .content {
-  max-width: 900px;
+  max-width: 1080px;
   margin: 0;
   padding: 32px 20px 60px 48px;
 }
@@ -77,6 +77,62 @@ body {
 
 .page.active {
   display: block;
+}
+
+/* ---------- Catalog (per-page topic index) ---------- */
+
+.page-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 36px;
+}
+
+.catalog {
+  flex: 0 0 180px;
+  position: sticky;
+  top: 20px;
+}
+
+.catalog-title {
+  margin: 0 0 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6c7aa3;
+}
+
+.catalog-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.catalog-list li {
+  padding: 7px 10px;
+  border-left: 2px solid rgba(127, 163, 255, 0.35);
+  font-size: 0.88rem;
+  color: #b7c2e2;
+}
+
+.page-body {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 700px) {
+  .page-layout {
+    flex-direction: column;
+  }
+
+  .catalog {
+    position: static;
+    flex: none;
+    width: 100%;
+  }
 }
 
 .page h2 {
