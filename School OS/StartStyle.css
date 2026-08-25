@@ -26,12 +26,12 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 28px 20px 24px;
+  padding: 18px 20px 16px;
   border-bottom: 2px solid rgba(255, 255, 255, 0.25);
 }
 
 .logo {
-  margin: 0 0 20px;
+  margin: 0 0 14px;
   font-size: 1.4rem;
   letter-spacing: 0.12em;
   font-weight: 600;
@@ -41,7 +41,7 @@ body {
 .tabs {
   display: flex;
   justify-content: center;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
   width: 100%;
   max-width: 900px;
@@ -50,7 +50,7 @@ body {
 .tab-btn {
   flex: 1 1 0;
   min-width: 120px;
-  padding: 12px 18px;
+  padding: 9px 14px;
   font-size: 0.95rem;
   font-weight: 500;
   color: #cdd6ec;
@@ -83,7 +83,7 @@ body {
 .content {
   max-width: 1080px;
   margin: 0;
-  padding: 32px 20px 60px 48px;
+  padding: 18px 16px 32px 32px;
 }
 
 .page {
@@ -99,19 +99,19 @@ body {
 .page-layout {
   display: flex;
   align-items: flex-start;
-  gap: 28px;
+  gap: 20px;
 }
 
 .catalog {
-  flex: 0 0 180px;
+  flex: 0 0 170px;
   position: sticky;
   top: 20px;
   border-right: 2px solid rgba(255, 255, 255, 0.3);
-  padding-right: 20px;
+  padding-right: 16px;
 }
 
 .catalog-title {
-  margin: 0 0 10px;
+  margin: 0 0 6px;
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -125,11 +125,11 @@ body {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 1px;
 }
 
 .catalog-list li {
-  padding: 7px 10px;
+  padding: 5px 8px;
   border-left: 2px solid hsl(var(--hue) 100% 75% / 0.35);
   font-size: 0.88rem;
   color: #b7c2e2;
@@ -159,7 +159,7 @@ body {
 .page h2 {
   font-weight: 500;
   color: #ffffff;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .muted {
@@ -173,7 +173,7 @@ body {
 }
 
 .list li {
-  padding: 8px 0;
+  padding: 5px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -193,14 +193,14 @@ body {
 .panel-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
+  gap: 10px;
 }
 
 .panel {
   background: rgba(255, 255, 255, 0.06);
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 3px;
-  padding: 18px 20px;
+  padding: 12px 14px;
 }
 
 .panel h3 {
@@ -215,14 +215,14 @@ body {
 .card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
+  gap: 10px;
 }
 
 .card {
   background: rgba(255, 255, 255, 0.06);
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 3px;
-  padding: 20px;
+  padding: 14px;
   transition: background 0.25s ease, border-color 0.25s ease;
 }
 
@@ -251,7 +251,7 @@ body {
 .table th,
 .table td {
   text-align: left;
-  padding: 12px 14px;
+  padding: 8px 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
 
@@ -296,14 +296,14 @@ body {
 .notes-tree {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+  gap: 10px;
 }
 
 .notes-group {
   background: rgba(255, 255, 255, 0.06);
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 3px;
-  padding: 16px 20px;
+  padding: 10px 14px;
 }
 
 .notes-group h3 {
@@ -315,7 +315,7 @@ body {
 /* ---------- Calendar ---------- */
 
 .calendar-list li {
-  padding: 12px 0;
+  padding: 8px 0;
 }
 
 /* ---------- Theme settings ---------- */
