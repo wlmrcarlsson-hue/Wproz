@@ -301,8 +301,11 @@ const DEFAULT_DOCS = [
 ];
 
 const docList = document.getElementById("docList");
-const newTextDocBtn = document.getElementById("newTextDoc");
-const newDrawDocBtn = document.getElementById("newDrawDoc");
+const newDocBtn = document.getElementById("newDocBtn");
+const newDocForm = document.getElementById("newDocForm");
+const newDocInput = document.getElementById("newDocInput");
+const newDocType = document.getElementById("newDocType");
+const confirmNewDocBtn = document.getElementById("confirmNewDocBtn");
 const docToolbar = document.getElementById("docToolbar");
 const docTitleInput = document.getElementById("docTitleInput");
 const deleteDocBtn = document.getElementById("deleteDocBtn");
@@ -720,10 +723,10 @@ function selectDoc(id) {
   renderDocList();
 }
 
-function createDoc(type) {
+function createDoc(type, title) {
   const doc = {
     id: `doc-${Date.now()}`,
-    title: type === "draw" ? "Namnlös ritning" : "Namnlöst dokument",
+    title,
     type,
     content: "",
     groupId: activeGroupId,
@@ -732,6 +735,7 @@ function createDoc(type) {
   mindmapDocs.unshift(doc);
   saveMindmapDocs();
   selectDoc(doc.id);
+  renderGroupDock();
 }
 
 // Browser confirm()/alert() dialogs are blocked in some sandboxed
@@ -788,8 +792,26 @@ function deleteCurrentDoc() {
   deleteDocById(currentDocId);
 }
 
-newTextDocBtn.addEventListener("click", () => createDoc("text"));
-newDrawDocBtn.addEventListener("click", () => createDoc("draw"));
+newDocBtn.addEventListener("click", () => {
+  newDocForm.hidden = !newDocForm.hidden;
+  if (!newDocForm.hidden) newDocInput.focus();
+});
+
+function submitNewDoc() {
+  const title = newDocInput.value.trim();
+  if (!title) return;
+
+  createDoc(newDocType.value, title);
+  newDocInput.value = "";
+  newDocType.value = "text";
+  newDocForm.hidden = true;
+}
+
+confirmNewDocBtn.addEventListener("click", submitNewDoc);
+newDocInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") submitNewDoc();
+});
+
 const deleteDocArm = armConfirm(deleteDocBtn, "Säker? Klicka igen", deleteCurrentDoc);
 
 docTitleInput.addEventListener("input", () => {

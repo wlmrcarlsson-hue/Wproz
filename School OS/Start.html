@@ -275,9 +275,16 @@
 
           <h4 class="catalog-title doc-list-title">Dokument</h4>
 
-          <div class="doc-new-buttons">
-            <button id="newTextDoc" class="doc-new-btn">📝 Nytt dokument</button>
-            <button id="newDrawDoc" class="doc-new-btn">🎨 Ny ritning</button>
+          <div id="newDocRow" class="new-group-row">
+            <button id="newDocBtn" class="doc-new-btn">➕ Nytt dokument</button>
+            <div id="newDocForm" class="new-group-form" hidden>
+              <input id="newDocInput" type="text" class="doc-title-input" placeholder="Dokumentnamn" maxlength="60" />
+              <select id="newDocType" class="group-subject-select">
+                <option value="text">📝 Dokument</option>
+                <option value="draw">🎨 Ritning</option>
+              </select>
+              <button id="confirmNewDocBtn" class="doc-new-btn">Skapa</button>
+            </div>
           </div>
 
           <ul id="docList" class="catalog-list doc-list"></ul>

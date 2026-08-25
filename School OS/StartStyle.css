@@ -419,13 +419,6 @@ body {
   transform: rotate(-90deg);
 }
 
-.doc-new-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 0 0 12px;
-}
-
 .doc-new-btn {
   padding: 7px 8px;
   font-size: 0.82rem;
