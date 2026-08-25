@@ -277,6 +277,7 @@ function createDeleteControl({ category, compact, onDelete }) {
 
 const MINDMAP_STORAGE_KEY = "schoolos-mindmap-docs";
 const GROUPS_STORAGE_KEY = "schoolos-mindmap-groups";
+const UNGROUPED_COLLAPSED_KEY = "schoolos-ungrouped-collapsed";
 
 const SUBJECTS = ["Matematik 2b", "Svenska 3", "Engelska 6", "Fysik 2", "Historia 1b", "Programmering 1"];
 
@@ -334,6 +335,7 @@ const groupDockSubjects = document.getElementById("groupDockSubjects");
 
 let mindmapDocs = loadMindmapDocs();
 let mindmapGroups = loadGroups();
+let ungroupedCollapsed = loadUngroupedCollapsed();
 let currentDocId = null;
 let activeGroupId = null;
 let currentColor = "#1a1a2e";
@@ -372,6 +374,14 @@ function loadGroups() {
 
 function saveGroups() {
   localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(mindmapGroups));
+}
+
+function loadUngroupedCollapsed() {
+  return localStorage.getItem(UNGROUPED_COLLAPSED_KEY) === "true";
+}
+
+function saveUngroupedCollapsed() {
+  localStorage.setItem(UNGROUPED_COLLAPSED_KEY, String(ungroupedCollapsed));
 }
 
 function renderGroupSelector() {
@@ -461,10 +471,27 @@ function renderDocList() {
     docList.appendChild(item);
   }
 
-  function appendStaticHeader(text) {
+  function appendUngroupedHeader() {
     const header = document.createElement("li");
-    header.className = "doc-list-empty";
-    header.textContent = text;
+    header.className = "doc-list-group-header";
+    if (ungroupedCollapsed) header.classList.add("collapsed");
+
+    const label = document.createElement("span");
+    label.className = "doc-list-label";
+    label.textContent = "Ingen grupp";
+    header.appendChild(label);
+
+    const toggle = document.createElement("span");
+    toggle.className = "doc-list-group-toggle";
+    toggle.textContent = "▾";
+    header.appendChild(toggle);
+
+    header.addEventListener("click", () => {
+      ungroupedCollapsed = !ungroupedCollapsed;
+      saveUngroupedCollapsed();
+      renderDocList();
+    });
+
     docList.appendChild(header);
   }
 
@@ -495,8 +522,12 @@ function renderDocList() {
   const ungrouped = mindmapDocs.filter((d) => !d.groupId);
   const hasGroups = mindmapGroups.length > 0;
 
-  if (hasGroups && ungrouped.length > 0) appendStaticHeader("Ingen grupp");
-  ungrouped.forEach(appendDocItem);
+  if (hasGroups && ungrouped.length > 0) {
+    appendUngroupedHeader();
+    if (!ungroupedCollapsed) ungrouped.forEach(appendDocItem);
+  } else {
+    ungrouped.forEach(appendDocItem);
+  }
 
   mindmapGroups.forEach((group) => {
     const docsInGroup = mindmapDocs.filter((d) => d.groupId === group.id);
@@ -650,9 +681,12 @@ function renderGroupDock() {
       "Ogrupperat",
       null,
       ungrouped,
-      false,
-      (event) => {
-        event.currentTarget.closest(".group-box").classList.toggle("collapsed");
+      ungroupedCollapsed,
+      () => {
+        ungroupedCollapsed = !ungroupedCollapsed;
+        saveUngroupedCollapsed();
+        renderGroupDock();
+        renderDocList();
       },
       false
     );
