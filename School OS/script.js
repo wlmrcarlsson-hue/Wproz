@@ -344,9 +344,16 @@ const textToolBtns = document.querySelectorAll(".text-tool-btn[data-cmd]");
 const drawArea = document.getElementById("drawArea");
 const drawCanvas = document.getElementById("drawCanvas");
 const drawCtx = drawCanvas.getContext("2d");
-const colorSwatchBtns = document.querySelectorAll(".color-swatch-btn");
-const bgColorInput = document.getElementById("bgColorInput");
-const applyBgColorBtn = document.getElementById("applyBgColorBtn");
+const penColorBtn = document.getElementById("penColorBtn");
+const penColorSwatch = document.getElementById("penColorSwatch");
+const bgColorBtn = document.getElementById("bgColorBtn");
+const bgColorSwatch = document.getElementById("bgColorSwatch");
+const colorPickerPopover = document.getElementById("colorPickerPopover");
+const colorPickerInput = document.getElementById("colorPickerInput");
+const eyedropperBtn = document.getElementById("eyedropperBtn");
+const colorPickerRecent = document.getElementById("colorPickerRecent");
+const colorPickerCancelBtn = document.getElementById("colorPickerCancelBtn");
+const colorPickerApplyBtn = document.getElementById("colorPickerApplyBtn");
 const brushSizeInput = document.getElementById("brushSize");
 const eraserBtn = document.getElementById("eraserBtn");
 const bucketBtn = document.getElementById("bucketBtn");
@@ -956,20 +963,25 @@ function showEmptyState() {
   deleteDocArm.disarm();
   clearCanvasArm.disarm();
   bucketArm.disarm();
+  closeColorPicker();
   renderDocList();
 }
 
 function resizeDrawCanvas(doc) {
+  // Assigning canvas.width/height always resets the bitmap to fully
+  // transparent, which is exactly what we want here -- the background is
+  // never part of the raster, it's a CSS color behind it (see
+  // setDrawingBackground), so there's no pixel recoloring left to introduce
+  // noise when the background changes.
   const rect = drawCanvas.parentElement.getBoundingClientRect();
   drawCanvas.width = Math.max(1, Math.floor(rect.width));
   drawCanvas.height = Math.max(1, Math.floor(rect.height));
-
-  drawCtx.fillStyle = doc.bgColor || "#ffffff";
-  drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
+  drawCanvas.style.background = doc.bgColor || "#ffffff";
 
   if (doc.content) {
     const img = new Image();
     img.onload = () => {
+      drawCtx.imageSmoothingEnabled = false;
       drawCtx.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height);
     };
     img.src = doc.content;
@@ -987,6 +999,7 @@ function selectDoc(id) {
   deleteDocArm.disarm();
   clearCanvasArm.disarm();
   bucketArm.disarm();
+  closeColorPicker();
   undoStack = [];
   updateUndoButtonState();
 
@@ -1009,7 +1022,7 @@ function selectDoc(id) {
 }
 
 function updateBgColorUI(bgColor) {
-  bgColorInput.value = bgColor;
+  bgColorSwatch.style.background = bgColor;
 }
 
 function createDoc(type, title, subject) {
@@ -1370,7 +1383,35 @@ function undoLastStroke() {
 
 undoDrawBtn.addEventListener("click", undoLastStroke);
 
+function currentBgColor() {
+  const doc = mindmapDocs.find((d) => d.id === currentDocId);
+  return (doc && doc.bgColor) || "#ffffff";
+}
+
+function rgbToHex(r, g, b) {
+  return `#${[r, g, b].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function sampleCanvasColorAt(x, y) {
+  const px = Math.max(0, Math.min(drawCanvas.width - 1, Math.round(x)));
+  const py = Math.max(0, Math.min(drawCanvas.height - 1, Math.round(y)));
+  const pixel = drawCtx.getImageData(px, py, 1, 1).data;
+  // Nothing drawn there -- what's actually visible is the CSS background.
+  if (pixel[3] === 0) return currentBgColor();
+  return rgbToHex(pixel[0], pixel[1], pixel[2]);
+}
+
+let eyedropperActive = false;
+
 drawCanvas.addEventListener("pointerdown", (event) => {
+  if (eyedropperActive) {
+    const pos = getCanvasPos(event);
+    colorPickerInput.value = sampleCanvasColorAt(pos.x, pos.y);
+    eyedropperActive = false;
+    eyedropperBtn.classList.remove("active");
+    return;
+  }
+
   isDrawingStroke = true;
   pushUndoSnapshot();
   drawCanvas.setPointerCapture(event.pointerId);
@@ -1378,11 +1419,6 @@ drawCanvas.addEventListener("pointerdown", (event) => {
   drawCtx.beginPath();
   drawCtx.moveTo(pos.x, pos.y);
 });
-
-function currentBgColor() {
-  const doc = mindmapDocs.find((d) => d.id === currentDocId);
-  return (doc && doc.bgColor) || "#ffffff";
-}
 
 let lastPointerClient = null;
 
@@ -1410,7 +1446,11 @@ drawCanvas.addEventListener("pointermove", (event) => {
   updateBrushCursor(event.clientX, event.clientY);
   if (!isDrawingStroke) return;
   const pos = getCanvasPos(event);
-  drawCtx.strokeStyle = eraserActive ? currentBgColor() : currentColor;
+  // Erasing removes ink (destination-out) instead of painting over it with
+  // the background color -- the canvas never contains the background at
+  // all, so this works correctly no matter what the background is set to.
+  drawCtx.globalCompositeOperation = eraserActive ? "destination-out" : "source-over";
+  drawCtx.strokeStyle = currentColor;
   drawCtx.lineWidth = Number(brushSizeInput.value);
   drawCtx.lineCap = "round";
   drawCtx.lineJoin = "round";
@@ -1421,19 +1461,18 @@ drawCanvas.addEventListener("pointermove", (event) => {
 drawCanvas.addEventListener("pointerup", () => {
   if (!isDrawingStroke) return;
   isDrawingStroke = false;
+  drawCtx.globalCompositeOperation = "source-over";
   saveCanvasToDoc();
 });
 
-colorSwatchBtns.forEach((btn) => {
-  btn.addEventListener("click", () => {
-    currentColor = btn.dataset.color;
-    eraserActive = false;
-    eraserBtn.classList.remove("active");
-    colorSwatchBtns.forEach((b) => b.classList.remove("active"));
-    btn.classList.add("active");
-    brushSizeInput.value = penSize;
-  });
-});
+function setPenColor(color) {
+  currentColor = color;
+  eraserActive = false;
+  eraserBtn.classList.remove("active");
+  brushSizeInput.value = penSize;
+  penColorSwatch.style.background = color;
+  if (lastPointerClient) updateBrushCursor(lastPointerClient.x, lastPointerClient.y);
+}
 
 eraserBtn.addEventListener("click", () => {
   eraserActive = !eraserActive;
@@ -1453,14 +1492,9 @@ brushSizeInput.addEventListener("input", () => {
   if (lastPointerClient) updateBrushCursor(lastPointerClient.x, lastPointerClient.y);
 });
 
-function hexToRgb(hex) {
-  const clean = hex.replace("#", "");
-  const value = parseInt(clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean, 16);
-  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
-}
-
 function fillCanvas(color) {
   pushUndoSnapshot();
+  drawCtx.globalCompositeOperation = "source-over";
   drawCtx.fillStyle = color;
   drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
   saveCanvasToDoc();
@@ -1468,58 +1502,120 @@ function fillCanvas(color) {
 
 const bucketArm = armConfirm(bucketBtn, "Säker? Klicka igen", () => fillCanvas(currentColor));
 
+// The background is a CSS color behind the (otherwise transparent) canvas,
+// never baked into the raster -- so changing it is just a metadata update,
+// with no pixel processing that could introduce noise, and no limit on how
+// many times it's applied.
 function setDrawingBackground(newColor) {
   const doc = mindmapDocs.find((d) => d.id === currentDocId);
   if (!doc || doc.type !== "draw") return;
-
-  const oldColor = doc.bgColor || "#ffffff";
-  if (newColor === oldColor) return;
-
-  pushUndoSnapshot();
-
-  const [nr, ng, nb] = hexToRgb(newColor);
-  const [or_, og, ob] = hexToRgb(oldColor);
-  // Anti-aliased stroke edges blend gradually into the background, so an exact
-  // color match would leave a ring of stray "dots" behind at those edges.
-  // Blending proportionally to color distance instead recolors those edges
-  // smoothly along with the flat background.
-  const maxDistance = 60;
-  const imageData = drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height);
-  const data = imageData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    const dr = data[i] - or_;
-    const dg = data[i + 1] - og;
-    const db = data[i + 2] - ob;
-    const distance = Math.sqrt(dr * dr + dg * dg + db * db);
-    const closeness = Math.max(0, 1 - distance / maxDistance);
-    if (closeness > 0) {
-      data[i] += (nr - data[i]) * closeness;
-      data[i + 1] += (ng - data[i + 1]) * closeness;
-      data[i + 2] += (nb - data[i + 2]) * closeness;
-    }
-  }
-  drawCtx.putImageData(imageData, 0, 0);
+  if (doc.bgColor === newColor) return;
 
   doc.bgColor = newColor;
-  saveCanvasToDoc();
+  doc.updatedAt = Date.now();
+  saveMindmapDocs();
+  drawCanvas.style.background = newColor;
   updateBgColorUI(newColor);
 }
 
-// Applying on every "input" event (which fires on every frame while dragging
-// the native color picker) meant setDrawingBackground ran dozens of times per
-// pick, each pass re-blending the previous pass's rounding error -- that
-// compounding is what produced the speckled noise. Applying once on a
-// deliberate click avoids both the noise and the per-frame lag.
-applyBgColorBtn.addEventListener("click", () => setDrawingBackground(bgColorInput.value));
-
 function clearCanvas() {
   pushUndoSnapshot();
-  drawCtx.fillStyle = currentBgColor();
-  drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
+  drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
   saveCanvasToDoc();
 }
 
 const clearCanvasArm = armConfirm(clearCanvasBtn, "Säker? Klicka igen", clearCanvas);
+
+// ---------- Shared pen/background color picker popover ----------
+
+const RECENT_COLORS_KEY = "schoolos-recent-pen-colors";
+
+function loadRecentColors() {
+  const raw = localStorage.getItem(RECENT_COLORS_KEY);
+  if (raw === null) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+  } catch (e) {
+    // ignore malformed storage
+  }
+  return [];
+}
+
+let recentColors = loadRecentColors();
+
+function addRecentColor(color) {
+  recentColors = [color, ...recentColors.filter((c) => c !== color)].slice(0, 3);
+  localStorage.setItem(RECENT_COLORS_KEY, JSON.stringify(recentColors));
+  renderRecentColors();
+}
+
+function renderRecentColors() {
+  colorPickerRecent.innerHTML = "";
+  if (recentColors.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "muted color-picker-recent-empty";
+    empty.textContent = "Inga ännu.";
+    colorPickerRecent.appendChild(empty);
+    return;
+  }
+  recentColors.forEach((color) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "recent-color-btn";
+    btn.style.background = color;
+    btn.title = color;
+    btn.addEventListener("click", () => {
+      colorPickerInput.value = color;
+    });
+    colorPickerRecent.appendChild(btn);
+  });
+}
+
+let colorPickerTarget = null;
+
+function closeColorPicker() {
+  colorPickerPopover.hidden = true;
+  colorPickerTarget = null;
+  eyedropperActive = false;
+  eyedropperBtn.classList.remove("active");
+}
+
+function openColorPicker(target) {
+  colorPickerTarget = target;
+  colorPickerInput.value = target === "pen" ? currentColor : currentBgColor();
+  renderRecentColors();
+  colorPickerPopover.hidden = false;
+}
+
+function toggleColorPicker(target) {
+  if (colorPickerTarget === target && !colorPickerPopover.hidden) {
+    closeColorPicker();
+  } else {
+    openColorPicker(target);
+  }
+}
+
+penColorBtn.addEventListener("click", () => toggleColorPicker("pen"));
+bgColorBtn.addEventListener("click", () => toggleColorPicker("bg"));
+colorPickerCancelBtn.addEventListener("click", closeColorPicker);
+
+colorPickerApplyBtn.addEventListener("click", () => {
+  const color = colorPickerInput.value;
+  if (colorPickerTarget === "pen") {
+    setPenColor(color);
+    addRecentColor(color);
+  } else if (colorPickerTarget === "bg") {
+    setDrawingBackground(color);
+    addRecentColor(color);
+  }
+  closeColorPicker();
+});
+
+eyedropperBtn.addEventListener("click", () => {
+  eyedropperActive = !eyedropperActive;
+  eyedropperBtn.classList.toggle("active", eyedropperActive);
+});
 
 window.addEventListener("resize", () => {
   const doc = mindmapDocs.find((d) => d.id === currentDocId);

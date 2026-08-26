@@ -321,11 +321,9 @@
 
             <div id="drawArea" class="draw-area" hidden>
               <div class="draw-toolbar">
-                <button class="color-swatch-btn active" data-color="#1a1a2e" style="background:#1a1a2e" title="Färg"></button>
-                <button class="color-swatch-btn" data-color="#e63946" style="background:#e63946" title="Färg"></button>
-                <button class="color-swatch-btn" data-color="#f4a261" style="background:#f4a261" title="Färg"></button>
-                <button class="color-swatch-btn" data-color="#2a9d8f" style="background:#2a9d8f" title="Färg"></button>
-                <button class="color-swatch-btn" data-color="#4361ee" style="background:#4361ee" title="Färg"></button>
+                <button id="penColorBtn" type="button" class="draw-tool-btn draw-color-btn" title="Pennfärg">
+                  <span id="penColorSwatch" class="draw-color-btn-swatch" style="background:#1a1a2e"></span> Penna
+                </button>
                 <input id="brushSize" type="range" min="1" max="20" value="3" title="Penselstorlek" />
                 <button id="undoDrawBtn" class="draw-tool-btn" title="Ångra senaste strecket">↩ Ångra</button>
                 <button id="eraserBtn" class="draw-tool-btn" title="Sudd">🧽 Sudd</button>
@@ -334,12 +332,26 @@
               </div>
               <div class="draw-toolbar draw-toolbar-bg">
                 <span class="draw-toolbar-label">Bakgrund:</span>
-                <input id="bgColorInput" type="color" class="text-color-input" title="Bakgrundsfärg" value="#ffffff" />
-                <button id="applyBgColorBtn" type="button" class="draw-tool-btn" title="Använd vald bakgrundsfärg">Använd</button>
+                <button id="bgColorBtn" type="button" class="draw-tool-btn draw-color-btn" title="Bakgrundsfärg">
+                  <span id="bgColorSwatch" class="draw-color-btn-swatch" style="background:#ffffff"></span> Bakgrund
+                </button>
               </div>
               <div class="draw-canvas-wrap">
                 <canvas id="drawCanvas" class="draw-canvas"></canvas>
                 <div id="brushCursor" class="brush-cursor" hidden></div>
+
+                <div id="colorPickerPopover" class="color-picker-popover" hidden>
+                  <div class="color-picker-row">
+                    <input id="colorPickerInput" type="color" class="text-color-input" title="Färg" />
+                    <button id="eyedropperBtn" type="button" class="draw-tool-btn" title="Hämta färg från ritytan">💧 Pipett</button>
+                  </div>
+                  <p class="color-picker-recent-label">Senaste färger</p>
+                  <div id="colorPickerRecent" class="color-picker-recent"></div>
+                  <div class="color-picker-actions">
+                    <button id="colorPickerCancelBtn" type="button" class="draw-tool-btn">Avbryt</button>
+                    <button id="colorPickerApplyBtn" type="button" class="doc-new-btn">Använd</button>
+                  </div>
+                </div>
               </div>
             </div>
 
