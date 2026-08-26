@@ -12,6 +12,8 @@ body {
   font-family: "Segoe UI", system-ui, sans-serif;
   color: #e6ebf5;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   background: linear-gradient(
     to bottom,
     hsl(var(--hue) var(--sat) 17%) 0%,
@@ -84,6 +86,11 @@ body {
   max-width: 1080px;
   margin: 0;
   padding: 18px 16px 32px 32px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
 }
 
 .page {
@@ -94,12 +101,28 @@ body {
   display: block;
 }
 
+/* Only Mindmap needs to grow to fill the remaining viewport height (so its
+   canvas can fill its box); every other page stays sized to its content,
+   same as before. */
+#mindmap.page.active {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 /* ---------- Catalog (per-page topic index) ---------- */
 
 .page-layout {
   display: flex;
   align-items: flex-start;
   gap: 20px;
+}
+
+#mindmap .page-layout {
+  flex: 1;
+  align-items: stretch;
+  min-height: 0;
 }
 
 .catalog {
@@ -155,6 +178,12 @@ body {
 .page-body {
   flex: 1;
   min-width: 0;
+}
+
+#mindmap .page-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 @media (max-width: 700px) {
@@ -617,6 +646,7 @@ body {
 .mindmap-panel {
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-height: 65vh;
 }
 
@@ -792,6 +822,7 @@ body {
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-height: 0;
   gap: 10px;
 }
 
@@ -1328,4 +1359,21 @@ body {
   display: flex;
   gap: 8px;
   padding-top: 10px;
+}
+
+/* ---------- Subject library ---------- */
+
+.book-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.book-card-spine {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  border-radius: 3px;
+  font-size: 1.3rem;
 }

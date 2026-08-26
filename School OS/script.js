@@ -554,6 +554,145 @@ chatInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") sendChatMessage();
 });
 
+// ---------- Subject library ----------
+
+const SUBJECT_COLORS = ["#4361ee", "#e63946", "#2a9d8f", "#f4a261", "#8b5cf6", "#06b6d4"];
+
+const SUBJECT_LIBRARY = {
+  "Matematik 2b": [
+    { title: "Matematik 5000 Kurs 2b", author: "Lena Alfredsson m.fl." },
+    { title: "Origo Matematik 2b", author: "Sanoma Utbildning" },
+  ],
+  "Svenska 3": [
+    { title: "Svenska Impulser 3", author: "Anna Sjölund m.fl." },
+    { title: "Litteraturens historia", author: "Ola Sigurdson" },
+  ],
+  "Engelska 6": [
+    { title: "Blueprint B", author: "Per Malmberg m.fl." },
+    { title: "Progress Gold B", author: "Boglárka Nikolenko m.fl." },
+  ],
+  "Fysik 2": [
+    { title: "Heureka! Fysik 2", author: "Rune Alphonce m.fl." },
+    { title: "Fysik 2 Impuls", author: "Jonas Nilsson m.fl." },
+  ],
+  "Historia 1b": [
+    { title: "Perspektiv på historien 1b", author: "Hans Nyström m.fl." },
+    { title: "Epok 1b", author: "Örjan Nyström" },
+  ],
+  "Programmering 1": [
+    { title: "Programmering 1 med Python", author: "Anders Fridh" },
+    { title: "Grundläggande programmering", author: "Skolverket" },
+  ],
+};
+
+const subjectsGrid = document.getElementById("subjectsGrid");
+const subjectsListView = document.getElementById("subjectsListView");
+const subjectBooksView = document.getElementById("subjectBooksView");
+const subjectBooksTitle = document.getElementById("subjectBooksTitle");
+const subjectBooksGrid = document.getElementById("subjectBooksGrid");
+const subjectsBreadcrumb = document.getElementById("subjectsBreadcrumb");
+
+let activeLibrarySubject = null;
+
+function renderSubjects() {
+  subjectsGrid.innerHTML = "";
+  SUBJECTS.forEach((subject, i) => {
+    const books = SUBJECT_LIBRARY[subject] || [];
+
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "teacher-card";
+
+    const icon = document.createElement("span");
+    icon.className = "teacher-avatar";
+    icon.style.background = SUBJECT_COLORS[i % SUBJECT_COLORS.length];
+    icon.textContent = "📚";
+
+    const body = document.createElement("span");
+    body.className = "teacher-card-body";
+    const nameEl = document.createElement("span");
+    nameEl.className = "teacher-card-name";
+    nameEl.textContent = subject;
+    const countEl = document.createElement("span");
+    countEl.className = "teacher-card-subject muted";
+    countEl.textContent = `${books.length} ${books.length === 1 ? "bok" : "böcker"}`;
+    body.appendChild(nameEl);
+    body.appendChild(countEl);
+
+    card.appendChild(icon);
+    card.appendChild(body);
+    card.addEventListener("click", () => openSubjectBooks(subject, SUBJECT_COLORS[i % SUBJECT_COLORS.length]));
+    subjectsGrid.appendChild(card);
+  });
+}
+
+function renderSubjectBooks(subject, color) {
+  subjectBooksGrid.innerHTML = "";
+  const books = SUBJECT_LIBRARY[subject] || [];
+
+  if (books.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = "Inga böcker registrerade för det här ämnet än.";
+    subjectBooksGrid.appendChild(empty);
+    return;
+  }
+
+  books.forEach((book) => {
+    const card = document.createElement("div");
+    card.className = "card book-card";
+
+    const spine = document.createElement("div");
+    spine.className = "book-card-spine";
+    spine.style.background = color;
+    spine.textContent = "📘";
+
+    const titleEl = document.createElement("h3");
+    titleEl.textContent = book.title;
+    const authorEl = document.createElement("p");
+    authorEl.className = "muted";
+    authorEl.textContent = book.author;
+
+    card.appendChild(spine);
+    card.appendChild(titleEl);
+    card.appendChild(authorEl);
+    subjectBooksGrid.appendChild(card);
+  });
+}
+
+function renderSubjectsBreadcrumb() {
+  subjectsBreadcrumb.innerHTML = "";
+
+  const listItem = document.createElement("li");
+  listItem.textContent = "🗂 Ämnen";
+  listItem.className = activeLibrarySubject ? "" : "active";
+  listItem.addEventListener("click", closeSubjectBooks);
+  subjectsBreadcrumb.appendChild(listItem);
+
+  if (activeLibrarySubject) {
+    const item = document.createElement("li");
+    item.textContent = activeLibrarySubject;
+    item.className = "active";
+    subjectsBreadcrumb.appendChild(item);
+  }
+}
+
+function openSubjectBooks(subject, color) {
+  activeLibrarySubject = subject;
+  subjectsListView.hidden = true;
+  subjectBooksView.hidden = false;
+  subjectBooksTitle.textContent = subject;
+  renderSubjectBooks(subject, color);
+  renderSubjectsBreadcrumb();
+}
+
+function closeSubjectBooks() {
+  activeLibrarySubject = null;
+  subjectBooksView.hidden = true;
+  subjectsListView.hidden = false;
+  renderSubjectsBreadcrumb();
+}
+
 let mindmapDocs = loadMindmapDocs();
 let mindmapGroups = loadGroups();
 let ungroupedCollapsed = loadUngroupedCollapsed();
@@ -962,7 +1101,8 @@ function showEmptyState() {
   mindmapEmpty.hidden = false;
   deleteDocArm.disarm();
   clearCanvasArm.disarm();
-  bucketArm.disarm();
+  bucketActive = false;
+  bucketBtn.classList.remove("active");
   closeColorPicker();
   renderDocList();
 }
@@ -973,21 +1113,20 @@ function resizeDrawCanvas(doc) {
   // never part of the raster, it's a CSS color behind it (see
   // setDrawingBackground), so there's no pixel recoloring left to introduce
   // noise when the background changes.
-  const rect = drawCanvas.parentElement.getBoundingClientRect();
-  const width = Math.max(1, Math.floor(rect.width));
-  const height = Math.max(1, Math.floor(rect.height));
+  //
+  // The CSS size is left at 100% of the wrapper so the canvas always fills
+  // it exactly (pinning it to a floored pixel value previously left a
+  // sub-pixel gap at the wrapper's edge). The bitmap resolution is then
+  // rounded to the nearest pixel of that *rendered* size -- close enough
+  // that the cursor/stroke mapping fix from before still holds in practice,
+  // without reintroducing a visible gap.
+  drawCanvas.style.width = "100%";
+  drawCanvas.style.height = "100%";
+  const rect = drawCanvas.getBoundingClientRect();
+  const width = Math.max(1, Math.round(rect.width));
+  const height = Math.max(1, Math.round(rect.height));
   drawCanvas.width = width;
   drawCanvas.height = height;
-  // Pin the CSS size to the exact same integer pixels as the bitmap
-  // resolution above (instead of the 100%-of-parent size from the
-  // stylesheet, which can be a fraction of a pixel larger after the floor()
-  // rounding). Otherwise the browser stretches the bitmap very slightly to
-  // fill the box, so a click position computed from the CSS box lands at a
-  // subtly different spot once mapped onto the bitmap -- the drift grows
-  // toward the edges, which is what showed up as the cursor and the actual
-  // stroke position drifting apart.
-  drawCanvas.style.width = `${width}px`;
-  drawCanvas.style.height = `${height}px`;
   drawCanvas.style.background = doc.bgColor || "#ffffff";
 
   if (doc.content) {
@@ -1010,7 +1149,8 @@ function selectDoc(id) {
   docTitleInput.value = doc.title;
   deleteDocArm.disarm();
   clearCanvasArm.disarm();
-  bucketArm.disarm();
+  bucketActive = false;
+  bucketBtn.classList.remove("active");
   closeColorPicker();
   undoStack = [];
   updateUndoButtonState();
@@ -1404,6 +1544,12 @@ function rgbToHex(r, g, b) {
   return `#${[r, g, b].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
 }
 
+function hexToRgb(hex) {
+  const clean = hex.replace("#", "");
+  const value = parseInt(clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean, 16);
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+}
+
 function sampleCanvasColorAt(x, y) {
   const px = Math.max(0, Math.min(drawCanvas.width - 1, Math.round(x)));
   const py = Math.max(0, Math.min(drawCanvas.height - 1, Math.round(y)));
@@ -1421,6 +1567,12 @@ drawCanvas.addEventListener("pointerdown", (event) => {
     colorPickerInput.value = sampleCanvasColorAt(pos.x, pos.y);
     eyedropperActive = false;
     eyedropperBtn.classList.remove("active");
+    return;
+  }
+
+  if (bucketActive) {
+    const pos = getCanvasPos(event);
+    floodFillAt(Math.round(pos.x), Math.round(pos.y), currentColor);
     return;
   }
 
@@ -1504,15 +1656,78 @@ brushSizeInput.addEventListener("input", () => {
   if (lastPointerClient) updateBrushCursor(lastPointerClient.x, lastPointerClient.y);
 });
 
-function fillCanvas(color) {
+let bucketActive = false;
+
+// A real paint-bucket: fills the connected region of similar color/alpha
+// touching the clicked pixel, stopping at stroke boundaries -- not the
+// whole canvas. Iterative (stack-based) to avoid recursion depth limits on
+// large filled areas.
+function floodFillAt(startX, startY, fillHex) {
+  const width = drawCanvas.width;
+  const height = drawCanvas.height;
+  if (startX < 0 || startY < 0 || startX >= width || startY >= height) return;
+
+  const [fr, fg, fb] = hexToRgb(fillHex);
+  const imageData = drawCtx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+
+  const startIndex = (startY * width + startX) * 4;
+  const startR = data[startIndex];
+  const startG = data[startIndex + 1];
+  const startB = data[startIndex + 2];
+  const startA = data[startIndex + 3];
+
+  if (startR === fr && startG === fg && startB === fb && startA === 255) return;
+
   pushUndoSnapshot();
-  drawCtx.globalCompositeOperation = "source-over";
-  drawCtx.fillStyle = color;
-  drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
+
+  // Same tolerance idea as the background recolor: absorbs anti-aliased
+  // pixels along the enclosing stroke's edge instead of leaving a thin
+  // unfilled rim right next to the boundary.
+  const tolerance = 40;
+  function matches(i) {
+    const dr = data[i] - startR;
+    const dg = data[i + 1] - startG;
+    const db = data[i + 2] - startB;
+    const da = data[i + 3] - startA;
+    return Math.sqrt(dr * dr + dg * dg + db * db + da * da) <= tolerance;
+  }
+
+  const visited = new Uint8Array(width * height);
+  const stack = [[startX, startY]];
+
+  while (stack.length > 0) {
+    const [x, y] = stack.pop();
+    if (x < 0 || y < 0 || x >= width || y >= height) continue;
+    const pxIndex = y * width + x;
+    if (visited[pxIndex]) continue;
+
+    const i = pxIndex * 4;
+    if (!matches(i)) continue;
+
+    visited[pxIndex] = 1;
+    data[i] = fr;
+    data[i + 1] = fg;
+    data[i + 2] = fb;
+    data[i + 3] = 255;
+
+    stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+  }
+
+  drawCtx.putImageData(imageData, 0, 0);
   saveCanvasToDoc();
 }
 
-const bucketArm = armConfirm(bucketBtn, "Säker? Klicka igen", () => fillCanvas(currentColor));
+bucketBtn.addEventListener("click", () => {
+  bucketActive = !bucketActive;
+  bucketBtn.classList.toggle("active", bucketActive);
+  if (bucketActive) {
+    eraserActive = false;
+    eraserBtn.classList.remove("active");
+    eyedropperActive = false;
+    eyedropperBtn.classList.remove("active");
+  }
+});
 
 // The background is a CSS color behind the (otherwise transparent) canvas,
 // never baked into the raster -- so changing it is just a metadata update,
@@ -1668,6 +1883,8 @@ renderGroupSelector();
 renderGroupDockSubjects();
 renderTeachers();
 renderTeachersBreadcrumb();
+renderSubjects();
+renderSubjectsBreadcrumb();
 
 if (mindmapDocs.length > 0) {
   selectDoc(mindmapDocs[0].id);

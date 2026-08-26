@@ -17,6 +17,7 @@
       <button class="tab-btn active" data-tab="calendar">🗓 Schema</button>
       <button class="tab-btn" data-tab="mindmap">🧠 Mindmap</button>
       <button class="tab-btn" data-tab="teachers">👩‍🏫 Lärare</button>
+      <button class="tab-btn" data-tab="subjects">📚 Ämnen</button>
     </nav>
   </header>
 
@@ -327,7 +328,7 @@
                 <input id="brushSize" type="range" min="1" max="20" value="3" title="Penselstorlek" />
                 <button id="undoDrawBtn" class="draw-tool-btn" title="Ångra senaste strecket">↩ Ångra</button>
                 <button id="eraserBtn" class="draw-tool-btn" title="Sudd">🧽 Sudd</button>
-                <button id="bucketBtn" class="draw-tool-btn" title="Fyll hela ritytan med vald färg">🪣 Fyll</button>
+                <button id="bucketBtn" class="draw-tool-btn" title="Fyllverktyg: klicka i en yta för att fylla den med vald färg">🪣 Fyll</button>
                 <button id="clearCanvasBtn" class="draw-tool-btn" title="Rensa allt">Rensa</button>
               </div>
               <div class="draw-toolbar draw-toolbar-bg">
@@ -391,6 +392,31 @@
               <input id="chatInput" type="text" class="doc-title-input" placeholder="Skriv ett meddelande..." maxlength="500" />
               <button id="chatSendBtn" class="doc-new-btn">Skicka</button>
             </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SUBJECT LIBRARY -->
+    <section id="subjects" class="page">
+      <div class="page-layout">
+        <aside class="catalog">
+          <h4 class="catalog-title">Position</h4>
+          <ul id="subjectsBreadcrumb" class="catalog-list catalog-list-clickable">
+            <li class="active" data-view="list">🗂 Ämnen</li>
+          </ul>
+        </aside>
+
+        <div class="page-body">
+          <div id="subjectsListView" class="panel">
+            <h3>Ämnen</h3>
+            <p class="muted groupdock-intro">Tryck på ett ämne för att se böckerna du kan välja bland.</p>
+            <div id="subjectsGrid" class="teacher-grid"></div>
+          </div>
+
+          <div id="subjectBooksView" class="panel" hidden>
+            <h3 id="subjectBooksTitle"></h3>
+            <div id="subjectBooksGrid" class="card-grid"></div>
           </div>
         </div>
       </div>
