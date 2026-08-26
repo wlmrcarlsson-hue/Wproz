@@ -117,7 +117,6 @@ body {
 /* ---------- Page content ---------- */
 
 .content {
-  max-width: 1080px;
   margin: 0;
   padding: 18px 16px 32px 32px;
   flex: 1;
@@ -125,13 +124,6 @@ body {
   flex-direction: column;
   min-height: 0;
   width: 100%;
-}
-
-/* A 1080px reading-width cap suits one page, but wastes a lot of a wide
-   screen once a split view needs to fit two full page-layouts side by
-   side -- let it use the full viewport width while a split is showing. */
-.content.split-mode {
-  max-width: none;
 }
 
 .page {
@@ -514,6 +506,24 @@ body {
   cursor: pointer;
   text-align: left;
   transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.doc-new-btn-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.doc-new-btn-arrow {
+  font-size: 0.7rem;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.doc-new-btn-toggle.open .doc-new-btn-arrow {
+  transform: rotate(180deg);
 }
 
 .doc-new-btn:hover {

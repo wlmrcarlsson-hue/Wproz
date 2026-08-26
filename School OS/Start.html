@@ -260,7 +260,10 @@
           <ul id="groupSelector" class="catalog-list group-selector"></ul>
 
           <div id="newGroupRow" class="new-group-row">
-            <button id="newGroupBtn" class="doc-new-btn">➕ Ny grupp</button>
+            <button id="newGroupBtn" class="doc-new-btn doc-new-btn-toggle">
+              <span>➕ Ny grupp</span>
+              <span class="doc-new-btn-arrow">▾</span>
+            </button>
             <div id="newGroupForm" class="new-group-form" hidden>
               <input id="newGroupInput" type="text" class="doc-title-input" placeholder="Gruppnamn" maxlength="40" />
               <select id="newGroupSubject" class="group-subject-select">
@@ -279,7 +282,10 @@
           <h4 class="catalog-title doc-list-title">Dokument</h4>
 
           <div id="newDocRow" class="new-group-row">
-            <button id="newDocBtn" class="doc-new-btn">➕ Nytt dokument</button>
+            <button id="newDocBtn" class="doc-new-btn doc-new-btn-toggle">
+              <span>➕ Nytt dokument</span>
+              <span class="doc-new-btn-arrow">▾</span>
+            </button>
             <div id="newDocForm" class="new-group-form" hidden>
               <input id="newDocInput" type="text" class="doc-title-input" placeholder="Dokumentnamn" maxlength="60" />
               <select id="newDocSubject" class="group-subject-select">

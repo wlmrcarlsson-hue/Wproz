@@ -1605,6 +1605,7 @@ function deleteCurrentDoc() {
 
 newDocBtn.addEventListener("click", () => {
   newDocForm.hidden = !newDocForm.hidden;
+  newDocBtn.classList.toggle("open", !newDocForm.hidden);
   if (!newDocForm.hidden) newDocInput.focus();
 });
 
@@ -1631,6 +1632,7 @@ function submitNewDoc() {
   newDocSubject.value = "";
   newDocType.value = "text";
   newDocForm.hidden = true;
+  newDocBtn.classList.remove("open");
 }
 
 confirmNewDocBtn.addEventListener("click", submitNewDoc);
@@ -2208,6 +2210,7 @@ window.addEventListener("resize", () => {
 
 newGroupBtn.addEventListener("click", () => {
   newGroupForm.hidden = !newGroupForm.hidden;
+  newGroupBtn.classList.toggle("open", !newGroupForm.hidden);
   if (!newGroupForm.hidden) newGroupInput.focus();
 });
 
@@ -2216,6 +2219,7 @@ function submitNewGroup() {
   newGroupInput.value = "";
   newGroupSubject.value = "";
   newGroupForm.hidden = true;
+  newGroupBtn.classList.remove("open");
 }
 
 confirmNewGroupBtn.addEventListener("click", submitNewGroup);
