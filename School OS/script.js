@@ -27,7 +27,15 @@ function saveDockedPairs() {
   localStorage.setItem(DOCK_STORAGE_KEY, JSON.stringify(dockedPairs));
 }
 
-let dockedPairs = loadDockedPairs();
+// Drops pairs naming a tab that no longer exists -- otherwise a stale
+// entry left in storage (from the removed GroupDock tab, say) would keep
+// hiding a tab button or showing a nested badge for a tab that's gone.
+function pruneDockedPairs(pairs) {
+  const known = new Set(Array.from(tabButtons).map((btn) => btn.dataset.tab));
+  return pairs.filter((p) => known.has(p.host) && known.has(p.child));
+}
+
+let dockedPairs = pruneDockedPairs(loadDockedPairs());
 let currentActiveTab = document.querySelector(".tab-btn.active")?.dataset.tab || "calendar";
 let draggedTabId = null;
 
@@ -61,12 +69,10 @@ function updateNestedBadges() {
   });
 }
 
-// Per-tab side effects that used to run only on a direct click (re-
-// rendering GroupDock, fitting the draw canvas view) -- centralized here
-// so they also fire when a tab becomes visible as one half of a split,
-// not just on click.
+// Per-tab side effects that used to run only on a direct click (fitting
+// the draw canvas view) -- centralized here so they also fire when a tab
+// becomes visible as one half of a split, not just on click.
 function onTabShown(tabId) {
-  if (tabId === "groupdock") renderGroupDock();
   // Only runs the deferred fit from selectDoc/fitDrawView finding a still-
   // hidden (zero-sized) wrapper -- once shown, the resize handler and pan/
   // zoom controls take over, so this never re-fits on a later show.
@@ -741,15 +747,16 @@ const orientationBtn = document.getElementById("orientationBtn");
 const dragGuardOverlay = document.getElementById("dragGuardOverlay");
 const brushCursor = document.getElementById("brushCursor");
 const mindmapEmpty = document.getElementById("mindmapEmpty");
-const groupSelector = document.getElementById("groupSelector");
+const groupList = document.getElementById("groupList");
 const newGroupBtn = document.getElementById("newGroupBtn");
 const newGroupForm = document.getElementById("newGroupForm");
 const newGroupInput = document.getElementById("newGroupInput");
 const newGroupSubject = document.getElementById("newGroupSubject");
 const confirmNewGroupBtn = document.getElementById("confirmNewGroupBtn");
-const groupDockList = document.getElementById("groupDockList");
-const groupDockCatalog = document.getElementById("groupDockCatalog");
-const groupDockSubjects = document.getElementById("groupDockSubjects");
+const newDocGroup = document.getElementById("newDocGroup");
+const groupView = document.getElementById("groupView");
+const groupViewIntro = document.getElementById("groupViewIntro");
+const groupViewList = document.getElementById("groupViewList");
 const scheduleSubjects = document.getElementById("scheduleSubjects");
 const appModalOverlay = document.getElementById("appModalOverlay");
 const appModalTitle = document.getElementById("appModalTitle");
@@ -1077,7 +1084,11 @@ let mindmapDocs = loadMindmapDocs();
 let mindmapGroups = loadGroups();
 let ungroupedCollapsed = loadUngroupedCollapsed();
 let currentDocId = null;
-let activeGroupId = null;
+// Which group the main panel's group overview is showing, when it's open:
+// a group id, ALL_GROUPS for the combined overview, or null when a
+// document is open instead.
+const ALL_GROUPS = "__all__";
+let activeGroupViewId = null;
 let currentColor = "#1a1a2e";
 let eraserActive = false;
 let isDrawingStroke = false;
@@ -1147,28 +1158,73 @@ function saveUngroupedCollapsed() {
   localStorage.setItem(UNGROUPED_COLLAPSED_KEY, String(ungroupedCollapsed));
 }
 
-function renderGroupSelector() {
-  groupSelector.innerHTML = "";
+// The "Grupper" section of the Mindmap catalog. Lists every group -- even
+// empty ones, which the document list can't show since it only renders
+// groups that have documents in them. Clicking one opens that group's
+// overview in the main panel.
+function renderGroupList() {
+  groupList.innerHTML = "";
 
-  const noneItem = document.createElement("li");
-  noneItem.textContent = "Ingen grupp";
-  if (activeGroupId === null) noneItem.classList.add("active");
-  noneItem.addEventListener("click", () => {
-    activeGroupId = null;
-    renderGroupSelector();
-  });
-  groupSelector.appendChild(noneItem);
+  const allItem = document.createElement("li");
+  if (activeGroupViewId === ALL_GROUPS) allItem.classList.add("active");
+  const allLabel = document.createElement("span");
+  allLabel.className = "doc-list-label";
+  allLabel.textContent = "🗂 Alla grupper";
+  allItem.appendChild(allLabel);
+  allItem.addEventListener("click", () => showGroupView(ALL_GROUPS));
+  groupList.appendChild(allItem);
+
+  if (mindmapGroups.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "doc-list-empty";
+    empty.textContent = "Inga grupper än.";
+    groupList.appendChild(empty);
+    return;
+  }
 
   mindmapGroups.forEach((group) => {
     const item = document.createElement("li");
-    item.textContent = `🗂 ${group.name}`;
-    if (group.id === activeGroupId) item.classList.add("active");
-    item.addEventListener("click", () => {
-      activeGroupId = group.id;
-      renderGroupSelector();
-    });
-    groupSelector.appendChild(item);
+    if (group.id === activeGroupViewId) item.classList.add("active");
+
+    const label = document.createElement("span");
+    label.className = "doc-list-label";
+    const count = mindmapDocs.filter((d) => d.groupId === group.id).length;
+    label.textContent = `🗂 ${group.name} (${count})`;
+    item.appendChild(label);
+
+    item.appendChild(
+      createDeleteControl({
+        category: "groups",
+        compact: true,
+        onDelete: () => deleteGroupById(group.id),
+      })
+    );
+
+    item.addEventListener("click", () => showGroupView(group.id));
+    groupList.appendChild(item);
   });
+}
+
+// Keeps the "Nytt dokument" form's group picker in sync -- this is how a
+// document's group is chosen now that there's no separate "Aktiv grupp"
+// list driving it.
+function renderNewDocGroupOptions() {
+  const previous = newDocGroup.value;
+  newDocGroup.innerHTML = "";
+
+  const noneOption = document.createElement("option");
+  noneOption.value = "";
+  noneOption.textContent = "Ingen grupp";
+  newDocGroup.appendChild(noneOption);
+
+  mindmapGroups.forEach((group) => {
+    const option = document.createElement("option");
+    option.value = group.id;
+    option.textContent = `🗂 ${group.name}`;
+    newDocGroup.appendChild(option);
+  });
+
+  if (previous && mindmapGroups.some((g) => g.id === previous)) newDocGroup.value = previous;
 }
 
 function createGroup(name, subject) {
@@ -1178,9 +1234,12 @@ function createGroup(name, subject) {
   const group = { id: `grp-${Date.now()}`, name: trimmed, collapsed: false, subject: subject || "" };
   mindmapGroups.push(group);
   saveGroups();
-  activeGroupId = group.id;
-  renderGroupSelector();
-  renderGroupDock();
+  renderGroupList();
+  renderNewDocGroupOptions();
+  // Newly created group becomes the default target for the next document,
+  // which is what the old "Aktiv grupp" selection used to do implicitly.
+  newDocGroup.value = group.id;
+  renderGroupViewIfOpen();
 }
 
 // Deleting a group only removes the group itself -- its documents are
@@ -1195,11 +1254,16 @@ function deleteGroupById(id) {
   mindmapGroups = mindmapGroups.filter((g) => g.id !== id);
   saveGroups();
 
-  if (activeGroupId === id) activeGroupId = null;
+  // The deleted group can't stay selected in either the group overview or
+  // the new-document form -- fall back to the "all groups" overview and to
+  // no group respectively.
+  if (activeGroupViewId === id) activeGroupViewId = ALL_GROUPS;
+  if (newDocGroup.value === id) newDocGroup.value = "";
 
-  renderGroupSelector();
+  renderGroupList();
+  renderNewDocGroupOptions();
   renderDocList();
-  renderGroupDock();
+  renderGroupViewIfOpen();
 }
 
 function renderDocList() {
@@ -1290,6 +1354,7 @@ function renderDocList() {
       group.collapsed = !group.collapsed;
       saveGroups();
       renderDocList();
+      renderGroupViewIfOpen();
     });
 
     docList.appendChild(header);
@@ -1417,19 +1482,29 @@ function renderSubjectCardsInto(container) {
   });
 }
 
-// Same subject-card renderer feeds both GroupDock's Ämnen section and
-// the Ämnen panel under Schema, so document counts stay identical everywhere.
+// Feeds the Ämnen panel under Schema. (It used to also feed GroupDock's
+// own Ämnen section, before that tab was folded into Mindmap.)
 function renderGroupDockSubjects() {
-  renderSubjectCardsInto(groupDockSubjects);
   renderSubjectCardsInto(scheduleSubjects);
 }
 
-function renderGroupDock() {
-  groupDockList.innerHTML = "";
-  groupDockCatalog.innerHTML = "";
+// Renders the group overview into the Mindmap panel -- one group's
+// projects, or every group at once when showing ALL_GROUPS. This is the
+// old GroupDock view, now living inside Mindmap.
+function renderGroupView() {
+  groupViewList.innerHTML = "";
   renderGroupDockSubjects();
 
-  mindmapGroups.forEach((group) => {
+  const showAll = activeGroupViewId === ALL_GROUPS;
+  const groupsToShow = showAll
+    ? mindmapGroups
+    : mindmapGroups.filter((g) => g.id === activeGroupViewId);
+
+  groupViewIntro.textContent = showAll
+    ? "Alla grupper. Klicka på ett projekt för att öppna det."
+    : "Klicka på ett projekt för att öppna det.";
+
+  groupsToShow.forEach((group) => {
     const docsInGroup = mindmapDocs.filter((d) => d.groupId === group.id);
     const box = buildGroupBox(
       group.name,
@@ -1439,24 +1514,19 @@ function renderGroupDock() {
       () => {
         group.collapsed = !group.collapsed;
         saveGroups();
-        renderGroupDock();
+        renderGroupView();
         renderDocList();
       },
       true,
       group.subject
     );
-    groupDockList.appendChild(box);
-
-    const catalogItem = document.createElement("li");
-    catalogItem.textContent = group.name;
-    catalogItem.addEventListener("click", () => {
-      document.getElementById(`group-box-${group.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-    groupDockCatalog.appendChild(catalogItem);
+    groupViewList.appendChild(box);
   });
 
+  // Ungrouped documents only belong in the combined overview -- a single
+  // group's view should show that group and nothing else.
   const ungrouped = mindmapDocs.filter((d) => !d.groupId);
-  if (ungrouped.length > 0) {
+  if (showAll && ungrouped.length > 0) {
     const box = buildGroupBox(
       "Ogrupperat",
       null,
@@ -1465,32 +1535,61 @@ function renderGroupDock() {
       () => {
         ungroupedCollapsed = !ungroupedCollapsed;
         saveUngroupedCollapsed();
-        renderGroupDock();
+        renderGroupView();
         renderDocList();
       },
       false
     );
-    groupDockList.appendChild(box);
-
-    const catalogItem = document.createElement("li");
-    catalogItem.textContent = "Ogrupperat";
-    groupDockCatalog.appendChild(catalogItem);
+    groupViewList.appendChild(box);
   }
 
-  if (mindmapGroups.length === 0 && ungrouped.length === 0) {
+  if (groupViewList.children.length === 0) {
     const empty = document.createElement("p");
     empty.className = "muted";
-    empty.textContent = "Inga grupper eller dokument än. Skapa en grupp i Mindmap för att komma igång.";
-    groupDockList.appendChild(empty);
+    empty.textContent = showAll
+      ? "Inga grupper eller dokument än. Skapa en grupp för att komma igång."
+      : "Den här gruppen finns inte längre.";
+    groupViewList.appendChild(empty);
   }
 }
 
-function showEmptyState() {
+// Re-renders the overview only when it's the thing currently on screen,
+// so edits made while a document is open don't disturb the editor.
+function renderGroupViewIfOpen() {
+  renderGroupDockSubjects();
+  if (activeGroupViewId !== null) renderGroupView();
+}
+
+// Opens the group overview in the main panel, replacing whichever editor
+// was showing. Mirrors selectDoc, but for a group.
+function showGroupView(groupId) {
+  activeGroupViewId = groupId;
   currentDocId = null;
+
   docToolbar.hidden = true;
   textEditor.hidden = true;
   textToolbar.hidden = true;
   drawArea.hidden = true;
+  mindmapEmpty.hidden = true;
+  groupView.hidden = false;
+
+  deleteDocArm.disarm();
+  clearCanvasArm.disarm();
+  closeColorPicker();
+
+  renderGroupView();
+  renderGroupList();
+  renderDocList();
+}
+
+function showEmptyState() {
+  currentDocId = null;
+  activeGroupViewId = null;
+  docToolbar.hidden = true;
+  textEditor.hidden = true;
+  textToolbar.hidden = true;
+  drawArea.hidden = true;
+  groupView.hidden = true;
   mindmapEmpty.hidden = false;
   deleteDocArm.disarm();
   clearCanvasArm.disarm();
@@ -1498,6 +1597,7 @@ function showEmptyState() {
   bucketBtn.classList.remove("active");
   closeColorPicker();
   renderDocList();
+  renderGroupList();
 }
 
 // The two interchangeable bitmap shapes a draw doc can have -- landscape is
@@ -1638,6 +1738,8 @@ function selectDoc(id) {
   if (!doc) return;
 
   currentDocId = id;
+  activeGroupViewId = null;
+  groupView.hidden = true;
   mindmapEmpty.hidden = true;
   docToolbar.hidden = false;
   docTitleInput.value = doc.title;
@@ -1670,27 +1772,29 @@ function selectDoc(id) {
   }
 
   renderDocList();
+  renderGroupList();
 }
 
 function updateBgColorUI(bgColor) {
   bgColorSwatch.style.background = bgColor;
 }
 
-function createDoc(type, title, subject) {
+function createDoc(type, title, subject, groupId) {
   const doc = {
     id: `doc-${Date.now()}`,
     title,
     type,
     content: "",
     bgColor: "#ffffff",
-    groupId: activeGroupId,
+    groupId: groupId || null,
     subject: subject || "",
     updatedAt: Date.now(),
   };
   mindmapDocs.unshift(doc);
   saveMindmapDocs();
   selectDoc(doc.id);
-  renderGroupDock();
+  renderGroupList();
+  renderGroupViewIfOpen();
 }
 
 // Browser confirm()/alert() dialogs are blocked in some sandboxed
@@ -1739,7 +1843,8 @@ function deleteDocById(id) {
     renderDocList();
   }
 
-  renderGroupDock();
+  renderGroupList();
+  renderGroupViewIfOpen();
 }
 
 function deleteCurrentDoc() {
@@ -1757,7 +1862,8 @@ function submitNewDoc() {
   const title = newDocInput.value.trim();
   if (!title) return;
 
-  const targetGroup = mindmapGroups.find((g) => g.id === activeGroupId);
+  const targetGroupId = newDocGroup.value || null;
+  const targetGroup = mindmapGroups.find((g) => g.id === targetGroupId);
   let subject = newDocSubject.value;
 
   if (targetGroup && targetGroup.subject) {
@@ -1771,7 +1877,7 @@ function submitNewDoc() {
     subject = targetGroup.subject;
   }
 
-  createDoc(newDocType.value, title, subject);
+  createDoc(newDocType.value, title, subject, targetGroupId);
   newDocInput.value = "";
   newDocSubject.value = "";
   newDocType.value = "text";
@@ -2566,7 +2672,8 @@ newGroupInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") submitNewGroup();
 });
 
-renderGroupSelector();
+renderGroupList();
+renderNewDocGroupOptions();
 renderGroupDockSubjects();
 renderTeachers();
 renderTeachersBreadcrumb();

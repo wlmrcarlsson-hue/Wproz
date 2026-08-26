@@ -16,10 +16,6 @@
         <span class="tab-btn-label">✓ Uppgifter</span>
         <span class="tab-btn-nested" hidden></span>
       </button>
-      <button class="tab-btn" data-tab="groupdock" draggable="true">
-        <span class="tab-btn-label">🗂 GroupDock</span>
-        <span class="tab-btn-nested" hidden></span>
-      </button>
       <button class="tab-btn active" data-tab="calendar" draggable="true">
         <span class="tab-btn-label">🗓 Schema</span>
         <span class="tab-btn-nested" hidden></span>
@@ -156,29 +152,6 @@
       </div>
     </section>
 
-    <!-- GROUPDOCK -->
-    <section id="groupdock" class="page">
-      <div class="page-layout">
-        <aside class="catalog">
-          <h4 class="catalog-title">Grupper</h4>
-          <ul id="groupDockCatalog" class="catalog-list"></ul>
-        </aside>
-
-        <div class="page-body">
-          <div class="panel">
-            <h3>GroupDock</h3>
-            <p class="muted groupdock-intro">Alla grupper från Mindmap. Klicka på ett projekt för att öppna det direkt i Mindmap.</p>
-
-            <h4 class="groupdock-subtitle">Ämnen</h4>
-            <div id="groupDockSubjects" class="card-grid groupdock-subjects"></div>
-
-            <h4 class="groupdock-subtitle">Grupper</h4>
-            <div id="groupDockList" class="group-dock-list"></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- CALENDAR / SCHEMA -->
     <section id="calendar" class="page active">
       <div class="page-layout">
@@ -256,8 +229,36 @@
     <section id="mindmap" class="page">
       <div class="page-layout">
         <aside class="catalog">
-          <h4 class="catalog-title">Aktiv grupp</h4>
-          <ul id="groupSelector" class="catalog-list group-selector"></ul>
+          <h4 class="catalog-title doc-list-title">Dokument</h4>
+
+          <div id="newDocRow" class="new-group-row">
+            <button id="newDocBtn" class="doc-new-btn doc-new-btn-toggle">
+              <span>➕ Nytt dokument</span>
+              <span class="doc-new-btn-arrow">▾</span>
+            </button>
+            <div id="newDocForm" class="new-group-form" hidden>
+              <input id="newDocInput" type="text" class="doc-title-input" placeholder="Dokumentnamn" maxlength="60" />
+              <select id="newDocGroup" class="group-subject-select" title="Grupp att lägga dokumentet i"></select>
+              <select id="newDocSubject" class="group-subject-select">
+                <option value="">Inget ämne</option>
+                <option value="Matematik 2b">Matematik 2b</option>
+                <option value="Svenska 3">Svenska 3</option>
+                <option value="Engelska 6">Engelska 6</option>
+                <option value="Fysik 2">Fysik 2</option>
+                <option value="Historia 1b">Historia 1b</option>
+                <option value="Programmering 1">Programmering 1</option>
+              </select>
+              <select id="newDocType" class="group-subject-select">
+                <option value="text">📝 Dokument</option>
+                <option value="draw">🎨 Ritning</option>
+              </select>
+              <button id="confirmNewDocBtn" class="doc-new-btn">Skapa</button>
+            </div>
+          </div>
+
+          <ul id="docList" class="catalog-list doc-list"></ul>
+
+          <h4 class="catalog-title catalog-title-section">Grupper</h4>
 
           <div id="newGroupRow" class="new-group-row">
             <button id="newGroupBtn" class="doc-new-btn doc-new-btn-toggle">
@@ -279,33 +280,7 @@
             </div>
           </div>
 
-          <h4 class="catalog-title doc-list-title">Dokument</h4>
-
-          <div id="newDocRow" class="new-group-row">
-            <button id="newDocBtn" class="doc-new-btn doc-new-btn-toggle">
-              <span>➕ Nytt dokument</span>
-              <span class="doc-new-btn-arrow">▾</span>
-            </button>
-            <div id="newDocForm" class="new-group-form" hidden>
-              <input id="newDocInput" type="text" class="doc-title-input" placeholder="Dokumentnamn" maxlength="60" />
-              <select id="newDocSubject" class="group-subject-select">
-                <option value="">Inget ämne</option>
-                <option value="Matematik 2b">Matematik 2b</option>
-                <option value="Svenska 3">Svenska 3</option>
-                <option value="Engelska 6">Engelska 6</option>
-                <option value="Fysik 2">Fysik 2</option>
-                <option value="Historia 1b">Historia 1b</option>
-                <option value="Programmering 1">Programmering 1</option>
-              </select>
-              <select id="newDocType" class="group-subject-select">
-                <option value="text">📝 Dokument</option>
-                <option value="draw">🎨 Ritning</option>
-              </select>
-              <button id="confirmNewDocBtn" class="doc-new-btn">Skapa</button>
-            </div>
-          </div>
-
-          <ul id="docList" class="catalog-list doc-list"></ul>
+          <ul id="groupList" class="catalog-list doc-list group-list"></ul>
         </aside>
 
         <div class="page-body">
@@ -392,6 +367,11 @@
                   </div>
                 </div>
               </div>
+            </div>
+
+            <div id="groupView" class="group-view" hidden>
+              <p id="groupViewIntro" class="muted groupdock-intro"></p>
+              <div id="groupViewList" class="group-dock-list"></div>
             </div>
 
             <p id="mindmapEmpty" class="muted mindmap-empty">Välj ett dokument i listan till vänster, eller skapa ett nytt.</p>
