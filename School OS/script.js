@@ -2080,23 +2080,49 @@ let eyedropperActive = false;
 // #dragGuardOverlay) is shown for the rest of that gesture, giving the
 // browser exactly one element to keep dispatching to no matter how far the
 // cursor wanders before it reaches the canvas.
+// Crucially this only ever engages once the pointer has actually moved --
+// showing it on pointerdown instead would make the release land on the
+// overlay rather than on whatever was pressed, which suppresses the click
+// entirely and leaves every non-excluded control in the app dead.
+const DRAG_GUARD_THRESHOLD_PX = 6;
+let pendingDragGuard = null;
+
+// drawArea.hidden alone isn't enough: it stays false whenever a draw doc
+// is the open document, even while a completely different tab is showing,
+// so this has to check the element is genuinely rendered right now.
+function drawAreaVisible() {
+  return !drawArea.hidden && drawArea.getClientRects().length > 0;
+}
+
 document.addEventListener(
   "pointerdown",
   (event) => {
-    if (drawArea.hidden) return;
-    // Excludes anything with its own click behavior (so normal button/
-    // input clicks are untouched), and anything with its own already-
-    // working drag of its own -- native HTML5 drag-and-drop (the tab bar's
-    // docking, [draggable="true"]) doesn't fire the pointerup/pointercancel
-    // this overlay relies on to hide itself again, and the split divider/
-    // color wheel drags don't need this protection in the first place.
-    if (event.target.closest(".draw-tool-btn, input, .doc-new-btn, .color-picker-popover, [draggable='true'], #splitDivider, #colorWheel")) return;
-    dragGuardOverlay.hidden = false;
+    if (!drawAreaVisible()) return;
+    // Excludes anything with an already-working drag of its own -- native
+    // HTML5 drag-and-drop (the tab bar's docking, [draggable="true"])
+    // doesn't fire the pointerup/pointercancel this overlay relies on to
+    // hide itself again, and the split divider / color wheel drags don't
+    // need this protection in the first place.
+    if (event.target.closest("[draggable='true'], #splitDivider, #colorWheel")) return;
+    pendingDragGuard = { x: event.clientX, y: event.clientY };
   },
   true
 );
 
+window.addEventListener("pointermove", (event) => {
+  if (!pendingDragGuard) return;
+  if (
+    Math.abs(event.clientX - pendingDragGuard.x) < DRAG_GUARD_THRESHOLD_PX &&
+    Math.abs(event.clientY - pendingDragGuard.y) < DRAG_GUARD_THRESHOLD_PX
+  ) {
+    return;
+  }
+  pendingDragGuard = null;
+  dragGuardOverlay.hidden = false;
+});
+
 function hideDragGuardOverlay() {
+  pendingDragGuard = null;
   dragGuardOverlay.hidden = true;
 }
 
