@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>School OS</title>
+  <!-- The app itself lives in the "School OS" folder, whose space has to be
+       percent-encoded in a URL. This redirect keeps the published address a
+       plain https://<user>.github.io/Wproz/ instead of making anyone type
+       the encoded path by hand. -->
+  <meta http-equiv="refresh" content="0; url=./School%20OS/Start.html" />
+  <link rel="canonical" href="./School%20OS/Start.html" />
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      color: #eef2fb;
+      background: #0b1020;
+    }
+    a {
+      color: #7aa2ff;
+    }
+  </style>
+</head>
+<body>
+  <p>Öppnar School OS… <a href="./School%20OS/Start.html">Klicka här om inget händer.</a></p>
+  <script>
+    // Belt-and-suspenders: some browsers ignore a meta refresh when the page
+    // is restored from the back/forward cache.
+    location.replace("./School%20OS/Start.html");
+  </script>
+</body>
+</html>
