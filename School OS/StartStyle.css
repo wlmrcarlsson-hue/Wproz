@@ -7,11 +7,17 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   font-family: "Segoe UI", system-ui, sans-serif;
   color: #e6ebf5;
   min-height: 100vh;
+  max-width: 100vw;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   background: linear-gradient(
