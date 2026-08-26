@@ -1377,3 +1377,92 @@ body {
   border-radius: 3px;
   font-size: 1.3rem;
 }
+
+/* ---------- Tab docking / split view ---------- */
+
+.tab-btn[draggable="true"] {
+  cursor: grab;
+}
+
+.tab-btn.drag-over {
+  background: hsl(var(--hue) 90% 55% / 0.55);
+  border-color: hsl(var(--hue) 100% 85% / 0.9);
+  transform: translateY(-1px) scale(1.03);
+}
+
+.tab-btn[hidden] {
+  display: none;
+}
+
+.split-container {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+}
+
+.split-container[hidden] {
+  display: none;
+}
+
+.split-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.split-pane > .page {
+  flex-shrink: 0;
+}
+
+.split-pane-handle {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #ffffff;
+  background: radial-gradient(circle at 50% 0%, hsl(var(--hue) 100% 68% / 0.5), hsl(var(--hue) 50% 31% / 0.3));
+  border: 2px solid hsl(var(--hue) 100% 79% / 0.6);
+  border-radius: 3px;
+  cursor: grab;
+  user-select: none;
+}
+
+.split-pane-handle:active {
+  cursor: grabbing;
+}
+
+.split-divider {
+  flex: 0 0 6px;
+  cursor: col-resize;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  transition: background 0.15s ease;
+  touch-action: none;
+}
+
+.split-divider:hover,
+.split-divider.active {
+  background: hsl(var(--hue) 100% 75% / 0.5);
+}
+
+.split-pane .page.split-active {
+  display: block;
+}
+
+@media (max-width: 700px) {
+  .split-container {
+    flex-direction: column;
+  }
+
+  .split-divider {
+    flex: 0 0 6px;
+    cursor: row-resize;
+  }
+}

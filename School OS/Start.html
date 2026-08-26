@@ -12,12 +12,12 @@
     <h1 class="logo">SCHOOL OS</h1>
 
     <nav class="tabs">
-      <button class="tab-btn" data-tab="assignments">✓ Uppgifter</button>
-      <button class="tab-btn" data-tab="groupdock">🗂 GroupDock</button>
-      <button class="tab-btn active" data-tab="calendar">🗓 Schema</button>
-      <button class="tab-btn" data-tab="mindmap">🧠 Mindmap</button>
-      <button class="tab-btn" data-tab="teachers">👩‍🏫 Lärare</button>
-      <button class="tab-btn" data-tab="subjects">📚 Ämnen</button>
+      <button class="tab-btn" data-tab="assignments" draggable="true">✓ Uppgifter</button>
+      <button class="tab-btn" data-tab="groupdock" draggable="true">🗂 GroupDock</button>
+      <button class="tab-btn active" data-tab="calendar" draggable="true">🗓 Schema</button>
+      <button class="tab-btn" data-tab="mindmap" draggable="true">🧠 Mindmap</button>
+      <button class="tab-btn" data-tab="teachers" draggable="true">👩‍🏫 Lärare</button>
+      <button class="tab-btn" data-tab="subjects" draggable="true">📚 Ämnen</button>
     </nav>
   </header>
 
@@ -58,6 +58,12 @@
   </div>
 
   <main class="content">
+
+    <div id="splitContainer" class="split-container" hidden>
+      <div id="splitPaneHost" class="split-pane"></div>
+      <div id="splitDivider" class="split-divider"></div>
+      <div id="splitPaneChild" class="split-pane"></div>
+    </div>
 
     <!-- ASSIGNMENTS -->
     <section id="assignments" class="page">

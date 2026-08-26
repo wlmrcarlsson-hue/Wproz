@@ -1,17 +1,265 @@
 const tabButtons = document.querySelectorAll(".tab-btn");
 const pages = document.querySelectorAll(".page");
+const tabsNav = document.querySelector(".tabs");
+const contentEl = document.querySelector("main.content");
+const splitContainer = document.getElementById("splitContainer");
+const splitPaneHost = document.getElementById("splitPaneHost");
+const splitPaneChild = document.getElementById("splitPaneChild");
+const splitDivider = document.getElementById("splitDivider");
+
+// ---------- Tab docking (drag one tab onto another to split the view) ----------
+
+const DOCK_STORAGE_KEY = "schoolos-tab-dock";
+
+function loadDockedPairs() {
+  const raw = localStorage.getItem(DOCK_STORAGE_KEY);
+  if (raw === null) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+  } catch (e) {
+    // ignore malformed storage
+  }
+  return [];
+}
+
+function saveDockedPairs() {
+  localStorage.setItem(DOCK_STORAGE_KEY, JSON.stringify(dockedPairs));
+}
+
+let dockedPairs = loadDockedPairs();
+let currentActiveTab = document.querySelector(".tab-btn.active")?.dataset.tab || "calendar";
+let draggedTabId = null;
+
+function findDockPairByHost(tabId) {
+  return dockedPairs.find((p) => p.host === tabId);
+}
+
+function findDockPairByChild(tabId) {
+  return dockedPairs.find((p) => p.child === tabId);
+}
+
+function tabLabelFor(tabId) {
+  const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+  return btn ? btn.textContent : tabId;
+}
+
+// Per-tab side effects that used to run only on a direct click (resizing the
+// draw canvas, re-rendering GroupDock) -- centralized here so they also fire
+// when a tab becomes visible as one half of a split, not just on click.
+function onTabShown(tabId) {
+  if (tabId === "groupdock") renderGroupDock();
+  if (tabId === "mindmap") {
+    const doc = mindmapDocs.find((d) => d.id === currentDocId);
+    if (doc && doc.type === "draw") resizeDrawCanvas(doc);
+  }
+}
+
+function renderTabButtonVisibility() {
+  tabButtons.forEach((btn) => {
+    btn.hidden = dockedPairs.some((p) => p.child === btn.dataset.tab);
+  });
+}
+
+function updateTabButtonActiveStates() {
+  const hostPair = findDockPairByHost(currentActiveTab);
+  tabButtons.forEach((btn) => {
+    const tabId = btn.dataset.tab;
+    btn.classList.toggle("active", tabId === currentActiveTab || (!!hostPair && hostPair.child === tabId));
+  });
+}
+
+function returnSplitSectionsHome() {
+  document.querySelectorAll(".split-pane .page").forEach((section) => {
+    section.classList.remove("split-active");
+    contentEl.insertBefore(section, splitContainer.nextSibling);
+  });
+  splitPaneHost.innerHTML = "";
+  splitPaneChild.innerHTML = "";
+}
+
+function hideSplitView() {
+  if (splitContainer.hidden) return;
+  returnSplitSectionsHome();
+  splitContainer.hidden = true;
+}
+
+function showSplitView(pair) {
+  const hostSection = document.getElementById(pair.host);
+  const childSection = document.getElementById(pair.child);
+  if (!hostSection || !childSection) return;
+
+  returnSplitSectionsHome();
+  pages.forEach((page) => page.classList.remove("active"));
+  hostSection.classList.add("active", "split-active");
+  childSection.classList.add("active", "split-active");
+
+  function buildPaneHandle(tabId) {
+    const handle = document.createElement("div");
+    handle.className = "split-pane-handle";
+    handle.draggable = true;
+    handle.title = "Dra till en flik för att byta plats, eller släpp var som helst utanför för att dela upp igen";
+    handle.textContent = tabLabelFor(tabId);
+    handle.addEventListener("dragstart", (event) => {
+      draggedTabId = tabId;
+      event.dataTransfer.setData("text/plain", tabId);
+      event.dataTransfer.effectAllowed = "move";
+    });
+    // Dropped somewhere that never called preventDefault() on dragover (i.e.
+    // not onto another tab button) -- the browser reports that as an
+    // unaccepted drop via dropEffect "none". That's the detach gesture: drag
+    // the handle away from the split entirely and let go anywhere else.
+    handle.addEventListener("dragend", (event) => {
+      if (event.dataTransfer.dropEffect === "none") {
+        if (findDockPairByChild(tabId)) undockChild(tabId);
+        else if (findDockPairByHost(tabId)) undockPair(tabId);
+      }
+      draggedTabId = null;
+    });
+    return handle;
+  }
+
+  splitPaneHost.appendChild(buildPaneHandle(pair.host));
+  splitPaneHost.appendChild(hostSection);
+
+  splitPaneChild.appendChild(buildPaneHandle(pair.child));
+  splitPaneChild.appendChild(childSection);
+
+  const ratio = pair.ratio || 0.5;
+  splitPaneHost.style.flex = `${ratio} 1 0%`;
+  splitPaneChild.style.flex = `${1 - ratio} 1 0%`;
+
+  splitContainer.hidden = false;
+
+  // Wait a frame so the browser has actually settled the new flex-based pane
+  // widths before anything (like the draw canvas) measures its box -- doing
+  // it synchronously here can read a not-quite-final size.
+  requestAnimationFrame(() => {
+    onTabShown(pair.host);
+    onTabShown(pair.child);
+  });
+}
+
+function activateTab(tabId) {
+  currentActiveTab = tabId;
+  updateTabButtonActiveStates();
+
+  const pair = findDockPairByHost(tabId);
+  if (pair) {
+    showSplitView(pair);
+    return;
+  }
+
+  hideSplitView();
+  pages.forEach((page) => page.classList.remove("active"));
+  const section = document.getElementById(tabId);
+  if (section) section.classList.add("active");
+  onTabShown(tabId);
+}
+
+function dockTabs(hostId, childId) {
+  if (hostId === childId) return;
+  // Keep it simple: a tab can only be in one dock relationship at a time.
+  dockedPairs = dockedPairs.filter(
+    (p) => p.host !== hostId && p.child !== hostId && p.host !== childId && p.child !== childId
+  );
+  dockedPairs.push({ host: hostId, child: childId, ratio: 0.5 });
+  saveDockedPairs();
+  renderTabButtonVisibility();
+  activateTab(hostId);
+}
+
+function undockChild(childId) {
+  const pair = findDockPairByChild(childId);
+  if (!pair) return;
+  dockedPairs = dockedPairs.filter((p) => p !== pair);
+  saveDockedPairs();
+  renderTabButtonVisibility();
+  activateTab(childId);
+}
+
+// Dragging the host's own handle out dissolves the whole split -- both
+// halves become independent top-level tabs again.
+function undockPair(hostId) {
+  const pair = findDockPairByHost(hostId);
+  if (!pair) return;
+  dockedPairs = dockedPairs.filter((p) => p !== pair);
+  saveDockedPairs();
+  renderTabButtonVisibility();
+  activateTab(hostId);
+}
 
 tabButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    const targetId = button.dataset.tab;
+  button.addEventListener("click", () => activateTab(button.dataset.tab));
 
-    tabButtons.forEach((btn) => btn.classList.remove("active"));
-    pages.forEach((page) => page.classList.remove("active"));
+  button.addEventListener("dragstart", (event) => {
+    draggedTabId = button.dataset.tab;
+    event.dataTransfer.setData("text/plain", button.dataset.tab);
+    event.dataTransfer.effectAllowed = "move";
+  });
 
-    button.classList.add("active");
-    document.getElementById(targetId).classList.add("active");
+  button.addEventListener("dragend", () => {
+    draggedTabId = null;
+    tabButtons.forEach((b) => b.classList.remove("drag-over"));
+  });
+
+  button.addEventListener("dragover", (event) => {
+    if (!draggedTabId || draggedTabId === button.dataset.tab) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    button.classList.add("drag-over");
+  });
+
+  button.addEventListener("dragleave", () => {
+    button.classList.remove("drag-over");
+  });
+
+  button.addEventListener("drop", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    button.classList.remove("drag-over");
+    const sourceTab = event.dataTransfer.getData("text/plain") || draggedTabId;
+    const targetTab = button.dataset.tab;
+    if (sourceTab && sourceTab !== targetTab) dockTabs(targetTab, sourceTab);
+    draggedTabId = null;
   });
 });
+
+// Detaching a docked pane is handled entirely by its handle's own "dragend"
+// (see buildPaneHandle): dropped on a tab button -> redocks there; dropped
+// anywhere else on the page -> nothing calls preventDefault() on that spot,
+// so the browser reports dropEffect "none" and the handle detaches itself.
+// tabsNav deliberately has no drop handling of its own, so blank space in
+// the tab bar counts as "anywhere else" too.
+
+let resizingSplit = false;
+
+splitDivider.addEventListener("pointerdown", (event) => {
+  resizingSplit = true;
+  splitDivider.classList.add("active");
+  splitDivider.setPointerCapture(event.pointerId);
+});
+
+splitDivider.addEventListener("pointermove", (event) => {
+  if (!resizingSplit) return;
+  const pair = findDockPairByHost(currentActiveTab);
+  if (!pair) return;
+  const containerRect = splitContainer.getBoundingClientRect();
+  let ratio = (event.clientX - containerRect.left) / containerRect.width;
+  ratio = Math.min(0.8, Math.max(0.2, ratio));
+  pair.ratio = ratio;
+  splitPaneHost.style.flex = `${ratio} 1 0%`;
+  splitPaneChild.style.flex = `${1 - ratio} 1 0%`;
+});
+
+splitDivider.addEventListener("pointerup", () => {
+  if (!resizingSplit) return;
+  resizingSplit = false;
+  splitDivider.classList.remove("active");
+  saveDockedPairs();
+});
+
+renderTabButtonVisibility();
 
 // ---------- Uppgifter (assignments subject filter) ----------
 
@@ -932,11 +1180,7 @@ function groupMetaLabel(docsInGroup, subject) {
 }
 
 function goToMindmapDoc(docId) {
-  const mindmapPage = document.getElementById("mindmap");
-  tabButtons.forEach((btn) => btn.classList.remove("active"));
-  pages.forEach((page) => page.classList.remove("active"));
-  mindmapTabBtn.classList.add("active");
-  mindmapPage.classList.add("active");
+  activateTab("mindmap");
   selectDoc(docId);
 }
 
@@ -1851,17 +2095,6 @@ window.addEventListener("resize", () => {
   }
 });
 
-const mindmapTabBtn = document.querySelector('.tab-btn[data-tab="mindmap"]');
-mindmapTabBtn.addEventListener("click", () => {
-  const doc = mindmapDocs.find((d) => d.id === currentDocId);
-  if (doc && doc.type === "draw") {
-    resizeDrawCanvas(doc);
-  }
-});
-
-const groupDockTabBtn = document.querySelector('.tab-btn[data-tab="groupdock"]');
-groupDockTabBtn.addEventListener("click", renderGroupDock);
-
 newGroupBtn.addEventListener("click", () => {
   newGroupForm.hidden = !newGroupForm.hidden;
   if (!newGroupForm.hidden) newGroupInput.focus();
@@ -1890,4 +2123,10 @@ if (mindmapDocs.length > 0) {
   selectDoc(mindmapDocs[0].id);
 } else {
   showEmptyState();
+}
+
+// Restore a split view left over from a previous session, now that every
+// tab's own init (mindmapDocs, GroupDock, etc.) has actually run.
+if (findDockPairByHost(currentActiveTab)) {
+  activateTab(currentActiveTab);
 }
