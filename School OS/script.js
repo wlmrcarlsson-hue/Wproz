@@ -41,7 +41,24 @@ function findDockPairByChild(tabId) {
 
 function tabLabelFor(tabId) {
   const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
-  return btn ? btn.textContent : tabId;
+  return btn ? btn.querySelector(".tab-btn-label").textContent : tabId;
+}
+
+// Shows, on the host's own nav button, a small nested chip naming whichever
+// tab is currently docked inside it -- so the tab bar itself communicates
+// the parent/child relationship, not just the split view.
+function updateNestedBadges() {
+  tabButtons.forEach((btn) => {
+    const nestedEl = btn.querySelector(".tab-btn-nested");
+    const pair = findDockPairByHost(btn.dataset.tab);
+    if (pair) {
+      nestedEl.textContent = tabLabelFor(pair.child);
+      nestedEl.hidden = false;
+    } else {
+      nestedEl.hidden = true;
+      nestedEl.textContent = "";
+    }
+  });
 }
 
 // Per-tab side effects that used to run only on a direct click (resizing the
@@ -59,6 +76,7 @@ function renderTabButtonVisibility() {
   tabButtons.forEach((btn) => {
     btn.hidden = dockedPairs.some((p) => p.child === btn.dataset.tab);
   });
+  updateNestedBadges();
 }
 
 function updateTabButtonActiveStates() {
@@ -189,6 +207,48 @@ function undockPair(hostId) {
   activateTab(hostId);
 }
 
+// ---------- Tab bar reordering (drag one tab to a new position) ----------
+
+const TAB_ORDER_KEY = "schoolos-tab-order";
+
+function loadTabOrder() {
+  const raw = localStorage.getItem(TAB_ORDER_KEY);
+  if (raw === null) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+  } catch (e) {
+    // ignore malformed storage
+  }
+  return null;
+}
+
+function saveTabOrder() {
+  const order = Array.from(tabsNav.querySelectorAll(".tab-btn")).map((btn) => btn.dataset.tab);
+  localStorage.setItem(TAB_ORDER_KEY, JSON.stringify(order));
+}
+
+function applyTabOrder(order) {
+  if (!order) return;
+  order.forEach((tabId) => {
+    const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+    if (btn) tabsNav.appendChild(btn);
+  });
+}
+
+function reorderTab(sourceTab, targetTab, insertAfter) {
+  const sourceBtn = document.querySelector(`.tab-btn[data-tab="${sourceTab}"]`);
+  const targetBtn = document.querySelector(`.tab-btn[data-tab="${targetTab}"]`);
+  if (!sourceBtn || !targetBtn) return;
+  if (insertAfter) targetBtn.after(sourceBtn);
+  else targetBtn.before(sourceBtn);
+  saveTabOrder();
+}
+
+function clearDragSlotClasses() {
+  tabButtons.forEach((b) => b.classList.remove("drag-over", "drag-slot-before", "drag-slot-after"));
+}
+
 tabButtons.forEach((button) => {
   button.addEventListener("click", () => activateTab(button.dataset.tab));
 
@@ -200,30 +260,54 @@ tabButtons.forEach((button) => {
 
   button.addEventListener("dragend", () => {
     draggedTabId = null;
-    tabButtons.forEach((b) => b.classList.remove("drag-over"));
+    clearDragSlotClasses();
   });
 
+  // The middle ~50% of a tab is a docking slot (drop to combine); the outer
+  // ~25% on each side is a reordering slot (drop to insert there instead) --
+  // it opens a visible gap so it reads as a slot, not just a highlight.
   button.addEventListener("dragover", (event) => {
     if (!draggedTabId || draggedTabId === button.dataset.tab) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
-    button.classList.add("drag-over");
+
+    const rect = button.getBoundingClientRect();
+    const offsetX = event.clientX - rect.left;
+    const edgeZone = rect.width * 0.25;
+
+    button.classList.remove("drag-over", "drag-slot-before", "drag-slot-after");
+    if (offsetX < edgeZone) {
+      button.classList.add("drag-slot-before");
+    } else if (offsetX > rect.width - edgeZone) {
+      button.classList.add("drag-slot-after");
+    } else {
+      button.classList.add("drag-over");
+    }
   });
 
   button.addEventListener("dragleave", () => {
-    button.classList.remove("drag-over");
+    button.classList.remove("drag-over", "drag-slot-before", "drag-slot-after");
   });
 
   button.addEventListener("drop", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    button.classList.remove("drag-over");
+
+    const wasSlotBefore = button.classList.contains("drag-slot-before");
+    const wasSlotAfter = button.classList.contains("drag-slot-after");
+    clearDragSlotClasses();
+
     const sourceTab = event.dataTransfer.getData("text/plain") || draggedTabId;
     const targetTab = button.dataset.tab;
-    if (sourceTab && sourceTab !== targetTab) dockTabs(targetTab, sourceTab);
+    if (sourceTab && sourceTab !== targetTab) {
+      if (wasSlotBefore || wasSlotAfter) reorderTab(sourceTab, targetTab, wasSlotAfter);
+      else dockTabs(targetTab, sourceTab);
+    }
     draggedTabId = null;
   });
 });
+
+applyTabOrder(loadTabOrder());
 
 // Detaching a docked pane is handled entirely by its handle's own "dragend"
 // (see buildPaneHandle): dropped on a tab button -> redocks there; dropped
