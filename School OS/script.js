@@ -13,6 +13,28 @@ tabButtons.forEach((button) => {
   });
 });
 
+// ---------- Uppgifter (assignments subject filter) ----------
+
+const assignmentsCatalog = document.getElementById("assignmentsCatalog");
+const assignmentsRows = document.querySelectorAll("#assignmentsBody tr");
+const assignmentsEmpty = document.getElementById("assignmentsEmpty");
+
+assignmentsCatalog.querySelectorAll("li").forEach((li) => {
+  li.addEventListener("click", () => {
+    assignmentsCatalog.querySelectorAll("li").forEach((el) => el.classList.remove("active"));
+    li.classList.add("active");
+
+    const subject = li.dataset.subject;
+    let visibleCount = 0;
+    assignmentsRows.forEach((tr) => {
+      const matches = !subject || tr.dataset.subject === subject;
+      tr.hidden = !matches;
+      if (matches) visibleCount++;
+    });
+    assignmentsEmpty.hidden = visibleCount > 0;
+  });
+});
+
 // ---------- Theme settings (color wheel) ----------
 
 const THEME_STORAGE_KEY = "schoolos-theme";
@@ -287,7 +309,7 @@ const DEFAULT_DOCS = [
     id: "seed-1",
     title: "Idéer inför nationella prov",
     type: "text",
-    content: "Saker att öva på:\n- Ekvationer med två okända\n- Källkritik i historia\n- Oregelbundna verb i engelska",
+    content: "Saker att öva på:<br>- Ekvationer med två okända<br>- Källkritik i historia<br>- Oregelbundna verb i engelska",
     groupId: "grp-math",
     subject: "Matematik 2b",
     updatedAt: Date.now(),
@@ -314,12 +336,19 @@ const docToolbar = document.getElementById("docToolbar");
 const docTitleInput = document.getElementById("docTitleInput");
 const deleteDocBtn = document.getElementById("deleteDocBtn");
 const textEditor = document.getElementById("textEditor");
+const textToolbar = document.getElementById("textToolbar");
+const textFormatSelect = document.getElementById("textFormatSelect");
+const textSizeSelect = document.getElementById("textSizeSelect");
+const textColorInput = document.getElementById("textColorInput");
+const textToolBtns = document.querySelectorAll(".text-tool-btn[data-cmd]");
 const drawArea = document.getElementById("drawArea");
 const drawCanvas = document.getElementById("drawCanvas");
 const drawCtx = drawCanvas.getContext("2d");
 const colorSwatchBtns = document.querySelectorAll(".color-swatch-btn");
+const bgSwatchBtns = document.querySelectorAll(".bg-swatch-btn");
 const brushSizeInput = document.getElementById("brushSize");
 const eraserBtn = document.getElementById("eraserBtn");
+const bucketBtn = document.getElementById("bucketBtn");
 const clearCanvasBtn = document.getElementById("clearCanvasBtn");
 const undoDrawBtn = document.getElementById("undoDrawBtn");
 const mindmapEmpty = document.getElementById("mindmapEmpty");
@@ -332,6 +361,7 @@ const confirmNewGroupBtn = document.getElementById("confirmNewGroupBtn");
 const groupDockList = document.getElementById("groupDockList");
 const groupDockCatalog = document.getElementById("groupDockCatalog");
 const groupDockSubjects = document.getElementById("groupDockSubjects");
+const scheduleSubjects = document.getElementById("scheduleSubjects");
 const appModalOverlay = document.getElementById("appModalOverlay");
 const appModalTitle = document.getElementById("appModalTitle");
 const appModalMessage = document.getElementById("appModalMessage");
@@ -360,6 +390,12 @@ let eraserActive = false;
 let isDrawingStroke = false;
 let undoStack = [];
 const UNDO_LIMIT = 20;
+
+const PEN_SIZE_KEY = "schoolos-pen-size";
+const ERASER_SIZE_KEY = "schoolos-eraser-size";
+let penSize = Number(localStorage.getItem(PEN_SIZE_KEY)) || 3;
+let eraserSize = Number(localStorage.getItem(ERASER_SIZE_KEY)) || 3;
+brushSizeInput.value = penSize;
 
 function loadMindmapDocs() {
   const raw = localStorage.getItem(MINDMAP_STORAGE_KEY);
@@ -655,8 +691,9 @@ function buildGroupBox(name, groupId, docsInGroup, collapsed, onToggle, showDele
   return box;
 }
 
-function renderGroupDockSubjects() {
-  groupDockSubjects.innerHTML = "";
+function renderSubjectCardsInto(container) {
+  if (!container) return;
+  container.innerHTML = "";
 
   SUBJECTS.forEach((subject) => {
     const noteCount = mindmapDocs.filter((d) => d.subject === subject).length;
@@ -670,8 +707,15 @@ function renderGroupDockSubjects() {
     countEl.textContent = `${noteCount} ${noteCount === 1 ? "anteckning" : "anteckningar"}`;
     card.appendChild(nameEl);
     card.appendChild(countEl);
-    groupDockSubjects.appendChild(card);
+    container.appendChild(card);
   });
+}
+
+// Same subject-card renderer feeds both GroupDock's Ämnen section and
+// the Ämnen panel under Schema, so document counts stay identical everywhere.
+function renderGroupDockSubjects() {
+  renderSubjectCardsInto(groupDockSubjects);
+  renderSubjectCardsInto(scheduleSubjects);
 }
 
 function renderGroupDock() {
@@ -739,10 +783,12 @@ function showEmptyState() {
   currentDocId = null;
   docToolbar.hidden = true;
   textEditor.hidden = true;
+  textToolbar.hidden = true;
   drawArea.hidden = true;
   mindmapEmpty.hidden = false;
   deleteDocArm.disarm();
   clearCanvasArm.disarm();
+  bucketArm.disarm();
   renderDocList();
 }
 
@@ -751,7 +797,7 @@ function resizeDrawCanvas(doc) {
   drawCanvas.width = Math.max(1, Math.floor(rect.width));
   drawCanvas.height = Math.max(1, Math.floor(rect.height));
 
-  drawCtx.fillStyle = "#ffffff";
+  drawCtx.fillStyle = doc.bgColor || "#ffffff";
   drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
 
   if (doc.content) {
@@ -773,20 +819,29 @@ function selectDoc(id) {
   docTitleInput.value = doc.title;
   deleteDocArm.disarm();
   clearCanvasArm.disarm();
+  bucketArm.disarm();
   undoStack = [];
   updateUndoButtonState();
 
   if (doc.type === "text") {
     textEditor.hidden = false;
+    textToolbar.hidden = false;
     drawArea.hidden = true;
-    textEditor.value = doc.content || "";
+    textEditor.innerHTML = doc.content || "";
+    updateEditorPlaceholder();
   } else {
     textEditor.hidden = true;
+    textToolbar.hidden = true;
     drawArea.hidden = false;
     resizeDrawCanvas(doc);
+    updateBgSwatchUI(doc.bgColor || "#ffffff");
   }
 
   renderDocList();
+}
+
+function updateBgSwatchUI(bgColor) {
+  bgSwatchBtns.forEach((btn) => btn.classList.toggle("active", btn.dataset.bg === bgColor));
 }
 
 function createDoc(type, title, subject) {
@@ -795,6 +850,7 @@ function createDoc(type, title, subject) {
     title,
     type,
     content: "",
+    bgColor: "#ffffff",
     groupId: activeGroupId,
     subject: subject || "",
     updatedAt: Date.now(),
@@ -905,12 +961,85 @@ docTitleInput.addEventListener("input", () => {
   renderDocList();
 });
 
-textEditor.addEventListener("input", () => {
+function saveTextDocContent() {
   const doc = mindmapDocs.find((d) => d.id === currentDocId);
   if (!doc) return;
-  doc.content = textEditor.value;
+  doc.content = textEditor.innerHTML;
   doc.updatedAt = Date.now();
   saveMindmapDocs();
+}
+
+function updateEditorPlaceholder() {
+  const isEmpty = textEditor.textContent.trim() === "" && !textEditor.querySelector("img");
+  textEditor.classList.toggle("is-empty", isEmpty);
+}
+
+let savedTextRange = null;
+
+function saveTextSelection() {
+  const sel = window.getSelection();
+  if (sel.rangeCount > 0 && textEditor.contains(sel.anchorNode)) {
+    savedTextRange = sel.getRangeAt(0);
+  }
+}
+
+function restoreTextSelection() {
+  if (!savedTextRange) return;
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(savedTextRange);
+}
+
+textEditor.addEventListener("input", () => {
+  saveTextDocContent();
+  updateEditorPlaceholder();
+});
+textEditor.addEventListener("keyup", saveTextSelection);
+textEditor.addEventListener("mouseup", saveTextSelection);
+document.addEventListener("selectionchange", () => {
+  if (document.activeElement === textEditor) saveTextSelection();
+});
+
+textToolBtns.forEach((btn) => {
+  btn.addEventListener("mousedown", (event) => event.preventDefault());
+  btn.addEventListener("click", () => {
+    document.execCommand(btn.dataset.cmd, false, null);
+    saveTextSelection();
+    textEditor.focus();
+    saveTextDocContent();
+  });
+});
+
+textFormatSelect.addEventListener("change", () => {
+  textEditor.focus();
+  restoreTextSelection();
+  document.execCommand("formatBlock", false, textFormatSelect.value);
+  saveTextSelection();
+  saveTextDocContent();
+});
+
+function applyFontSize(px) {
+  textEditor.focus();
+  restoreTextSelection();
+  document.execCommand("fontSize", false, "7");
+  textEditor.querySelectorAll('font[size="7"]').forEach((el) => {
+    el.removeAttribute("size");
+    el.style.fontSize = px + "px";
+  });
+  saveTextSelection();
+  saveTextDocContent();
+}
+
+textSizeSelect.addEventListener("change", () => {
+  applyFontSize(Number(textSizeSelect.value));
+});
+
+textColorInput.addEventListener("input", () => {
+  textEditor.focus();
+  restoreTextSelection();
+  document.execCommand("foreColor", false, textColorInput.value);
+  saveTextSelection();
+  saveTextDocContent();
 });
 
 function getCanvasPos(event) {
@@ -960,10 +1089,15 @@ drawCanvas.addEventListener("pointerdown", (event) => {
   drawCtx.moveTo(pos.x, pos.y);
 });
 
+function currentBgColor() {
+  const doc = mindmapDocs.find((d) => d.id === currentDocId);
+  return (doc && doc.bgColor) || "#ffffff";
+}
+
 drawCanvas.addEventListener("pointermove", (event) => {
   if (!isDrawingStroke) return;
   const pos = getCanvasPos(event);
-  drawCtx.strokeStyle = eraserActive ? "#ffffff" : currentColor;
+  drawCtx.strokeStyle = eraserActive ? currentBgColor() : currentColor;
   drawCtx.lineWidth = Number(brushSizeInput.value);
   drawCtx.lineCap = "round";
   drawCtx.lineJoin = "round";
@@ -984,17 +1118,75 @@ colorSwatchBtns.forEach((btn) => {
     eraserBtn.classList.remove("active");
     colorSwatchBtns.forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
+    brushSizeInput.value = penSize;
   });
 });
 
 eraserBtn.addEventListener("click", () => {
   eraserActive = !eraserActive;
   eraserBtn.classList.toggle("active", eraserActive);
+  brushSizeInput.value = eraserActive ? eraserSize : penSize;
+});
+
+brushSizeInput.addEventListener("input", () => {
+  if (eraserActive) {
+    eraserSize = Number(brushSizeInput.value);
+    localStorage.setItem(ERASER_SIZE_KEY, String(eraserSize));
+  } else {
+    penSize = Number(brushSizeInput.value);
+    localStorage.setItem(PEN_SIZE_KEY, String(penSize));
+  }
+});
+
+function hexToRgb(hex) {
+  const clean = hex.replace("#", "");
+  const value = parseInt(clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean, 16);
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+}
+
+function fillCanvas(color) {
+  pushUndoSnapshot();
+  drawCtx.fillStyle = color;
+  drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
+  saveCanvasToDoc();
+}
+
+const bucketArm = armConfirm(bucketBtn, "Säker? Klicka igen", () => fillCanvas(currentColor));
+
+function setDrawingBackground(newColor) {
+  const doc = mindmapDocs.find((d) => d.id === currentDocId);
+  if (!doc || doc.type !== "draw") return;
+
+  const oldColor = doc.bgColor || "#ffffff";
+  if (newColor === oldColor) return;
+
+  pushUndoSnapshot();
+
+  const [nr, ng, nb] = hexToRgb(newColor);
+  const [or_, og, ob] = hexToRgb(oldColor);
+  const imageData = drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height);
+  const data = imageData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i] === or_ && data[i + 1] === og && data[i + 2] === ob) {
+      data[i] = nr;
+      data[i + 1] = ng;
+      data[i + 2] = nb;
+    }
+  }
+  drawCtx.putImageData(imageData, 0, 0);
+
+  doc.bgColor = newColor;
+  saveCanvasToDoc();
+  updateBgSwatchUI(newColor);
+}
+
+bgSwatchBtns.forEach((btn) => {
+  btn.addEventListener("click", () => setDrawingBackground(btn.dataset.bg));
 });
 
 function clearCanvas() {
   pushUndoSnapshot();
-  drawCtx.fillStyle = "#ffffff";
+  drawCtx.fillStyle = currentBgColor();
   drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
   saveCanvasToDoc();
 }
@@ -1037,6 +1229,7 @@ newGroupInput.addEventListener("keydown", (event) => {
 });
 
 renderGroupSelector();
+renderGroupDockSubjects();
 
 if (mindmapDocs.length > 0) {
   selectDoc(mindmapDocs[0].id);

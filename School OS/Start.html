@@ -62,13 +62,14 @@
       <div class="page-layout">
         <aside class="catalog">
           <h4 class="catalog-title">Ämnen</h4>
-          <ul class="catalog-list">
-            <li>Matematik 2b</li>
-            <li>Fysik 2</li>
-            <li>Svenska 3</li>
-            <li>Historia 1b</li>
-            <li>Engelska 6</li>
-            <li>Programmering 1</li>
+          <ul id="assignmentsCatalog" class="catalog-list catalog-list-clickable">
+            <li class="active" data-subject="">Alla uppgifter</li>
+            <li data-subject="Matematik 2b">Matematik 2b</li>
+            <li data-subject="Fysik 2">Fysik 2</li>
+            <li data-subject="Svenska 3">Svenska 3</li>
+            <li data-subject="Historia 1b">Historia 1b</li>
+            <li data-subject="Engelska 6">Engelska 6</li>
+            <li data-subject="Programmering 1">Programmering 1</li>
           </ul>
         </aside>
 
@@ -84,38 +85,38 @@
                   <th>Betyg</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr>
+              <tbody id="assignmentsBody">
+                <tr data-subject="Matematik 2b">
                   <td>Algebra-inlämning</td>
                   <td>Matematik 2b</td>
                   <td>Fredag</td>
                   <td><span class="status status-progress">Pågår</span></td>
                 </tr>
-                <tr>
+                <tr data-subject="Fysik 2">
                   <td>Laborationsrapport: Elektricitet</td>
                   <td>Fysik 2</td>
                   <td>Nästa vecka</td>
                   <td><span class="status status-notstarted">Ej påbörjad</span></td>
                 </tr>
-                <tr>
+                <tr data-subject="Svenska 3">
                   <td>Novellanalys</td>
                   <td>Svenska 3</td>
                   <td>Om 2 veckor</td>
                   <td><span class="status status-notstarted">Ej påbörjad</span></td>
                 </tr>
-                <tr>
+                <tr data-subject="Historia 1b">
                   <td>Källkritisk uppgift: Andra världskriget</td>
                   <td>Historia 1b</td>
                   <td>Igår</td>
                   <td><span class="status status-submitted">Väntar på betyg</span></td>
                 </tr>
-                <tr>
+                <tr data-subject="Engelska 6">
                   <td>Grammatikövningar</td>
                   <td>Engelska 6</td>
                   <td>Förra veckan</td>
                   <td><span class="status status-completed">Betyg: B</span></td>
                 </tr>
-                <tr>
+                <tr data-subject="Programmering 1">
                   <td>Programmeringsprojekt</td>
                   <td>Programmering 1</td>
                   <td>2 veckor sedan</td>
@@ -123,6 +124,7 @@
                 </tr>
               </tbody>
             </table>
+            <p id="assignmentsEmpty" class="muted" hidden>Inga uppgifter i det här ämnet.</p>
           </div>
         </div>
       </div>
@@ -218,32 +220,7 @@
 
           <div class="panel subjects-panel">
             <h3>Ämnen</h3>
-            <div class="card-grid">
-              <div class="card">
-                <h3>Matematik 2b</h3>
-                <p class="muted">3 uppgifter · 12 anteckningar</p>
-              </div>
-              <div class="card">
-                <h3>Svenska 3</h3>
-                <p class="muted">1 uppgift · 5 anteckningar</p>
-              </div>
-              <div class="card">
-                <h3>Engelska 6</h3>
-                <p class="muted">2 uppgifter · 4 anteckningar</p>
-              </div>
-              <div class="card">
-                <h3>Fysik 2</h3>
-                <p class="muted">2 uppgifter · 8 anteckningar</p>
-              </div>
-              <div class="card">
-                <h3>Historia 1b</h3>
-                <p class="muted">1 uppgift · 6 anteckningar</p>
-              </div>
-              <div class="card">
-                <h3>Programmering 1</h3>
-                <p class="muted">1 uppgift · 3 anteckningar</p>
-              </div>
-            </div>
+            <div id="scheduleSubjects" class="card-grid groupdock-subjects"></div>
           </div>
         </div>
       </div>
@@ -308,19 +285,59 @@
               <button id="deleteDocBtn" class="doc-delete-btn" title="Ta bort dokument" aria-label="Ta bort dokument">🗑</button>
             </div>
 
-            <textarea id="textEditor" class="text-editor" placeholder="Skriv dina anteckningar här..." hidden></textarea>
+            <div id="textToolbar" class="text-toolbar" hidden>
+              <select id="textFormatSelect" class="text-toolbar-select" title="Format">
+                <option value="P">Brödtext</option>
+                <option value="H1">Rubrik 1</option>
+                <option value="H2">Rubrik 2</option>
+                <option value="H3">Rubrik 3</option>
+              </select>
+              <select id="textSizeSelect" class="text-toolbar-select" title="Textstorlek">
+                <option value="12">12</option>
+                <option value="14">14</option>
+                <option value="16" selected>16</option>
+                <option value="18">18</option>
+                <option value="20">20</option>
+                <option value="24">24</option>
+                <option value="32">32</option>
+              </select>
+              <button type="button" class="text-tool-btn text-tool-btn-bold" data-cmd="bold" title="Fet">B</button>
+              <button type="button" class="text-tool-btn text-tool-btn-italic" data-cmd="italic" title="Kursiv">I</button>
+              <button type="button" class="text-tool-btn text-tool-btn-underline" data-cmd="underline" title="Understruken">U</button>
+              <button type="button" class="text-tool-btn text-tool-btn-strike" data-cmd="strikeThrough" title="Genomstruken">S</button>
+              <span class="text-toolbar-sep"></span>
+              <button type="button" class="text-tool-btn" data-cmd="justifyLeft" title="Vänsterjustera">V</button>
+              <button type="button" class="text-tool-btn" data-cmd="justifyCenter" title="Centrera">C</button>
+              <button type="button" class="text-tool-btn" data-cmd="justifyRight" title="Högerjustera">H</button>
+              <span class="text-toolbar-sep"></span>
+              <button type="button" class="text-tool-btn" data-cmd="insertUnorderedList" title="Punktlista">• Lista</button>
+              <button type="button" class="text-tool-btn" data-cmd="insertOrderedList" title="Numrerad lista">1. Lista</button>
+              <span class="text-toolbar-sep"></span>
+              <input id="textColorInput" type="color" class="text-color-input" title="Textfärg" value="#e6ebf5" />
+            </div>
+
+            <div id="textEditor" class="text-editor" contenteditable="true" data-placeholder="Skriv dina anteckningar här..." hidden></div>
 
             <div id="drawArea" class="draw-area" hidden>
               <div class="draw-toolbar">
-                <button class="color-swatch-btn active" data-color="#1a1a2e" style="background:#1a1a2e"></button>
-                <button class="color-swatch-btn" data-color="#e63946" style="background:#e63946"></button>
-                <button class="color-swatch-btn" data-color="#f4a261" style="background:#f4a261"></button>
-                <button class="color-swatch-btn" data-color="#2a9d8f" style="background:#2a9d8f"></button>
-                <button class="color-swatch-btn" data-color="#4361ee" style="background:#4361ee"></button>
+                <button class="color-swatch-btn active" data-color="#1a1a2e" style="background:#1a1a2e" title="Färg"></button>
+                <button class="color-swatch-btn" data-color="#e63946" style="background:#e63946" title="Färg"></button>
+                <button class="color-swatch-btn" data-color="#f4a261" style="background:#f4a261" title="Färg"></button>
+                <button class="color-swatch-btn" data-color="#2a9d8f" style="background:#2a9d8f" title="Färg"></button>
+                <button class="color-swatch-btn" data-color="#4361ee" style="background:#4361ee" title="Färg"></button>
                 <input id="brushSize" type="range" min="1" max="20" value="3" title="Penselstorlek" />
                 <button id="undoDrawBtn" class="draw-tool-btn" title="Ångra senaste strecket">↩ Ångra</button>
                 <button id="eraserBtn" class="draw-tool-btn" title="Sudd">🧽 Sudd</button>
+                <button id="bucketBtn" class="draw-tool-btn" title="Fyll hela ritytan med vald färg">🪣 Fyll</button>
                 <button id="clearCanvasBtn" class="draw-tool-btn" title="Rensa allt">Rensa</button>
+              </div>
+              <div class="draw-toolbar draw-toolbar-bg">
+                <span class="draw-toolbar-label">Bakgrund:</span>
+                <button class="bg-swatch-btn active" data-bg="#ffffff" style="background:#ffffff" title="Vit bakgrund"></button>
+                <button class="bg-swatch-btn" data-bg="#1a1a2e" style="background:#1a1a2e" title="Mörk bakgrund"></button>
+                <button class="bg-swatch-btn" data-bg="#eef1f8" style="background:#eef1f8" title="Ljusgrå bakgrund"></button>
+                <button class="bg-swatch-btn" data-bg="#fdf6e3" style="background:#fdf6e3" title="Gul bakgrund"></button>
+                <button class="bg-swatch-btn" data-bg="#eaf4ff" style="background:#eaf4ff" title="Ljusblå bakgrund"></button>
               </div>
               <div class="draw-canvas-wrap">
                 <canvas id="drawCanvas" class="draw-canvas"></canvas>
