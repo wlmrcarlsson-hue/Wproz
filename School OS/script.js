@@ -345,12 +345,13 @@ const drawArea = document.getElementById("drawArea");
 const drawCanvas = document.getElementById("drawCanvas");
 const drawCtx = drawCanvas.getContext("2d");
 const colorSwatchBtns = document.querySelectorAll(".color-swatch-btn");
-const bgSwatchBtns = document.querySelectorAll(".bg-swatch-btn");
+const bgColorInput = document.getElementById("bgColorInput");
 const brushSizeInput = document.getElementById("brushSize");
 const eraserBtn = document.getElementById("eraserBtn");
 const bucketBtn = document.getElementById("bucketBtn");
 const clearCanvasBtn = document.getElementById("clearCanvasBtn");
 const undoDrawBtn = document.getElementById("undoDrawBtn");
+const brushCursor = document.getElementById("brushCursor");
 const mindmapEmpty = document.getElementById("mindmapEmpty");
 const groupSelector = document.getElementById("groupSelector");
 const newGroupBtn = document.getElementById("newGroupBtn");
@@ -378,6 +379,171 @@ appModalOkBtn.addEventListener("click", () => {
 });
 appModalOverlay.addEventListener("click", (event) => {
   if (event.target === appModalOverlay) appModalOverlay.hidden = true;
+});
+
+// ---------- Teachers ----------
+
+const TEACHERS = [
+  { id: "t1", name: "Anna Berg", subject: "Matematik 2b", color: "#4361ee" },
+  { id: "t2", name: "Erik Lindqvist", subject: "Fysik 2", color: "#e63946" },
+  { id: "t3", name: "Maria Söderström", subject: "Svenska 3", color: "#2a9d8f" },
+  { id: "t4", name: "Johan Ekström", subject: "Historia 1b", color: "#f4a261" },
+  { id: "t5", name: "Sara Nilsson", subject: "Engelska 6", color: "#8b5cf6" },
+  { id: "t6", name: "David Karlsson", subject: "Programmering 1", color: "#06b6d4" },
+];
+
+const CHAT_STORAGE_PREFIX = "schoolos-chat-";
+const TEACHER_REPLIES = [
+  "Tack för ditt meddelande! Jag återkommer så snart jag kan.",
+  "Bra fråga, det tar vi upp på nästa lektion.",
+  "Noterat, jag kollar på det innan imorgon.",
+  "Låter bra, hör av dig om du undrar något mer!",
+];
+
+const teachersGrid = document.getElementById("teachersGrid");
+const teachersListView = document.getElementById("teachersListView");
+const teacherChatView = document.getElementById("teacherChatView");
+const teachersBreadcrumb = document.getElementById("teachersBreadcrumb");
+const chatTeacherAvatar = document.getElementById("chatTeacherAvatar");
+const chatTeacherName = document.getElementById("chatTeacherName");
+const chatTeacherSubject = document.getElementById("chatTeacherSubject");
+const chatMessages = document.getElementById("chatMessages");
+const chatInput = document.getElementById("chatInput");
+const chatSendBtn = document.getElementById("chatSendBtn");
+
+let activeTeacherId = null;
+
+function teacherInitials(name) {
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0] ? parts[0][0] : "") + (parts[parts.length - 1] ? parts[parts.length - 1][0] : "")).toUpperCase();
+}
+
+function loadChatMessages(teacherId) {
+  const raw = localStorage.getItem(CHAT_STORAGE_PREFIX + teacherId);
+  if (raw === null) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+  } catch (e) {
+    // ignore malformed storage
+  }
+  return [];
+}
+
+function saveChatMessages(teacherId, messages) {
+  localStorage.setItem(CHAT_STORAGE_PREFIX + teacherId, JSON.stringify(messages));
+}
+
+function renderTeachers() {
+  teachersGrid.innerHTML = "";
+  TEACHERS.forEach((teacher) => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "teacher-card";
+
+    const avatar = document.createElement("span");
+    avatar.className = "teacher-avatar";
+    avatar.style.background = teacher.color;
+    avatar.textContent = teacherInitials(teacher.name);
+
+    const body = document.createElement("span");
+    body.className = "teacher-card-body";
+    const nameEl = document.createElement("span");
+    nameEl.className = "teacher-card-name";
+    nameEl.textContent = teacher.name;
+    const subjectEl = document.createElement("span");
+    subjectEl.className = "teacher-card-subject muted";
+    subjectEl.textContent = teacher.subject;
+    body.appendChild(nameEl);
+    body.appendChild(subjectEl);
+
+    card.appendChild(avatar);
+    card.appendChild(body);
+    card.addEventListener("click", () => openTeacherChat(teacher.id));
+    teachersGrid.appendChild(card);
+  });
+}
+
+function renderChatMessages(teacherId) {
+  chatMessages.innerHTML = "";
+  loadChatMessages(teacherId).forEach((msg) => {
+    const bubble = document.createElement("div");
+    bubble.className = `chat-message ${msg.from === "user" ? "chat-message-user" : "chat-message-teacher"}`;
+    bubble.textContent = msg.text;
+    chatMessages.appendChild(bubble);
+  });
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function renderTeachersBreadcrumb() {
+  teachersBreadcrumb.innerHTML = "";
+
+  const listItem = document.createElement("li");
+  listItem.textContent = "🗂 Lärare";
+  listItem.className = activeTeacherId ? "" : "active";
+  listItem.addEventListener("click", closeTeacherChat);
+  teachersBreadcrumb.appendChild(listItem);
+
+  if (activeTeacherId) {
+    const teacher = TEACHERS.find((t) => t.id === activeTeacherId);
+    if (teacher) {
+      const chatItem = document.createElement("li");
+      chatItem.textContent = teacher.name;
+      chatItem.className = "active";
+      teachersBreadcrumb.appendChild(chatItem);
+    }
+  }
+}
+
+function openTeacherChat(teacherId) {
+  const teacher = TEACHERS.find((t) => t.id === teacherId);
+  if (!teacher) return;
+
+  activeTeacherId = teacherId;
+  teachersListView.hidden = true;
+  teacherChatView.hidden = false;
+
+  chatTeacherAvatar.style.background = teacher.color;
+  chatTeacherAvatar.textContent = teacherInitials(teacher.name);
+  chatTeacherName.textContent = teacher.name;
+  chatTeacherSubject.textContent = teacher.subject;
+
+  renderChatMessages(teacherId);
+  renderTeachersBreadcrumb();
+  chatInput.value = "";
+  chatInput.focus();
+}
+
+function closeTeacherChat() {
+  activeTeacherId = null;
+  teacherChatView.hidden = true;
+  teachersListView.hidden = false;
+  renderTeachersBreadcrumb();
+}
+
+function sendChatMessage() {
+  const text = chatInput.value.trim();
+  if (!text || !activeTeacherId) return;
+
+  const messages = loadChatMessages(activeTeacherId);
+  messages.push({ from: "user", text, at: Date.now() });
+  saveChatMessages(activeTeacherId, messages);
+  chatInput.value = "";
+  renderChatMessages(activeTeacherId);
+
+  const teacherId = activeTeacherId;
+  setTimeout(() => {
+    const reply = TEACHER_REPLIES[Math.floor(Math.random() * TEACHER_REPLIES.length)];
+    const current = loadChatMessages(teacherId);
+    current.push({ from: "teacher", text: reply, at: Date.now() });
+    saveChatMessages(teacherId, current);
+    if (activeTeacherId === teacherId) renderChatMessages(teacherId);
+  }, 900);
+}
+
+chatSendBtn.addEventListener("click", sendChatMessage);
+chatInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") sendChatMessage();
 });
 
 let mindmapDocs = loadMindmapDocs();
@@ -829,19 +995,20 @@ function selectDoc(id) {
     drawArea.hidden = true;
     textEditor.innerHTML = doc.content || "";
     updateEditorPlaceholder();
+    updateToolbarState();
   } else {
     textEditor.hidden = true;
     textToolbar.hidden = true;
     drawArea.hidden = false;
     resizeDrawCanvas(doc);
-    updateBgSwatchUI(doc.bgColor || "#ffffff");
+    updateBgColorUI(doc.bgColor || "#ffffff");
   }
 
   renderDocList();
 }
 
-function updateBgSwatchUI(bgColor) {
-  bgSwatchBtns.forEach((btn) => btn.classList.toggle("active", btn.dataset.bg === bgColor));
+function updateBgColorUI(bgColor) {
+  bgColorInput.value = bgColor;
 }
 
 function createDoc(type, title, subject) {
@@ -990,14 +1157,63 @@ function restoreTextSelection() {
   sel.addRange(savedTextRange);
 }
 
+const FONT_SIZE_OPTIONS = Array.from(textSizeSelect.options).map((opt) => Number(opt.value));
+
+function getCurrentFontSizePx() {
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return null;
+  let node = sel.getRangeAt(0).startContainer;
+  if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+  if (!node || !textEditor.contains(node)) return null;
+  const px = parseFloat(window.getComputedStyle(node).fontSize);
+  if (!px) return null;
+  // Snap to the nearest option so the select always shows a concrete value
+  // instead of blanking out on sizes that fall between our fixed steps.
+  return FONT_SIZE_OPTIONS.reduce((closest, option) =>
+    Math.abs(option - px) < Math.abs(closest - px) ? option : closest
+  );
+}
+
+function updateToolbarState() {
+  textToolBtns.forEach((btn) => {
+    let isActive = false;
+    try {
+      isActive = document.queryCommandState(btn.dataset.cmd);
+    } catch (e) {
+      isActive = false;
+    }
+    btn.classList.toggle("active", isActive);
+  });
+
+  let blockFormat = "P";
+  try {
+    blockFormat = (document.queryCommandValue("formatBlock") || "P").toUpperCase();
+  } catch (e) {
+    blockFormat = "P";
+  }
+  textFormatSelect.value = ["H1", "H2", "H3"].includes(blockFormat) ? blockFormat : "P";
+
+  const sizePx = getCurrentFontSizePx();
+  if (sizePx) textSizeSelect.value = String(sizePx);
+}
+
 textEditor.addEventListener("input", () => {
   saveTextDocContent();
   updateEditorPlaceholder();
 });
-textEditor.addEventListener("keyup", saveTextSelection);
-textEditor.addEventListener("mouseup", saveTextSelection);
+textEditor.addEventListener("keyup", () => {
+  saveTextSelection();
+  updateToolbarState();
+});
+textEditor.addEventListener("mouseup", () => {
+  saveTextSelection();
+  updateToolbarState();
+});
 document.addEventListener("selectionchange", () => {
-  if (document.activeElement === textEditor) saveTextSelection();
+  if (document.activeElement === textEditor) {
+    saveTextSelection();
+    updateToolbarState();
+  }
 });
 
 textToolBtns.forEach((btn) => {
@@ -1007,6 +1223,7 @@ textToolBtns.forEach((btn) => {
     saveTextSelection();
     textEditor.focus();
     saveTextDocContent();
+    updateToolbarState();
   });
 });
 
@@ -1016,11 +1233,45 @@ textFormatSelect.addEventListener("change", () => {
   document.execCommand("formatBlock", false, textFormatSelect.value);
   saveTextSelection();
   saveTextDocContent();
+  updateToolbarState();
 });
+
+// Selects the visual line the caret is on (like Word does when you change a
+// line's size without highlighting text first), so you don't have to
+// manually select the whole line every time you want to resize it.
+const LINE_BLOCK_TAGS = new Set(["DIV", "P", "H1", "H2", "H3", "LI"]);
+
+function getCurrentLineElement() {
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return null;
+  let node = sel.getRangeAt(0).startContainer;
+  if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+  while (node && node !== textEditor) {
+    if (LINE_BLOCK_TAGS.has(node.tagName)) return node;
+    node = node.parentElement;
+  }
+  return null;
+}
+
+function selectCurrentLine() {
+  const lineEl = getCurrentLineElement();
+  if (!lineEl) return false;
+  const range = document.createRange();
+  range.selectNodeContents(lineEl);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  return true;
+}
 
 function applyFontSize(px) {
   textEditor.focus();
   restoreTextSelection();
+
+  const sel = window.getSelection();
+  const hasRealSelection = sel.rangeCount > 0 && !sel.getRangeAt(0).collapsed;
+  if (!hasRealSelection) selectCurrentLine();
+
   document.execCommand("fontSize", false, "7");
   textEditor.querySelectorAll('font[size="7"]').forEach((el) => {
     el.removeAttribute("size");
@@ -1028,6 +1279,7 @@ function applyFontSize(px) {
   });
   saveTextSelection();
   saveTextDocContent();
+  updateToolbarState();
 }
 
 textSizeSelect.addEventListener("change", () => {
@@ -1094,7 +1346,30 @@ function currentBgColor() {
   return (doc && doc.bgColor) || "#ffffff";
 }
 
+let lastPointerClient = null;
+
+function updateBrushCursor(clientX, clientY) {
+  lastPointerClient = { x: clientX, y: clientY };
+  const rect = drawCanvas.getBoundingClientRect();
+  const size = Number(brushSizeInput.value);
+  brushCursor.style.width = `${size}px`;
+  brushCursor.style.height = `${size}px`;
+  brushCursor.style.left = `${clientX - rect.left - size / 2}px`;
+  brushCursor.style.top = `${clientY - rect.top - size / 2}px`;
+}
+
+drawCanvas.addEventListener("pointerenter", (event) => {
+  brushCursor.hidden = false;
+  updateBrushCursor(event.clientX, event.clientY);
+});
+
+drawCanvas.addEventListener("pointerleave", () => {
+  brushCursor.hidden = true;
+  lastPointerClient = null;
+});
+
 drawCanvas.addEventListener("pointermove", (event) => {
+  updateBrushCursor(event.clientX, event.clientY);
   if (!isDrawingStroke) return;
   const pos = getCanvasPos(event);
   drawCtx.strokeStyle = eraserActive ? currentBgColor() : currentColor;
@@ -1126,6 +1401,7 @@ eraserBtn.addEventListener("click", () => {
   eraserActive = !eraserActive;
   eraserBtn.classList.toggle("active", eraserActive);
   brushSizeInput.value = eraserActive ? eraserSize : penSize;
+  if (lastPointerClient) updateBrushCursor(lastPointerClient.x, lastPointerClient.y);
 });
 
 brushSizeInput.addEventListener("input", () => {
@@ -1136,6 +1412,7 @@ brushSizeInput.addEventListener("input", () => {
     penSize = Number(brushSizeInput.value);
     localStorage.setItem(PEN_SIZE_KEY, String(penSize));
   }
+  if (lastPointerClient) updateBrushCursor(lastPointerClient.x, lastPointerClient.y);
 });
 
 function hexToRgb(hex) {
@@ -1164,25 +1441,33 @@ function setDrawingBackground(newColor) {
 
   const [nr, ng, nb] = hexToRgb(newColor);
   const [or_, og, ob] = hexToRgb(oldColor);
+  // Anti-aliased stroke edges blend gradually into the background, so an exact
+  // color match would leave a ring of stray "dots" behind at those edges.
+  // Blending proportionally to color distance instead recolors those edges
+  // smoothly along with the flat background.
+  const maxDistance = 60;
   const imageData = drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height);
   const data = imageData.data;
   for (let i = 0; i < data.length; i += 4) {
-    if (data[i] === or_ && data[i + 1] === og && data[i + 2] === ob) {
-      data[i] = nr;
-      data[i + 1] = ng;
-      data[i + 2] = nb;
+    const dr = data[i] - or_;
+    const dg = data[i + 1] - og;
+    const db = data[i + 2] - ob;
+    const distance = Math.sqrt(dr * dr + dg * dg + db * db);
+    const closeness = Math.max(0, 1 - distance / maxDistance);
+    if (closeness > 0) {
+      data[i] += (nr - data[i]) * closeness;
+      data[i + 1] += (ng - data[i + 1]) * closeness;
+      data[i + 2] += (nb - data[i + 2]) * closeness;
     }
   }
   drawCtx.putImageData(imageData, 0, 0);
 
   doc.bgColor = newColor;
   saveCanvasToDoc();
-  updateBgSwatchUI(newColor);
+  updateBgColorUI(newColor);
 }
 
-bgSwatchBtns.forEach((btn) => {
-  btn.addEventListener("click", () => setDrawingBackground(btn.dataset.bg));
-});
+bgColorInput.addEventListener("input", () => setDrawingBackground(bgColorInput.value));
 
 function clearCanvas() {
   pushUndoSnapshot();
@@ -1230,6 +1515,8 @@ newGroupInput.addEventListener("keydown", (event) => {
 
 renderGroupSelector();
 renderGroupDockSubjects();
+renderTeachers();
+renderTeachersBreadcrumb();
 
 if (mindmapDocs.length > 0) {
   selectDoc(mindmapDocs[0].id);

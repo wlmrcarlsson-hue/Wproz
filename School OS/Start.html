@@ -16,6 +16,7 @@
       <button class="tab-btn" data-tab="groupdock">🗂 GroupDock</button>
       <button class="tab-btn active" data-tab="calendar">🗓 Schema</button>
       <button class="tab-btn" data-tab="mindmap">🧠 Mindmap</button>
+      <button class="tab-btn" data-tab="teachers">👩‍🏫 Lärare</button>
     </nav>
   </header>
 
@@ -333,18 +334,50 @@
               </div>
               <div class="draw-toolbar draw-toolbar-bg">
                 <span class="draw-toolbar-label">Bakgrund:</span>
-                <button class="bg-swatch-btn active" data-bg="#ffffff" style="background:#ffffff" title="Vit bakgrund"></button>
-                <button class="bg-swatch-btn" data-bg="#1a1a2e" style="background:#1a1a2e" title="Mörk bakgrund"></button>
-                <button class="bg-swatch-btn" data-bg="#eef1f8" style="background:#eef1f8" title="Ljusgrå bakgrund"></button>
-                <button class="bg-swatch-btn" data-bg="#fdf6e3" style="background:#fdf6e3" title="Gul bakgrund"></button>
-                <button class="bg-swatch-btn" data-bg="#eaf4ff" style="background:#eaf4ff" title="Ljusblå bakgrund"></button>
+                <input id="bgColorInput" type="color" class="text-color-input" title="Bakgrundsfärg" value="#ffffff" />
               </div>
               <div class="draw-canvas-wrap">
                 <canvas id="drawCanvas" class="draw-canvas"></canvas>
+                <div id="brushCursor" class="brush-cursor" hidden></div>
               </div>
             </div>
 
             <p id="mindmapEmpty" class="muted mindmap-empty">Välj ett dokument i listan till vänster, eller skapa ett nytt.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TEACHERS -->
+    <section id="teachers" class="page">
+      <div class="page-layout">
+        <aside class="catalog">
+          <h4 class="catalog-title">Position</h4>
+          <ul id="teachersBreadcrumb" class="catalog-list catalog-list-clickable">
+            <li class="active" data-view="list">🗂 Lärare</li>
+          </ul>
+        </aside>
+
+        <div class="page-body">
+          <div id="teachersListView" class="panel">
+            <h3>Lärare</h3>
+            <p class="muted groupdock-intro">Tryck på en lärare för att öppna en chatt.</p>
+            <div id="teachersGrid" class="teacher-grid"></div>
+          </div>
+
+          <div id="teacherChatView" class="panel teacher-chat-panel" hidden>
+            <div class="teacher-chat-header">
+              <span id="chatTeacherAvatar" class="teacher-avatar teacher-avatar-lg"></span>
+              <div>
+                <h3 id="chatTeacherName" class="teacher-chat-name"></h3>
+                <p id="chatTeacherSubject" class="muted"></p>
+              </div>
+            </div>
+            <div id="chatMessages" class="chat-messages"></div>
+            <div class="chat-input-row">
+              <input id="chatInput" type="text" class="doc-title-input" placeholder="Skriv ett meddelande..." maxlength="500" />
+              <button id="chatSendBtn" class="doc-new-btn">Skicka</button>
+            </div>
           </div>
         </div>
       </div>
