@@ -1889,7 +1889,11 @@ body {
 }
 
 .book-spread {
+  /* Single source of truth for the fold width -- paginateSpread() reads
+     this back, so it stays readable even when the gutter is hidden. */
+  --book-gutter: 54px;
   position: relative;
+  padding: 40px 44px 52px;
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow: var(--shadow-lg);
@@ -1899,9 +1903,10 @@ body {
     linear-gradient(to bottom, rgba(255, 255, 255, 0.5), transparent 30%);
 }
 
+/* Must stay padding-free: overflow clips at the padding box, so any
+   padding here would let the following column bleed into the margin. */
 .book-spread-viewport {
   overflow: hidden;
-  padding: 40px 44px 52px;
 }
 
 .book-spread-flow {
@@ -1955,7 +1960,7 @@ body {
   top: 0;
   bottom: 0;
   left: 50%;
-  width: 54px;
+  width: var(--book-gutter);
   transform: translateX(-50%);
   pointer-events: none;
   background: linear-gradient(
@@ -2000,20 +2005,21 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* On a narrow screen a two-page spread stops being readable, so the
-   gutter is hidden and the flow falls back to a single page column;
-   paginateSpread() reads this back off the DOM rather than assuming. */
+/* Below a readable two-page width the spread drops to one page. The class
+   is set by paginateSpread() from the text area's measured width rather
+   than by a viewport media query, so it triggers just as correctly for a
+   book opened in a narrow split pane as for a narrow window. */
+.book-spread.is-single-page .book-spread-gutter {
+  display: none;
+}
+
+.book-spread.is-single-page .book-page-number-left {
+  display: none;
+}
+
 @media (max-width: 700px) {
-  .book-spread-viewport {
+  .book-spread {
     padding: 28px 24px 44px;
-  }
-
-  .book-spread-gutter {
-    display: none;
-  }
-
-  .book-page-number-left {
-    display: none;
   }
 
   .book-page-number-right {

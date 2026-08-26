@@ -2008,6 +2008,13 @@ let spreadIndex = 0;
 let spreadPageCount = 0;
 let spreadColumnStep = 0;
 let spreadColumnsPerView = 2;
+// Narrower than two of these side by side and justified text starts
+// breaking badly, so the spread folds down to a single page instead.
+const MIN_PAGE_WIDTH = 320;
+// Tracks which chapter the left page is showing, so re-typesetting (a
+// resize, or a split pane being dragged) can put the reader back on the
+// same chapter instead of on whatever now happens to have that page number.
+let spreadCurrentChapter = 0;
 // Where in the flow each chapter starts, so opening the book from a
 // chapter lands on the right spread instead of always at page one.
 let spreadChapterStarts = [];
@@ -2034,13 +2041,15 @@ function paginateSpread() {
   const viewportWidth = bookSpreadFlow.clientWidth;
   if (viewportWidth <= 0) return;
 
-  // The gutter element's own width is the column gap, so the CSS stays the
-  // single source of truth for how wide the fold is (and the mobile rule
-  // that hides it collapses the layout to one page automatically).
-  const gutterEl = bookSpread.querySelector(".book-spread-gutter");
-  const gutterVisible = getComputedStyle(gutterEl).display !== "none";
-  spreadColumnsPerView = gutterVisible ? 2 : 1;
-  const gap = gutterVisible ? gutterEl.offsetWidth : 0;
+  const gutter = parseFloat(getComputedStyle(bookSpread).getPropertyValue("--book-gutter")) || 0;
+
+  // Deciding this from the measured text width (rather than a viewport
+  // media query) is what makes one-page mode kick in for a book opened in
+  // a split pane -- the window can still be wide while the pane is not.
+  const twoPage = viewportWidth >= MIN_PAGE_WIDTH * 2 + gutter;
+  bookSpread.classList.toggle("is-single-page", !twoPage);
+  spreadColumnsPerView = twoPage ? 2 : 1;
+  const gap = twoPage ? gutter : 0;
 
   const columnWidth = (viewportWidth - gap * (spreadColumnsPerView - 1)) / spreadColumnsPerView;
   const pageHeight = Math.max(320, Math.round(window.innerHeight * 0.56));
@@ -2052,7 +2061,20 @@ function paginateSpread() {
   spreadColumnStep = columnWidth + gap;
   spreadPageCount = Math.max(1, Math.round((bookSpreadFlow.scrollWidth + gap) / spreadColumnStep));
 
-  showSpread(spreadIndex);
+  // Re-anchor on the chapter that was being read: after a reflow the old
+  // spread index points at a different part of the book.
+  goToChapterSpread(spreadCurrentChapter);
+}
+
+// Moves the view to the spread where a given chapter begins.
+function goToChapterSpread(chapterIndex) {
+  const anchor = spreadChapterStarts[chapterIndex];
+  if (!anchor || spreadColumnStep <= 0) {
+    showSpread(spreadIndex);
+    return;
+  }
+  const column = Math.round(anchor.offsetLeft / spreadColumnStep);
+  showSpread(Math.floor(column / spreadColumnsPerView));
 }
 
 function showSpread(index) {
@@ -2082,6 +2104,7 @@ function showSpread(index) {
   spreadChapterStarts.forEach((node, i) => {
     if (node.offsetLeft <= viewportLeft + 2) current = i;
   });
+  spreadCurrentChapter = current;
   bookSpreadChapter.textContent = `${activeBook.chapters[current].title} · Kapitel ${current + 1} av ${activeBook.chapters.length}`;
 }
 
@@ -2094,14 +2117,9 @@ function openSpread() {
 
   renderSpreadContent();
   spreadIndex = 0;
+  // Open on the chapter that was being read in the outline view.
+  spreadCurrentChapter = activeChapterIndex;
   paginateSpread();
-
-  // Jump to wherever the chapter you were reading begins.
-  const anchor = spreadChapterStarts[activeChapterIndex];
-  if (anchor && spreadColumnStep > 0) {
-    const column = Math.round(anchor.offsetLeft / spreadColumnStep);
-    showSpread(Math.floor(column / spreadColumnsPerView));
-  }
 
   renderSubjectsBreadcrumb();
 }
@@ -2125,8 +2143,25 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") closeSpread();
 });
 
-// Re-typeset when the page width changes -- the column width is derived
-// from it, so a stale layout would put the text in the wrong place.
+// Re-typeset whenever the text area's width changes -- the column width
+// is derived from it, so a stale layout would put the text in the wrong
+// place. A ResizeObserver catches what a window resize listener cannot:
+// the book being docked into (or dragged narrower inside) a split pane,
+// which changes the pane's width while the window's stays the same.
+let lastSpreadWidth = 0;
+
+const spreadResizeObserver = new ResizeObserver(() => {
+  if (bookSpreadView.hidden) return;
+  const width = bookSpreadFlow.clientWidth;
+  // Only width matters here, and ignoring same-width callbacks keeps
+  // paginateSpread's own height change from re-triggering this.
+  if (width <= 0 || width === lastSpreadWidth) return;
+  lastSpreadWidth = width;
+  paginateSpread();
+});
+
+spreadResizeObserver.observe(bookSpread);
+
 window.addEventListener("resize", () => {
   if (bookSpreadView.hidden) return;
   paginateSpread();
