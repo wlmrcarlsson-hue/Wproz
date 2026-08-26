@@ -346,6 +346,7 @@ const drawCanvas = document.getElementById("drawCanvas");
 const drawCtx = drawCanvas.getContext("2d");
 const colorSwatchBtns = document.querySelectorAll(".color-swatch-btn");
 const bgColorInput = document.getElementById("bgColorInput");
+const applyBgColorBtn = document.getElementById("applyBgColorBtn");
 const brushSizeInput = document.getElementById("brushSize");
 const eraserBtn = document.getElementById("eraserBtn");
 const bucketBtn = document.getElementById("bucketBtn");
@@ -1467,7 +1468,12 @@ function setDrawingBackground(newColor) {
   updateBgColorUI(newColor);
 }
 
-bgColorInput.addEventListener("input", () => setDrawingBackground(bgColorInput.value));
+// Applying on every "input" event (which fires on every frame while dragging
+// the native color picker) meant setDrawingBackground ran dozens of times per
+// pick, each pass re-blending the previous pass's rounding error -- that
+// compounding is what produced the speckled noise. Applying once on a
+// deliberate click avoids both the noise and the per-frame lag.
+applyBgColorBtn.addEventListener("click", () => setDrawingBackground(bgColorInput.value));
 
 function clearCanvas() {
   pushUndoSnapshot();
