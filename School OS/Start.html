@@ -441,7 +441,40 @@
 
           <div id="subjectBooksView" class="panel" hidden>
             <h3 id="subjectBooksTitle"></h3>
+            <p id="subjectBooksIntro" class="muted groupdock-intro"></p>
             <div id="subjectBooksGrid" class="card-grid"></div>
+          </div>
+
+          <div id="bookReaderView" class="panel" hidden>
+            <div class="book-reader-header">
+              <span id="bookReaderSpine" class="book-reader-spine">📘</span>
+              <div class="book-reader-heading">
+                <h3 id="bookReaderTitle" class="book-reader-title"></h3>
+                <p id="bookReaderAuthor" class="muted"></p>
+                <p id="bookReaderMeta" class="book-reader-meta"></p>
+              </div>
+            </div>
+
+            <p id="bookReaderDescription" class="book-reader-description"></p>
+
+            <div class="book-reader-body">
+              <aside class="book-reader-toc">
+                <h4 class="catalog-title">Innehåll</h4>
+                <ul id="bookReaderChapters" class="catalog-list book-chapter-list"></ul>
+              </aside>
+
+              <div class="book-reader-content">
+                <p id="bookReaderProgress" class="muted book-reader-progress"></p>
+                <h4 id="bookChapterTitle" class="book-chapter-title"></h4>
+                <p id="bookChapterSummary" class="book-chapter-summary"></p>
+                <ul id="bookChapterPoints" class="book-chapter-points"></ul>
+
+                <div class="book-reader-nav">
+                  <button id="prevChapterBtn" type="button" class="draw-tool-btn">← Föregående</button>
+                  <button id="nextChapterBtn" type="button" class="draw-tool-btn">Nästa →</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

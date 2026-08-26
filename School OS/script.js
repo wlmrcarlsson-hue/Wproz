@@ -1111,30 +1111,520 @@ document.addEventListener("click", (event) => {
 
 const SUBJECT_COLORS = ["#4361ee", "#e63946", "#2a9d8f", "#f4a261", "#8b5cf6", "#06b6d4"];
 
+// Each book carries its own metadata and chapter outline so the library
+// is something you can actually open and read through, not just a title
+// and an author on a card.
 const SUBJECT_LIBRARY = {
   "Matematik 2b": [
-    { title: "Matematik 5000 Kurs 2b", author: "Lena Alfredsson m.fl." },
-    { title: "Origo Matematik 2b", author: "Sanoma Utbildning" },
+    {
+      title: "Matematik 5000 Kurs 2b",
+      author: "Lena Alfredsson m.fl.",
+      publisher: "Natur & Kultur",
+      year: 2012,
+      pages: 344,
+      isbn: "978-91-27-42596-3",
+      description:
+        "Kursboken som följer ämnesplanen för Matematik 2b, med genomgångar, lösta typexempel och nivåindelade uppgifter.",
+      chapters: [
+        {
+          title: "Algebra och linjära modeller",
+          summary:
+            "Repetition av algebraisk förenkling och hur räta linjer används för att beskriva verkliga samband.",
+          points: [
+            "Förenkla uttryck och lösa linjära ekvationer",
+            "Räta linjens ekvation y = kx + m",
+            "Linjära ekvationssystem: substitution och addition",
+          ],
+        },
+        {
+          title: "Andragradsekvationer",
+          summary:
+            "Andragradsuttryck, nollställen och hur en parabel hänger ihop med sin ekvation.",
+          points: [
+            "Kvadratkomplettering steg för steg",
+            "pq-formeln och när den kan användas",
+            "Tolka diskriminanten: två, en eller inga reella rötter",
+          ],
+        },
+        {
+          title: "Geometri och trigonometri",
+          summary:
+            "Likformighet, Pythagoras sats och de trigonometriska förhållandena i rätvinkliga trianglar.",
+          points: [
+            "Likformiga trianglar och skala",
+            "sin, cos och tan i rätvinklig triangel",
+            "Bevis och geometriska resonemang",
+          ],
+        },
+        {
+          title: "Statistik",
+          summary:
+            "Att sammanfatta, beskriva och kritiskt granska datamaterial.",
+          points: [
+            "Lägesmått: medelvärde, median och typvärde",
+            "Spridningsmått och standardavvikelse",
+            "Vilseledande diagram och hur man upptäcker dem",
+          ],
+        },
+        {
+          title: "Repetition och provträning",
+          summary:
+            "Blandade uppgifter i nationell provform med bedömningsanvisningar.",
+          points: [
+            "Uppgifter utan digitala verktyg",
+            "Längre resonemangsuppgifter",
+            "Checklista inför provet",
+          ],
+        },
+      ],
+    },
+    {
+      title: "Origo Matematik 2b",
+      author: "Sanoma Utbildning",
+      publisher: "Sanoma Utbildning",
+      year: 2019,
+      pages: 312,
+      isbn: "978-91-523-5471-0",
+      description:
+        "Läromedel med tydlig progression, digitala genomgångar och gott om verklighetsnära problem.",
+      chapters: [
+        {
+          title: "Räta linjens ekvation",
+          summary: "Från tabell och graf till formel, och tillbaka igen.",
+          points: [
+            "Tolka k och m grafiskt",
+            "Parallella och vinkelräta linjer",
+            "Linjär regression på riktiga mätdata",
+          ],
+        },
+        {
+          title: "Polynom och andragradsfunktioner",
+          summary:
+            "Hur andragradsfunktioner byggs upp och vad symmetrilinjen betyder.",
+          points: [
+            "Faktorisering och nollproduktmetoden",
+            "Symmetrilinje och extrempunkt",
+            "Optimeringsproblem i vardagen",
+          ],
+        },
+        {
+          title: "Klassisk geometri",
+          summary:
+            "Satser, bevis och det logiska språk som geometrin vilar på.",
+          points: [
+            "Randvinkelsatsen och Thales sats",
+            "Kongruens och likformighet",
+            "Att skriva ett fullständigt bevis",
+          ],
+        },
+        {
+          title: "Sannolikhet och statistik",
+          summary:
+            "Beräkna sannolikheter och tolka statistik med källkritisk blick.",
+          points: [
+            "Träddiagram och komplementhändelser",
+            "Beroende och oberoende händelser",
+            "Normalfördelningens form och användning",
+          ],
+        },
+      ],
+    },
   ],
   "Svenska 3": [
-    { title: "Svenska Impulser 3", author: "Anna Sjölund m.fl." },
-    { title: "Litteraturens historia", author: "Ola Sigurdson" },
+    {
+      title: "Svenska Impulser 3",
+      author: "Carl-Johan Markstedt & Sven Eriksson",
+      publisher: "Sanoma Utbildning",
+      year: 2013,
+      pages: 400,
+      isbn: "978-91-523-1057-0",
+      description:
+        "Bok för Svenska 3 med fokus på retorik, vetenskapligt skrivande och litteraturhistoria.",
+      chapters: [
+        {
+          title: "Retorik och muntlig framställning",
+          summary:
+            "Den klassiska retorikens verktyg tillämpade på moderna tal och presentationer.",
+          points: [
+            "Retorikens partesmodell från idé till framförande",
+            "Ethos, logos och pathos",
+            "Disposition, röst och kroppsspråk",
+          ],
+        },
+        {
+          title: "Vetenskapligt skrivande",
+          summary:
+            "Hur en utredande text byggs upp och hur källor hanteras korrekt.",
+          points: [
+            "Syfte, frågeställning och avgränsning",
+            "Referatteknik och citatregler",
+            "Källförteckning och referenssystem",
+          ],
+        },
+        {
+          title: "Litteraturhistoria: antiken till romantiken",
+          summary:
+            "De epoker och verk som format den västerländska litteraturen.",
+          points: [
+            "Antikens epos och dramatik",
+            "Renässansens människosyn",
+            "Upplysning och romantik som motpoler",
+          ],
+        },
+        {
+          title: "Modernism och samtid",
+          summary:
+            "Brottet med traditionen och den samtida litteraturens former.",
+          points: [
+            "Modernismens formexperiment",
+            "Efterkrigstidens svenska prosa",
+            "Samtidslitteratur och autofiktion",
+          ],
+        },
+        {
+          title: "Språkhistoria och språkförändring",
+          summary:
+            "Svenskans utveckling och de krafter som förändrar ett språk.",
+          points: [
+            "Runsvenska, fornsvenska och nysvenska",
+            "Lånord genom historien",
+            "Språkvård och attityder till förändring",
+          ],
+        },
+      ],
+    },
+    {
+      title: "Litteraturens historia",
+      author: "Bernt Olsson & Ingemar Algulin",
+      publisher: "Studentlitteratur",
+      year: 2015,
+      pages: 288,
+      isbn: "978-91-44-10832-7",
+      description:
+        "Översiktsverk över världslitteraturen, användbart som uppslagsbok vid fördjupningsarbeten.",
+      chapters: [
+        {
+          title: "Antiken",
+          summary: "Grekisk och romersk litteratur och dess efterverkningar.",
+          points: ["Homeros och eposet", "Tragedin och katharsis", "Romersk retorik och poesi"],
+        },
+        {
+          title: "Medeltid och renässans",
+          summary: "Från religiös litteratur till renässansens individfokus.",
+          points: ["Riddardikt och ballader", "Dante och Boccaccio", "Shakespeare och dramats guldålder"],
+        },
+        {
+          title: "Upplysning och romantik",
+          summary: "Förnuftets tidsålder och känslans motreaktion.",
+          points: ["Satir och idéroman", "Naturen som romantiskt motiv", "Nationalromantiken i Norden"],
+        },
+        {
+          title: "Realism och modernism",
+          summary: "Skildringen av samhället och sedan uppbrottet från den.",
+          points: ["Den realistiska romanen", "Naturalismens miljöskildring", "Modernismens brott med formen"],
+        },
+      ],
+    },
   ],
   "Engelska 6": [
-    { title: "Blueprint B", author: "Per Malmberg m.fl." },
-    { title: "Progress Gold B", author: "Boglárka Nikolenko m.fl." },
+    {
+      title: "Blueprint B",
+      author: "Christer Lundfall m.fl.",
+      publisher: "Natur & Kultur",
+      year: 2014,
+      pages: 336,
+      isbn: "978-91-27-43512-2",
+      description:
+        "Allroundbok för Engelska 6 med texter, hörövningar och strukturerad grammatikträning.",
+      chapters: [
+        {
+          title: "Reading strategies",
+          summary: "Techniques for getting through longer and harder texts.",
+          points: ["Skimming and scanning", "Guessing vocabulary from context", "Critical reading of sources"],
+        },
+        {
+          title: "Writing formal texts",
+          summary: "Structure and register in formal written English.",
+          points: ["Essay structure and paragraphing", "Linking words and cohesion", "Formal vs. informal register"],
+        },
+        {
+          title: "Grammar in context",
+          summary: "The grammar points that matter most at this level.",
+          points: ["Tenses and the perfect aspect", "Conditionals and hypothetical meaning", "Relative clauses"],
+        },
+        {
+          title: "Literature and film",
+          summary: "Reading and discussing fiction from the English-speaking world.",
+          points: ["Short stories and narrative voice", "Themes and character analysis", "Comparing novel and adaptation"],
+        },
+        {
+          title: "Speaking and presenting",
+          summary: "Building fluency and confidence in spoken English.",
+          points: ["Discussion phrases and turn-taking", "Structuring a presentation", "Pronunciation and stress"],
+        },
+      ],
+    },
+    {
+      title: "Progress Gold B",
+      author: "Eva Hedencrona m.fl.",
+      publisher: "Studentlitteratur",
+      year: 2016,
+      pages: 320,
+      isbn: "978-91-44-09411-8",
+      description:
+        "Läromedel med tydlig koppling till kunskapskraven och gott om examensförberedande övningar.",
+      chapters: [
+        {
+          title: "Vocabulary building",
+          summary: "Systematic ways to expand and retain vocabulary.",
+          points: ["Word families and affixes", "Collocations", "Keeping a vocabulary log"],
+        },
+        {
+          title: "Argumentative writing",
+          summary: "Making and defending a case in writing.",
+          points: ["Thesis statements", "Counterarguments and rebuttal", "Evidence and citation"],
+        },
+        {
+          title: "The English-speaking world",
+          summary: "Culture, history and varieties of English across the globe.",
+          points: ["British and American English", "Postcolonial perspectives", "English as a global language"],
+        },
+        {
+          title: "Exam practice",
+          summary: "Full-length practice tasks in national test format.",
+          points: ["Listening comprehension", "Reading comprehension", "Timed writing"],
+        },
+      ],
+    },
   ],
   "Fysik 2": [
-    { title: "Heureka! Fysik 2", author: "Rune Alphonce m.fl." },
-    { title: "Fysik 2 Impuls", author: "Jonas Nilsson m.fl." },
+    {
+      title: "Heureka! Fysik 2",
+      author: "Rune Alphonce m.fl.",
+      publisher: "Natur & Kultur",
+      year: 2012,
+      pages: 400,
+      isbn: "978-91-27-42153-8",
+      description:
+        "Grundbok för Fysik 2 med utförliga härledningar, laborationer och lösta exempel.",
+      chapters: [
+        {
+          title: "Rörelse i två dimensioner",
+          summary:
+            "Kaströrelse och cirkulär rörelse behandlade med vektorer.",
+          points: [
+            "Uppdelning i x- och y-komposanter",
+            "Kastbanans form och räckvidd",
+            "Centripetalacceleration",
+          ],
+        },
+        {
+          title: "Krafter och rotation",
+          summary: "Moment, jämvikt och rotationsrörelsens grunder.",
+          points: ["Kraftmoment och hävarm", "Jämviktsvillkor", "Rörelsemängdsmoment"],
+        },
+        {
+          title: "Harmonisk svängning och vågor",
+          summary:
+            "Från fjäderpendel till vågutbredning och interferens.",
+          points: ["Svängningstid och energi", "Vågekvationen", "Interferens och stående vågor"],
+        },
+        {
+          title: "Elektriska och magnetiska fält",
+          summary: "Fältbegreppet och laddade partiklars rörelse i fält.",
+          points: ["Coulombs lag och fältstyrka", "Potential och spänning", "Induktion och Lenz lag"],
+        },
+        {
+          title: "Atom- och kärnfysik",
+          summary: "Atomens uppbyggnad, radioaktivitet och kärnreaktioner.",
+          points: ["Bohrs atommodell", "Sönderfall och halveringstid", "Fission och fusion"],
+        },
+      ],
+    },
+    {
+      title: "Fysik 2 Impuls",
+      author: "Lars Fraenkel m.fl.",
+      publisher: "Gleerups",
+      year: 2018,
+      pages: 368,
+      isbn: "978-91-40-69451-2",
+      description:
+        "Modern lärobok med tydliga figurer och stegvis problemlösningsmetodik.",
+      chapters: [
+        {
+          title: "Mekanik: arbete och energi",
+          summary: "Energiprincipen som verktyg för att lösa mekanikproblem.",
+          points: ["Arbete och effekt", "Energiomvandlingar", "Rörelsemängd och stötar"],
+        },
+        {
+          title: "Vågrörelselära",
+          summary: "Ljud, ljus och vågors gemensamma egenskaper.",
+          points: ["Dopplereffekt", "Brytning och reflexion", "Diffraktion i gitter"],
+        },
+        {
+          title: "Elektromagnetism",
+          summary: "Sambandet mellan elektricitet och magnetism.",
+          points: ["Magnetiskt flöde", "Generatorn och transformatorn", "Elektromagnetiska vågor"],
+        },
+        {
+          title: "Modern fysik",
+          summary: "Relativitetsteori och kvantfysikens grundidéer.",
+          points: ["Tidsdilatation", "Fotoelektrisk effekt", "Partikel-vågdualism"],
+        },
+      ],
+    },
   ],
   "Historia 1b": [
-    { title: "Perspektiv på historien 1b", author: "Hans Nyström m.fl." },
-    { title: "Epok 1b", author: "Örjan Nyström" },
+    {
+      title: "Perspektiv på historien 1b",
+      author: "Hans Nyström m.fl.",
+      publisher: "Gleerups",
+      year: 2011,
+      pages: 352,
+      isbn: "978-91-40-67421-7",
+      description:
+        "Lärobok som varvar kronologisk översikt med källövningar och historiebruk.",
+      chapters: [
+        {
+          title: "Historiebruk och källkritik",
+          summary:
+            "Hur historia används i samhället och hur källor granskas.",
+          points: [
+            "Källkritiska kriterier: äkthet, tid, beroende, tendens",
+            "Olika typer av historiebruk",
+            "Historiesyn och perspektiv",
+          ],
+        },
+        {
+          title: "Från jordbruk till civilisation",
+          summary: "Den neolitiska revolutionen och de första högkulturerna.",
+          points: ["Jordbrukets spridning", "Skriftspråkets betydelse", "Antikens samhällen"],
+        },
+        {
+          title: "Revolutioner och nationalstater",
+          summary:
+            "De politiska och industriella omvälvningarna kring 1800-talet.",
+          points: ["Franska revolutionen", "Industrialiseringen", "Nationalismens framväxt"],
+        },
+        {
+          title: "Världskrigens tid",
+          summary: "Orsaker, förlopp och följder av de två världskrigen.",
+          points: ["Första världskrigets orsaker", "Mellankrigstidens kriser", "Förintelsen"],
+        },
+        {
+          title: "Efterkrigstid och globalisering",
+          summary: "Kalla kriget och världen efter murens fall.",
+          points: ["Blockpolitik", "Avkolonisering", "Globalisering och EU"],
+        },
+      ],
+    },
+    {
+      title: "Epok 1b",
+      author: "Robert Sandberg m.fl.",
+      publisher: "Liber",
+      year: 2013,
+      pages: 304,
+      isbn: "978-91-47-10545-1",
+      description:
+        "Kronologiskt upplagd lärobok med rikt bildmaterial och tidslinjer.",
+      chapters: [
+        {
+          title: "Forntid och antik",
+          summary: "De äldsta samhällena och antikens arv.",
+          points: ["Mesopotamien och Egypten", "Grekisk demokrati", "Romarrikets uppgång och fall"],
+        },
+        {
+          title: "Medeltid",
+          summary: "Feodalsamhället, kyrkan och städernas framväxt.",
+          points: ["Feodalismens struktur", "Korstågen", "Digerdöden och dess följder"],
+        },
+        {
+          title: "Nya tiden",
+          summary: "Upptäckter, reformation och de första globala imperierna.",
+          points: ["De stora upptäcktsfärderna", "Reformationen", "Vetenskapliga revolutionen"],
+        },
+        {
+          title: "1900-talet",
+          summary: "Ett sekel av krig, ideologier och snabb förändring.",
+          points: ["Ideologiernas kamp", "Välfärdsstatens uppbyggnad", "Sverige under 1900-talet"],
+        },
+      ],
+    },
   ],
   "Programmering 1": [
-    { title: "Programmering 1 med Python", author: "Anders Fridh" },
-    { title: "Grundläggande programmering", author: "Skolverket" },
+    {
+      title: "Programmering 1 med Python",
+      author: "Krister Trangius",
+      publisher: "Studentlitteratur",
+      year: 2017,
+      pages: 264,
+      isbn: "978-91-44-11624-7",
+      description:
+        "Praktisk introduktion till programmering i Python, med övningar efter varje avsnitt.",
+      chapters: [
+        {
+          title: "Variabler och datatyper",
+          summary: "De byggstenar all kod vilar på.",
+          points: [
+            "int, float, str och bool",
+            "Inmatning med input() och typomvandling",
+            "Namngivning och läsbarhet",
+          ],
+        },
+        {
+          title: "Villkor och loopar",
+          summary: "Att styra programmets flöde.",
+          points: ["if, elif och else", "for- och while-loopar", "break och continue"],
+        },
+        {
+          title: "Funktioner",
+          summary: "Dela upp koden i återanvändbara delar.",
+          points: ["Parametrar och returvärden", "Lokala och globala variabler", "Dokumentera med docstrings"],
+        },
+        {
+          title: "Listor och dictionaries",
+          summary: "Att lagra och bearbeta samlingar av data.",
+          points: ["Indexering och slicing", "Iterera över en dictionary", "Sortering och filtrering"],
+        },
+        {
+          title: "Filhantering och felsökning",
+          summary: "Läsa och skriva filer samt hitta fel i koden.",
+          points: ["open() och with-satsen", "try/except", "Systematisk felsökning"],
+        },
+      ],
+    },
+    {
+      title: "Grundläggande programmering",
+      author: "Skolverket",
+      publisher: "Skolverket",
+      year: 2019,
+      pages: 180,
+      isbn: "978-91-7559-412-3",
+      description:
+        "Språkoberoende introduktion till programmeringens grundbegrepp och arbetssätt.",
+      chapters: [
+        {
+          title: "Vad är ett program?",
+          summary: "Från källkod till körbart program.",
+          points: ["Kompilering och tolkning", "Utvecklingsmiljöer", "Programmeringens historia"],
+        },
+        {
+          title: "Algoritmer och pseudokod",
+          summary: "Att beskriva en lösning innan den kodas.",
+          points: ["Stegvis förfining", "Flödesscheman", "Sökning och sortering"],
+        },
+        {
+          title: "Programmeringsparadigm",
+          summary: "Olika sätt att strukturera ett program.",
+          points: ["Imperativ programmering", "Objektorientering", "Funktionell programmering"],
+        },
+        {
+          title: "Test och dokumentation",
+          summary: "Att kvalitetssäkra och beskriva sin kod.",
+          points: ["Testfall och gränsvärden", "Kodkommentarer", "Versionshantering"],
+        },
+      ],
+    },
   ],
 };
 
@@ -1143,9 +1633,65 @@ const subjectsListView = document.getElementById("subjectsListView");
 const subjectBooksView = document.getElementById("subjectBooksView");
 const subjectBooksTitle = document.getElementById("subjectBooksTitle");
 const subjectBooksGrid = document.getElementById("subjectBooksGrid");
+const subjectBooksIntro = document.getElementById("subjectBooksIntro");
 const subjectsBreadcrumb = document.getElementById("subjectsBreadcrumb");
+const bookReaderView = document.getElementById("bookReaderView");
+const bookReaderSpine = document.getElementById("bookReaderSpine");
+const bookReaderTitle = document.getElementById("bookReaderTitle");
+const bookReaderAuthor = document.getElementById("bookReaderAuthor");
+const bookReaderMeta = document.getElementById("bookReaderMeta");
+const bookReaderDescription = document.getElementById("bookReaderDescription");
+const bookReaderChapters = document.getElementById("bookReaderChapters");
+const bookReaderProgress = document.getElementById("bookReaderProgress");
+const bookChapterTitle = document.getElementById("bookChapterTitle");
+const bookChapterSummary = document.getElementById("bookChapterSummary");
+const bookChapterPoints = document.getElementById("bookChapterPoints");
+const prevChapterBtn = document.getElementById("prevChapterBtn");
+const nextChapterBtn = document.getElementById("nextChapterBtn");
 
 let activeLibrarySubject = null;
+let activeLibraryColor = null;
+let activeBook = null;
+let activeChapterIndex = 0;
+
+// Remembers how far you got in each book so the library can offer to pick
+// up where you left off instead of always starting from chapter one.
+const BOOK_PROGRESS_KEY = "schoolos-book-progress";
+
+function loadBookProgress() {
+  const raw = localStorage.getItem(BOOK_PROGRESS_KEY);
+  if (raw === null) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") return parsed;
+  } catch (e) {
+    // ignore malformed storage
+  }
+  return {};
+}
+
+let bookProgress = loadBookProgress();
+
+function bookKey(subject, book) {
+  return `${subject}::${book.title}`;
+}
+
+function saveBookProgress(subject, book, chapterIndex) {
+  bookProgress[bookKey(subject, book)] = chapterIndex;
+  localStorage.setItem(BOOK_PROGRESS_KEY, JSON.stringify(bookProgress));
+}
+
+function readChapterIndex(subject, book) {
+  const value = bookProgress[bookKey(subject, book)];
+  if (typeof value !== "number") return null;
+  // A stored index can outlive an edit to the book's chapter list.
+  if (value < 0 || value >= book.chapters.length) return null;
+  return value;
+}
+
+function teacherForSubject(subject) {
+  return TEACHERS.find((t) => t.subject === subject) || null;
+}
 
 function renderSubjects() {
   subjectsGrid.innerHTML = "";
@@ -1166,11 +1712,23 @@ function renderSubjects() {
     const nameEl = document.createElement("span");
     nameEl.className = "teacher-card-name";
     nameEl.textContent = subject;
+    const chapterCount = books.reduce((sum, b) => sum + b.chapters.length, 0);
+    const noteCount = mindmapDocs.filter((d) => d.subject === subject).length;
+    const teacher = teacherForSubject(subject);
+
     const countEl = document.createElement("span");
     countEl.className = "teacher-card-subject muted";
-    countEl.textContent = `${books.length} ${books.length === 1 ? "bok" : "böcker"}`;
+    countEl.textContent = `${books.length} ${books.length === 1 ? "bok" : "böcker"} · ${chapterCount} kapitel`;
+
+    const extraEl = document.createElement("span");
+    extraEl.className = "teacher-card-subject muted";
+    extraEl.textContent = `${teacher ? teacher.name : "Ingen lärare"} · ${noteCount} ${
+      noteCount === 1 ? "anteckning" : "anteckningar"
+    }`;
+
     body.appendChild(nameEl);
     body.appendChild(countEl);
+    body.appendChild(extraEl);
 
     card.appendChild(icon);
     card.appendChild(body);
@@ -1192,7 +1750,8 @@ function renderSubjectBooks(subject, color) {
   }
 
   books.forEach((book) => {
-    const card = document.createElement("div");
+    const card = document.createElement("button");
+    card.type = "button";
     card.className = "card book-card";
 
     const spine = document.createElement("div");
@@ -1206,45 +1765,158 @@ function renderSubjectBooks(subject, color) {
     authorEl.className = "muted";
     authorEl.textContent = book.author;
 
+    const metaEl = document.createElement("p");
+    metaEl.className = "muted book-card-meta";
+    metaEl.textContent = `${book.publisher} · ${book.year} · ${book.pages} sidor`;
+
+    const chaptersEl = document.createElement("p");
+    chaptersEl.className = "book-card-chapters";
+    const savedIndex = readChapterIndex(subject, book);
+    chaptersEl.textContent =
+      savedIndex === null
+        ? `${book.chapters.length} kapitel · Öppna`
+        : `${book.chapters.length} kapitel · Fortsätt: kap. ${savedIndex + 1}`;
+
     card.appendChild(spine);
     card.appendChild(titleEl);
     card.appendChild(authorEl);
+    card.appendChild(metaEl);
+    card.appendChild(chaptersEl);
+    card.addEventListener("click", () => openBook(book));
     subjectBooksGrid.appendChild(card);
   });
 }
 
+// Three levels deep now: Ämnen -> a subject's books -> one open book.
+// Every level above the current one stays clickable so you can step back
+// out without needing a separate back button.
 function renderSubjectsBreadcrumb() {
   subjectsBreadcrumb.innerHTML = "";
 
-  const listItem = document.createElement("li");
-  listItem.textContent = "🗂 Ämnen";
-  listItem.className = activeLibrarySubject ? "" : "active";
-  listItem.addEventListener("click", closeSubjectBooks);
-  subjectsBreadcrumb.appendChild(listItem);
+  const rootItem = document.createElement("li");
+  rootItem.textContent = "🗂 Ämnen";
+  rootItem.className = activeLibrarySubject ? "" : "active";
+  rootItem.addEventListener("click", closeSubjectBooks);
+  subjectsBreadcrumb.appendChild(rootItem);
 
   if (activeLibrarySubject) {
-    const item = document.createElement("li");
-    item.textContent = activeLibrarySubject;
-    item.className = "active";
-    subjectsBreadcrumb.appendChild(item);
+    const subjectItem = document.createElement("li");
+    subjectItem.textContent = activeLibrarySubject;
+    subjectItem.className = activeBook ? "" : "active";
+    if (activeBook) subjectItem.addEventListener("click", closeBook);
+    subjectsBreadcrumb.appendChild(subjectItem);
+  }
+
+  if (activeBook) {
+    const bookItem = document.createElement("li");
+    bookItem.textContent = `📘 ${activeBook.title}`;
+    bookItem.className = "active";
+    subjectsBreadcrumb.appendChild(bookItem);
   }
 }
 
 function openSubjectBooks(subject, color) {
   activeLibrarySubject = subject;
+  activeLibraryColor = color;
+  activeBook = null;
   subjectsListView.hidden = true;
+  bookReaderView.hidden = true;
   subjectBooksView.hidden = false;
   subjectBooksTitle.textContent = subject;
+
+  const books = SUBJECT_LIBRARY[subject] || [];
+  const teacher = teacherForSubject(subject);
+  subjectBooksIntro.textContent = `${books.length} ${
+    books.length === 1 ? "bok" : "böcker"
+  } i ämnet${teacher ? ` · Lärare: ${teacher.name}` : ""}. Tryck på en bok för att öppna den.`;
+
   renderSubjectBooks(subject, color);
   renderSubjectsBreadcrumb();
 }
 
 function closeSubjectBooks() {
   activeLibrarySubject = null;
+  activeLibraryColor = null;
+  activeBook = null;
   subjectBooksView.hidden = true;
+  bookReaderView.hidden = true;
   subjectsListView.hidden = false;
+  renderSubjects();
   renderSubjectsBreadcrumb();
 }
+
+// ---------- Book reader ----------
+
+function renderBookChapterList() {
+  bookReaderChapters.innerHTML = "";
+
+  activeBook.chapters.forEach((chapter, index) => {
+    const item = document.createElement("li");
+    if (index === activeChapterIndex) item.classList.add("active");
+
+    const number = document.createElement("span");
+    number.className = "book-chapter-number";
+    number.textContent = index + 1;
+
+    const label = document.createElement("span");
+    label.className = "doc-list-label";
+    label.textContent = chapter.title;
+
+    item.appendChild(number);
+    item.appendChild(label);
+    item.addEventListener("click", () => showChapter(index));
+    bookReaderChapters.appendChild(item);
+  });
+}
+
+function showChapter(index) {
+  if (!activeBook) return;
+  const total = activeBook.chapters.length;
+  activeChapterIndex = Math.min(Math.max(index, 0), total - 1);
+  const chapter = activeBook.chapters[activeChapterIndex];
+
+  bookReaderProgress.textContent = `Kapitel ${activeChapterIndex + 1} av ${total}`;
+  bookChapterTitle.textContent = chapter.title;
+  bookChapterSummary.textContent = chapter.summary;
+
+  bookChapterPoints.innerHTML = "";
+  chapter.points.forEach((point) => {
+    const li = document.createElement("li");
+    li.textContent = point;
+    bookChapterPoints.appendChild(li);
+  });
+
+  prevChapterBtn.disabled = activeChapterIndex === 0;
+  nextChapterBtn.disabled = activeChapterIndex === total - 1;
+
+  saveBookProgress(activeLibrarySubject, activeBook, activeChapterIndex);
+  renderBookChapterList();
+}
+
+function openBook(book) {
+  activeBook = book;
+  subjectBooksView.hidden = true;
+  bookReaderView.hidden = false;
+
+  bookReaderSpine.style.background = activeLibraryColor;
+  bookReaderTitle.textContent = book.title;
+  bookReaderAuthor.textContent = book.author;
+  bookReaderMeta.textContent = `${book.publisher} · ${book.year} · ${book.pages} sidor · ISBN ${book.isbn}`;
+  bookReaderDescription.textContent = book.description;
+
+  // Reopening a book resumes where you left off rather than resetting.
+  const saved = readChapterIndex(activeLibrarySubject, book);
+  showChapter(saved === null ? 0 : saved);
+  renderSubjectsBreadcrumb();
+}
+
+function closeBook() {
+  if (!activeLibrarySubject) return;
+  openSubjectBooks(activeLibrarySubject, activeLibraryColor);
+}
+
+prevChapterBtn.addEventListener("click", () => showChapter(activeChapterIndex - 1));
+nextChapterBtn.addEventListener("click", () => showChapter(activeChapterIndex + 1));
 
 let mindmapDocs = loadMindmapDocs();
 let mindmapGroups = loadGroups();
