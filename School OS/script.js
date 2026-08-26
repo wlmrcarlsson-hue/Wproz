@@ -1138,7 +1138,8 @@ function saveTextDocContent() {
 }
 
 function updateEditorPlaceholder() {
-  const isEmpty = textEditor.textContent.trim() === "" && !textEditor.querySelector("img");
+  const text = textEditor.textContent.replace(/​/g, "").trim();
+  const isEmpty = text === "" && !textEditor.querySelector("img");
   textEditor.classList.toggle("is-empty", isEmpty);
 }
 
@@ -1265,13 +1266,49 @@ function selectCurrentLine() {
   return true;
 }
 
+// On a genuinely empty line there's no text to select and wrap, so
+// execCommand("fontSize") on a collapsed caret just registers a "typing
+// style" that only turns into a real <font size="7"> once a character is
+// typed -- by then our one-shot size-attribute-to-px conversion has already
+// run and won't catch it, leaving typed text at the browser's default legacy
+// size instead of the chosen px value. Planting an explicitly-sized empty
+// span at the caret sidesteps that: typed text lands inside it directly.
+function applyFontSizeToEmptyLine(container, px) {
+  const span = document.createElement("span");
+  span.style.fontSize = `${px}px`;
+  const marker = document.createTextNode("​");
+  span.appendChild(marker);
+
+  container.innerHTML = "";
+  container.appendChild(span);
+
+  const range = document.createRange();
+  range.setStart(marker, 1);
+  range.collapse(true);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
 function applyFontSize(px) {
   textEditor.focus();
   restoreTextSelection();
 
   const sel = window.getSelection();
   const hasRealSelection = sel.rangeCount > 0 && !sel.getRangeAt(0).collapsed;
-  if (!hasRealSelection) selectCurrentLine();
+
+  if (!hasRealSelection) {
+    const lineEl = getCurrentLineElement();
+    const emptyContainer = lineEl || (textEditor.textContent.trim() === "" ? textEditor : null);
+    if (emptyContainer && emptyContainer.textContent.trim() === "") {
+      applyFontSizeToEmptyLine(emptyContainer, px);
+      saveTextSelection();
+      saveTextDocContent();
+      updateToolbarState();
+      return;
+    }
+    selectCurrentLine();
+  }
 
   document.execCommand("fontSize", false, "7");
   textEditor.querySelectorAll('font[size="7"]').forEach((el) => {
