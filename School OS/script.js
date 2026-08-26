@@ -974,8 +974,20 @@ function resizeDrawCanvas(doc) {
   // setDrawingBackground), so there's no pixel recoloring left to introduce
   // noise when the background changes.
   const rect = drawCanvas.parentElement.getBoundingClientRect();
-  drawCanvas.width = Math.max(1, Math.floor(rect.width));
-  drawCanvas.height = Math.max(1, Math.floor(rect.height));
+  const width = Math.max(1, Math.floor(rect.width));
+  const height = Math.max(1, Math.floor(rect.height));
+  drawCanvas.width = width;
+  drawCanvas.height = height;
+  // Pin the CSS size to the exact same integer pixels as the bitmap
+  // resolution above (instead of the 100%-of-parent size from the
+  // stylesheet, which can be a fraction of a pixel larger after the floor()
+  // rounding). Otherwise the browser stretches the bitmap very slightly to
+  // fill the box, so a click position computed from the CSS box lands at a
+  // subtly different spot once mapped onto the bitmap -- the drift grows
+  // toward the edges, which is what showed up as the cursor and the actual
+  // stroke position drifting apart.
+  drawCanvas.style.width = `${width}px`;
+  drawCanvas.style.height = `${height}px`;
   drawCanvas.style.background = doc.bgColor || "#ffffff";
 
   if (doc.content) {
