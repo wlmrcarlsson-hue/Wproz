@@ -472,8 +472,34 @@
                 <div class="book-reader-nav">
                   <button id="prevChapterBtn" type="button" class="draw-tool-btn">← Föregående</button>
                   <button id="nextChapterBtn" type="button" class="draw-tool-btn">Nästa →</button>
+                  <button id="openSpreadBtn" type="button" class="doc-new-btn open-spread-btn">📖 Öppna boken</button>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div id="bookSpreadView" class="panel" hidden>
+            <div class="book-spread-topbar">
+              <div class="book-spread-heading">
+                <h3 id="bookSpreadTitle" class="book-spread-title"></h3>
+                <p id="bookSpreadChapter" class="muted book-spread-chapter"></p>
+              </div>
+              <button id="closeSpreadBtn" type="button" class="draw-tool-btn">✕ Stäng boken</button>
+            </div>
+
+            <div id="bookSpread" class="book-spread">
+              <div class="book-spread-viewport">
+                <div id="bookSpreadFlow" class="book-spread-flow"></div>
+              </div>
+              <div class="book-spread-gutter" aria-hidden="true"></div>
+              <span id="bookPageLeft" class="book-page-number book-page-number-left"></span>
+              <span id="bookPageRight" class="book-page-number book-page-number-right"></span>
+            </div>
+
+            <div class="book-spread-nav">
+              <button id="prevSpreadBtn" type="button" class="draw-tool-btn">← Bläddra tillbaka</button>
+              <span id="bookSpreadCounter" class="book-spread-counter muted"></span>
+              <button id="nextSpreadBtn" type="button" class="draw-tool-btn">Bläddra fram →</button>
             </div>
           </div>
         </div>

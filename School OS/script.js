@@ -1648,6 +1648,18 @@ const bookChapterSummary = document.getElementById("bookChapterSummary");
 const bookChapterPoints = document.getElementById("bookChapterPoints");
 const prevChapterBtn = document.getElementById("prevChapterBtn");
 const nextChapterBtn = document.getElementById("nextChapterBtn");
+const openSpreadBtn = document.getElementById("openSpreadBtn");
+const bookSpreadView = document.getElementById("bookSpreadView");
+const bookSpreadTitle = document.getElementById("bookSpreadTitle");
+const bookSpreadChapter = document.getElementById("bookSpreadChapter");
+const bookSpread = document.getElementById("bookSpread");
+const bookSpreadFlow = document.getElementById("bookSpreadFlow");
+const bookPageLeft = document.getElementById("bookPageLeft");
+const bookPageRight = document.getElementById("bookPageRight");
+const bookSpreadCounter = document.getElementById("bookSpreadCounter");
+const prevSpreadBtn = document.getElementById("prevSpreadBtn");
+const nextSpreadBtn = document.getElementById("nextSpreadBtn");
+const closeSpreadBtn = document.getElementById("closeSpreadBtn");
 
 let activeLibrarySubject = null;
 let activeLibraryColor = null;
@@ -1821,6 +1833,7 @@ function openSubjectBooks(subject, color) {
   activeBook = null;
   subjectsListView.hidden = true;
   bookReaderView.hidden = true;
+  bookSpreadView.hidden = true;
   subjectBooksView.hidden = false;
   subjectBooksTitle.textContent = subject;
 
@@ -1840,6 +1853,7 @@ function closeSubjectBooks() {
   activeBook = null;
   subjectBooksView.hidden = true;
   bookReaderView.hidden = true;
+  bookSpreadView.hidden = true;
   subjectsListView.hidden = false;
   renderSubjects();
   renderSubjectsBreadcrumb();
@@ -1896,6 +1910,7 @@ function showChapter(index) {
 function openBook(book) {
   activeBook = book;
   subjectBooksView.hidden = true;
+  bookSpreadView.hidden = true;
   bookReaderView.hidden = false;
 
   bookReaderSpine.style.background = activeLibraryColor;
@@ -1917,6 +1932,205 @@ function closeBook() {
 
 prevChapterBtn.addEventListener("click", () => showChapter(activeChapterIndex - 1));
 nextChapterBtn.addEventListener("click", () => showChapter(activeChapterIndex + 1));
+
+// ---------- Open-book spread reader ----------
+
+// The real textbooks these entries name are copyrighted, so the body text
+// below is generated prototype prose built from each chapter's own summary
+// and key points. It reads like a textbook section and gives the spread
+// enough real text to paginate, without reproducing anyone's book.
+const PROSE_BRIDGES = [
+  "Innan vi går vidare är det värt att stanna upp vid själva begreppet. Det som vid första anblicken ser ut som en teknikalitet visar sig ofta bära hela resonemanget, och den som hoppar över det får svårare längre fram.",
+  "I det här avsnittet återkommer vi flera gånger till samma grundidé, men i olika förklädnader. Att känna igen den under de olika ytorna är en stor del av det du ska träna på.",
+  "Ett vanligt misstag är att lära sig framgångssättet utantill utan att förstå varför det fungerar. Då står man handfallen så snart uppgiften formuleras på ett nytt sätt.",
+  "Räkna med att behöva läsa avsnittet mer än en gång. Först vid andra genomläsningen brukar sambanden mellan delarna framträda tydligt.",
+];
+
+const PROSE_CLOSERS = [
+  "Sammanfattningsvis handlar avsnittet mindre om att memorera enskilda regler än om att se hur de hänger ihop. När helheten sitter blir detaljerna lättare att komma ihåg.",
+  "Med det här på plats är du redo för nästa kapitel, där resonemanget byggs vidare och tillämpas på mer sammansatta problem.",
+  "Öva på uppgifterna i slutet av avsnittet innan du går vidare. Det är i tillämpningen som förståelsen sätter sig.",
+];
+
+function proseForPoint(point, index) {
+  const openings = [
+    `${point} är den första av de trådar vi ska följa.`,
+    `Vi vänder oss nu till ${point.charAt(0).toLowerCase() + point.slice(1)}.`,
+    `Nästa moment gäller ${point.charAt(0).toLowerCase() + point.slice(1)}.`,
+    `Därefter behandlas ${point.charAt(0).toLowerCase() + point.slice(1)}.`,
+    `Slutligen tar vi upp ${point.charAt(0).toLowerCase() + point.slice(1)}.`,
+  ];
+  const bodies = [
+    "Börja med att skaffa dig en överblick över vad som faktiskt efterfrågas, och skilj noga på det som är givet och det som ska bestämmas. Många fel uppstår redan här, långt innan några beräkningar har gjorts, helt enkelt för att förutsättningarna lästes slarvigt.",
+    "Gå igenom exemplet rad för rad och kontrollera varje steg mot det föregående. Om ett steg känns självklart, försök att formulera i ord varför det är tillåtet — kan du inte det, har du hittat en lucka som är värd att fylla.",
+    "Jämför med det du redan kan sedan tidigare kurser. Det nya är sällan helt nytt, utan oftast en generalisering av något bekant, och den kopplingen gör stoffet betydligt lättare att befästa.",
+    "Pröva att variera förutsättningarna och se vad som händer med resultatet. Den som leker med gränsfallen får en känsla för var metoden fungerar och var den slutar gälla, vilket är precis den omdömesförmåga proven efterfrågar.",
+  ];
+  return `${openings[index % openings.length]} ${bodies[index % bodies.length]}`;
+}
+
+// Builds the running text for one chapter as an array of DOM nodes.
+function buildChapterProse(chapter, chapterIndex) {
+  const nodes = [];
+
+  const heading = document.createElement("h4");
+  if (chapterIndex > 0) heading.className = "book-chapter-heading-continued";
+  const label = document.createElement("span");
+  label.className = "book-chapter-label";
+  label.textContent = `Kapitel ${chapterIndex + 1}`;
+  heading.appendChild(label);
+  heading.appendChild(document.createTextNode(chapter.title));
+  nodes.push(heading);
+
+  const intro = document.createElement("p");
+  intro.className = "book-para-first";
+  intro.textContent = `${chapter.summary} Avsnittet är upplagt så att varje delmoment bygger vidare på det föregående, och det lönar sig därför att läsa det i ordning snarare än att hoppa direkt till uppgifterna.`;
+  nodes.push(intro);
+
+  const bridge = document.createElement("p");
+  bridge.textContent = PROSE_BRIDGES[chapterIndex % PROSE_BRIDGES.length];
+  nodes.push(bridge);
+
+  chapter.points.forEach((point, i) => {
+    const para = document.createElement("p");
+    para.textContent = proseForPoint(point, i);
+    nodes.push(para);
+  });
+
+  const closer = document.createElement("p");
+  closer.textContent = PROSE_CLOSERS[chapterIndex % PROSE_CLOSERS.length];
+  nodes.push(closer);
+
+  return nodes;
+}
+
+let spreadIndex = 0;
+let spreadPageCount = 0;
+let spreadColumnStep = 0;
+let spreadColumnsPerView = 2;
+// Where in the flow each chapter starts, so opening the book from a
+// chapter lands on the right spread instead of always at page one.
+let spreadChapterStarts = [];
+
+function renderSpreadContent() {
+  bookSpreadFlow.innerHTML = "";
+  spreadChapterStarts = [];
+
+  activeBook.chapters.forEach((chapter, index) => {
+    const nodes = buildChapterProse(chapter, index);
+    // The heading node is the anchor we later measure to find the chapter.
+    spreadChapterStarts.push(nodes[0]);
+    nodes.forEach((node) => bookSpreadFlow.appendChild(node));
+  });
+}
+
+// Lays the text out into page-sized columns and measures how many there
+// are. Must run while the view is visible -- a hidden element measures
+// zero and would produce a single empty page.
+function paginateSpread() {
+  // The flow element's own clientWidth is the text area itself. Measuring
+  // the viewport instead would include its padding, leaving too little
+  // room for two page-wide columns and collapsing the spread into one.
+  const viewportWidth = bookSpreadFlow.clientWidth;
+  if (viewportWidth <= 0) return;
+
+  // The gutter element's own width is the column gap, so the CSS stays the
+  // single source of truth for how wide the fold is (and the mobile rule
+  // that hides it collapses the layout to one page automatically).
+  const gutterEl = bookSpread.querySelector(".book-spread-gutter");
+  const gutterVisible = getComputedStyle(gutterEl).display !== "none";
+  spreadColumnsPerView = gutterVisible ? 2 : 1;
+  const gap = gutterVisible ? gutterEl.offsetWidth : 0;
+
+  const columnWidth = (viewportWidth - gap * (spreadColumnsPerView - 1)) / spreadColumnsPerView;
+  const pageHeight = Math.max(320, Math.round(window.innerHeight * 0.56));
+
+  bookSpreadFlow.style.height = `${pageHeight}px`;
+  bookSpreadFlow.style.columnWidth = `${columnWidth}px`;
+  bookSpreadFlow.style.columnGap = `${gap}px`;
+
+  spreadColumnStep = columnWidth + gap;
+  spreadPageCount = Math.max(1, Math.round((bookSpreadFlow.scrollWidth + gap) / spreadColumnStep));
+
+  showSpread(spreadIndex);
+}
+
+function showSpread(index) {
+  const maxIndex = Math.max(0, Math.ceil(spreadPageCount / spreadColumnsPerView) - 1);
+  spreadIndex = Math.min(Math.max(index, 0), maxIndex);
+
+  bookSpreadFlow.style.transform = `translateX(-${spreadIndex * spreadColumnStep * spreadColumnsPerView}px)`;
+
+  const leftPage = spreadIndex * spreadColumnsPerView + 1;
+  const rightPage = leftPage + 1;
+
+  bookPageLeft.textContent = leftPage <= spreadPageCount ? leftPage : "";
+  bookPageRight.textContent =
+    spreadColumnsPerView === 2 && rightPage <= spreadPageCount ? rightPage : "";
+
+  const shown = spreadColumnsPerView === 2 && rightPage <= spreadPageCount
+    ? `Sida ${leftPage}–${rightPage}`
+    : `Sida ${leftPage}`;
+  bookSpreadCounter.textContent = `${shown} av ${spreadPageCount}`;
+
+  prevSpreadBtn.disabled = spreadIndex === 0;
+  nextSpreadBtn.disabled = spreadIndex === maxIndex;
+
+  // Report which chapter the left-hand page currently falls in.
+  const viewportLeft = spreadIndex * spreadColumnStep * spreadColumnsPerView;
+  let current = 0;
+  spreadChapterStarts.forEach((node, i) => {
+    if (node.offsetLeft <= viewportLeft + 2) current = i;
+  });
+  bookSpreadChapter.textContent = `${activeBook.chapters[current].title} · Kapitel ${current + 1} av ${activeBook.chapters.length}`;
+}
+
+function openSpread() {
+  if (!activeBook) return;
+
+  bookReaderView.hidden = true;
+  bookSpreadView.hidden = false;
+  bookSpreadTitle.textContent = activeBook.title;
+
+  renderSpreadContent();
+  spreadIndex = 0;
+  paginateSpread();
+
+  // Jump to wherever the chapter you were reading begins.
+  const anchor = spreadChapterStarts[activeChapterIndex];
+  if (anchor && spreadColumnStep > 0) {
+    const column = Math.round(anchor.offsetLeft / spreadColumnStep);
+    showSpread(Math.floor(column / spreadColumnsPerView));
+  }
+
+  renderSubjectsBreadcrumb();
+}
+
+function closeSpread() {
+  bookSpreadView.hidden = true;
+  bookReaderView.hidden = false;
+  renderSubjectsBreadcrumb();
+}
+
+openSpreadBtn.addEventListener("click", openSpread);
+closeSpreadBtn.addEventListener("click", closeSpread);
+prevSpreadBtn.addEventListener("click", () => showSpread(spreadIndex - 1));
+nextSpreadBtn.addEventListener("click", () => showSpread(spreadIndex + 1));
+
+document.addEventListener("keydown", (event) => {
+  if (bookSpreadView.hidden) return;
+  if (event.target.matches("input, textarea, select, [contenteditable='true']")) return;
+  if (event.key === "ArrowLeft") showSpread(spreadIndex - 1);
+  if (event.key === "ArrowRight") showSpread(spreadIndex + 1);
+  if (event.key === "Escape") closeSpread();
+});
+
+// Re-typeset when the page width changes -- the column width is derived
+// from it, so a stale layout would put the text in the wrong place.
+window.addEventListener("resize", () => {
+  if (bookSpreadView.hidden) return;
+  paginateSpread();
+});
 
 let mindmapDocs = loadMindmapDocs();
 let mindmapGroups = loadGroups();

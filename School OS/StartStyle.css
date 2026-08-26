@@ -1846,10 +1846,179 @@ body {
 
 .book-reader-nav {
   display: flex;
+  align-items: center;
   gap: 8px;
   margin-top: 20px;
   padding-top: 14px;
   border-top: 1px solid var(--line-soft);
+}
+
+.open-spread-btn {
+  margin-left: auto;
+}
+
+/* ---------- Open-book spread ----------
+   Two facing pages of real flowing text. The body is laid out with CSS
+   multi-columns whose column width is exactly one page's text area, so
+   the browser does the typesetting and line-breaking itself; paging is
+   then just a horizontal translate by two columns at a time. */
+
+.book-spread-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.book-spread-heading {
+  min-width: 0;
+}
+
+.book-spread-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: #ffffff;
+}
+
+.book-spread-chapter {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+}
+
+.book-spread {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  background: #efe7d7;
+  background-image:
+    linear-gradient(to right, rgba(120, 96, 60, 0.16), transparent 8%, transparent 92%, rgba(120, 96, 60, 0.16)),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.5), transparent 30%);
+}
+
+.book-spread-viewport {
+  overflow: hidden;
+  padding: 40px 44px 52px;
+}
+
+.book-spread-flow {
+  column-fill: auto;
+  color: #23201a;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  font-size: 0.86rem;
+  line-height: 1.62;
+  text-align: justify;
+  hyphens: auto;
+  transition: transform 0.32s var(--ease);
+}
+
+.book-spread-flow p {
+  margin: 0;
+  text-indent: 1.4em;
+}
+
+/* Opening paragraph of a section reads better flush left, the way most
+   printed books set it. */
+.book-spread-flow p.book-para-first {
+  text-indent: 0;
+}
+
+.book-spread-flow h4 {
+  margin: 0 0 0.7em;
+  font-size: 0.95rem;
+  font-weight: 650;
+  text-align: left;
+  letter-spacing: 0.01em;
+  break-after: avoid;
+}
+
+.book-spread-flow h4.book-chapter-heading-continued {
+  margin-top: 1.4em;
+}
+
+.book-spread-flow .book-chapter-label {
+  display: block;
+  margin-bottom: 0.25em;
+  font-size: 0.66rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8a7c5f;
+}
+
+/* The shaded fold down the middle where the two pages meet. */
+.book-spread-gutter {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 54px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    rgba(90, 72, 44, 0) 0%,
+    rgba(90, 72, 44, 0.13) 38%,
+    rgba(70, 55, 32, 0.26) 50%,
+    rgba(90, 72, 44, 0.13) 62%,
+    rgba(90, 72, 44, 0) 100%
+  );
+}
+
+.book-page-number {
+  position: absolute;
+  bottom: 20px;
+  font-family: "Iowan Old Style", Palatino, Georgia, serif;
+  font-size: 0.74rem;
+  color: #6d6350;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.book-page-number-left {
+  left: 44px;
+}
+
+.book-page-number-right {
+  right: 44px;
+}
+
+.book-spread-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.book-spread-counter {
+  flex: 1;
+  text-align: center;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* On a narrow screen a two-page spread stops being readable, so the
+   gutter is hidden and the flow falls back to a single page column;
+   paginateSpread() reads this back off the DOM rather than assuming. */
+@media (max-width: 700px) {
+  .book-spread-viewport {
+    padding: 28px 24px 44px;
+  }
+
+  .book-spread-gutter {
+    display: none;
+  }
+
+  .book-page-number-left {
+    display: none;
+  }
+
+  .book-page-number-right {
+    right: 24px;
+  }
 }
 
 @media (max-width: 700px) {
