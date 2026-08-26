@@ -121,6 +121,13 @@ body {
   width: 100%;
 }
 
+/* A 1080px reading-width cap suits one page, but wastes a lot of a wide
+   screen once a split view needs to fit two full page-layouts side by
+   side -- let it use the full viewport width while a split is showing. */
+.content.split-mode {
+  max-width: none;
+}
+
 .page {
   display: none;
 }

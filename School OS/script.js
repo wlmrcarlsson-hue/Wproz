@@ -114,12 +114,19 @@ function hideSplitView() {
   if (splitContainer.hidden) return;
   returnSplitSectionsHome();
   splitContainer.hidden = true;
+  contentEl.classList.remove("split-mode");
 }
 
 function showSplitView(pair) {
   const hostSection = document.getElementById(pair.host);
   const childSection = document.getElementById(pair.child);
   if (!hostSection || !childSection) return;
+
+  // The normal 1080px reading-width cap on .content makes sense for one
+  // page, but leaves a lot of dead space on a wide screen once two full
+  // page-layouts need to fit side by side -- let the split use the whole
+  // viewport width instead.
+  contentEl.classList.add("split-mode");
 
   returnSplitSectionsHome();
   pages.forEach((page) => page.classList.remove("active"));
