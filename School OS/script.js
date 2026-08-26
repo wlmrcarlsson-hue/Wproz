@@ -87,6 +87,20 @@ function updateTabButtonActiveStates() {
   });
 }
 
+// A purely percentage-based clamp (e.g. 20%-80%) is fine on a wide window,
+// but on a narrower one (or a small split container) that same percentage
+// can squeeze a pane down to an unusably small pixel width -- which is what
+// made a dragged-narrow child pane's catalog/cards get cramped and need to
+// scroll. Clamping by an actual minimum pixel width scales with whatever
+// space is really available, and forces an even 50/50 split when there
+// simply isn't room for any asymmetry at all.
+function clampSplitRatio(ratio, containerWidth) {
+  const minPanePx = 260;
+  const minRatio = containerWidth > 0 ? Math.min(0.5, minPanePx / containerWidth) : 0.2;
+  const maxRatio = 1 - minRatio;
+  return Math.min(maxRatio, Math.max(minRatio, ratio));
+}
+
 function returnSplitSectionsHome() {
   document.querySelectorAll(".split-pane .page").forEach((section) => {
     section.classList.remove("split-active");
@@ -143,11 +157,17 @@ function showSplitView(pair) {
   splitPaneChild.appendChild(buildPaneHandle(pair.child));
   splitPaneChild.appendChild(childSection);
 
-  const ratio = pair.ratio || 0.5;
+  splitContainer.hidden = false;
+
+  // Clamp against the container's *actual* current width (only knowable
+  // once it's unhidden and laid out), so a ratio dragged to an extreme on a
+  // wide screen -- or just stale from before this clamp existed -- can't
+  // leave a pane too narrow for its own content on whatever screen it's
+  // being shown on now.
+  const ratio = clampSplitRatio(pair.ratio || 0.5, splitContainer.getBoundingClientRect().width);
+  pair.ratio = ratio;
   splitPaneHost.style.flex = `${ratio} 1 0%`;
   splitPaneChild.style.flex = `${1 - ratio} 1 0%`;
-
-  splitContainer.hidden = false;
 
   // Wait a frame so the browser has actually settled the new flex-based pane
   // widths before anything (like the draw canvas) measures its box -- doing
@@ -330,7 +350,7 @@ splitDivider.addEventListener("pointermove", (event) => {
   if (!pair) return;
   const containerRect = splitContainer.getBoundingClientRect();
   let ratio = (event.clientX - containerRect.left) / containerRect.width;
-  ratio = Math.min(0.8, Math.max(0.2, ratio));
+  ratio = clampSplitRatio(ratio, containerRect.width);
   pair.ratio = ratio;
   splitPaneHost.style.flex = `${ratio} 1 0%`;
   splitPaneChild.style.flex = `${1 - ratio} 1 0%`;
