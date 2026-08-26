@@ -1312,6 +1312,25 @@ body {
   width: 100%;
 }
 
+/* A drag that starts outside the draw canvas and is then dragged onto it
+   (still held) was found to permanently break pointer-event dispatch to
+   the page in Chromium once it crosses a few different elements along the
+   way -- e.g. the sidebar, then a toolbar button. A drag that only ever
+   crosses a single element never triggered it, so this transparent,
+   full-page overlay is shown for the duration of any such drag (see the
+   pointerdown listener in script.js), giving the browser exactly one
+   element to keep dispatching to no matter how far the cursor wanders. */
+.drag-guard-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  cursor: none;
+}
+
+.drag-guard-overlay[hidden] {
+  display: none;
+}
+
 /* ---------- Teachers ---------- */
 
 .teacher-grid {

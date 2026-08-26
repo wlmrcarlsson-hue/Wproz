@@ -373,6 +373,7 @@
                 <button id="zoomResetBtn" type="button" class="draw-tool-btn draw-zoom-label" title="Återställ zoom till 100%">100%</button>
                 <button id="zoomInBtn" type="button" class="draw-tool-btn" title="Zooma in">＋</button>
                 <button id="fitViewBtn" type="button" class="draw-tool-btn" title="Anpassa hela canvasen till vyn">⛶ Anpassa</button>
+                <button id="orientationBtn" type="button" class="draw-tool-btn" title="Byt till stående vy">↔ Liggande</button>
               </div>
               <div id="drawCanvasWrap" class="draw-canvas-wrap">
                 <canvas id="drawCanvas" class="draw-canvas"></canvas>
@@ -468,6 +469,8 @@
       <button id="appModalOkBtn" type="button" class="doc-new-btn app-modal-ok">OK</button>
     </div>
   </div>
+
+  <div id="dragGuardOverlay" class="drag-guard-overlay" hidden></div>
 
   <script src="script.js"></script>
 </body>

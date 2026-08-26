@@ -703,7 +703,9 @@ const drawCanvas = document.getElementById("drawCanvas");
 const drawCtx = drawCanvas.getContext("2d");
 
 // The draw canvas bitmap is a fixed resolution sized to whatever this
-// screen could ever show -- set once, here, and never resized again.
+// screen could ever show -- computed once, here, and only ever changed
+// again by an explicit user action (loading a different doc, or that doc's
+// own saved orientation -- see drawCanvasSizeFor/setDrawOrientation).
 // Previously the bitmap was resized (and its content stretched into the
 // new size) every time its wrapper changed size, which both distorted the
 // drawing and drifted the cursor/stroke alignment a little further out of
@@ -735,6 +737,8 @@ const zoomOutBtn = document.getElementById("zoomOutBtn");
 const zoomInBtn = document.getElementById("zoomInBtn");
 const zoomResetBtn = document.getElementById("zoomResetBtn");
 const fitViewBtn = document.getElementById("fitViewBtn");
+const orientationBtn = document.getElementById("orientationBtn");
+const dragGuardOverlay = document.getElementById("dragGuardOverlay");
 const brushCursor = document.getElementById("brushCursor");
 const mindmapEmpty = document.getElementById("mindmapEmpty");
 const groupSelector = document.getElementById("groupSelector");
@@ -1496,14 +1500,26 @@ function showEmptyState() {
   renderDocList();
 }
 
+// The two interchangeable bitmap shapes a draw doc can have -- landscape is
+// CANVAS_NATIVE_WIDTH x CANVAS_NATIVE_HEIGHT, portrait is the same pair
+// swapped. Kept as one helper so every place that needs "the size for this
+// orientation" (loading a doc, toggling orientation) agrees on it.
+function drawCanvasSizeFor(orientation) {
+  const long = Math.max(CANVAS_NATIVE_WIDTH, CANVAS_NATIVE_HEIGHT);
+  const short = Math.min(CANVAS_NATIVE_WIDTH, CANVAS_NATIVE_HEIGHT);
+  return orientation === "portrait" ? { width: short, height: long } : { width: long, height: short };
+}
+
 function loadDrawDocIntoCanvas(doc) {
-  // The bitmap itself is a fixed size (see CANVAS_NATIVE_WIDTH/HEIGHT above)
-  // -- only its content and the view onto it change per doc. Clearing here
-  // (rather than resizing) is what resets it to fully transparent; the
-  // background is never part of the raster, it's a CSS color behind it (see
-  // setDrawingBackground), so there's no pixel recoloring left to introduce
-  // noise when the background changes.
-  drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+  // The bitmap is a fixed size per orientation (see drawCanvasSizeFor) --
+  // only its content, orientation and the view onto it change per doc.
+  // Assigning width/height resets it to fully transparent, which is
+  // exactly what's needed here; the background is never part of the
+  // raster, it's a CSS color behind it (see setDrawingBackground), so
+  // there's no pixel recoloring left to introduce noise when it changes.
+  const size = drawCanvasSizeFor(doc.orientation);
+  drawCanvas.width = size.width;
+  drawCanvas.height = size.height;
   drawCanvas.style.background = doc.bgColor || "#ffffff";
 
   if (doc.content) {
@@ -1511,12 +1527,48 @@ function loadDrawDocIntoCanvas(doc) {
     img.onload = () => {
       drawCtx.imageSmoothingEnabled = false;
       // Drawn at its natural size, unscaled -- a saved doc's image is
-      // always exactly CANVAS_NATIVE_WIDTH x CANVAS_NATIVE_HEIGHT already
-      // (that's what it was saved from), so this is a plain 1:1 restore.
+      // always exactly its own orientation's size already (that's what it
+      // was saved from), so this is a plain 1:1 restore.
       drawCtx.drawImage(img, 0, 0);
     };
     img.src = doc.content;
   }
+}
+
+// Swaps a draw doc's canvas between landscape and portrait -- a deliberate,
+// explicit reshape (like flipping a sheet of paper), unrelated to the
+// resize-driven rescaling that's deliberately never done elsewhere. The
+// existing drawing is kept, anchored top-left; anything beyond the new
+// bounds is clipped rather than squeezed to fit, the same tradeoff a real
+// sheet of paper has when you turn it sideways.
+function setDrawOrientation(doc, orientation) {
+  if ((doc.orientation || "landscape") === orientation) return;
+  const snapshot = drawCanvas.toDataURL("image/png");
+  doc.orientation = orientation;
+  doc.updatedAt = Date.now();
+  saveMindmapDocs();
+
+  const size = drawCanvasSizeFor(orientation);
+  drawCanvas.width = size.width;
+  drawCanvas.height = size.height;
+  drawCanvas.style.background = doc.bgColor || "#ffffff";
+  const img = new Image();
+  img.onload = () => {
+    drawCtx.imageSmoothingEnabled = false;
+    drawCtx.drawImage(img, 0, 0);
+    saveCanvasToDoc();
+  };
+  img.src = snapshot;
+
+  updateOrientationUI(doc);
+  fitDrawView();
+}
+
+function updateOrientationUI(doc) {
+  const isPortrait = (doc.orientation || "landscape") === "portrait";
+  orientationBtn.classList.toggle("active", isPortrait);
+  orientationBtn.textContent = isPortrait ? "↕ Stående" : "↔ Liggande";
+  orientationBtn.title = isPortrait ? "Byt till liggande vy" : "Byt till stående vy";
 }
 
 function applyDrawTransform() {
@@ -1537,8 +1589,8 @@ function clampPanAxis(pan, viewSize, contentSize) {
 function clampDrawPan() {
   const wrapRect = drawCanvasWrap.getBoundingClientRect();
   if (wrapRect.width <= 0 || wrapRect.height <= 0) return;
-  const scaledW = CANVAS_NATIVE_WIDTH * drawZoom;
-  const scaledH = CANVAS_NATIVE_HEIGHT * drawZoom;
+  const scaledW = drawCanvas.width * drawZoom;
+  const scaledH = drawCanvas.height * drawZoom;
   drawPanX = clampPanAxis(drawPanX, wrapRect.width, scaledW);
   drawPanY = clampPanAxis(drawPanY, wrapRect.height, scaledH);
 }
@@ -1565,18 +1617,18 @@ function setDrawZoom(newZoom, anchorClientX, anchorClientY) {
 // Scales the whole (fixed-size) canvas down to fit inside whatever space
 // is currently available, centered -- but never scales it up past 100%,
 // so a small canvas in a big window isn't blown up and blurred. This only
-// ever runs when a draw doc is first opened, never on a later resize --
-// resizing the window/tab/split should just reveal more or less of the
-// canvas at the current zoom, not silently rescale it.
+// ever runs when a draw doc is first opened (or reoriented), never on a
+// later resize -- resizing the window/tab/split should just reveal more
+// or less of the canvas at the current zoom, not silently rescale it.
 function fitDrawView() {
   const wrapRect = drawCanvasWrap.getBoundingClientRect();
   if (wrapRect.width <= 0 || wrapRect.height <= 0) {
     pendingDrawFit = true;
     return;
   }
-  drawZoom = Math.min(wrapRect.width / CANVAS_NATIVE_WIDTH, wrapRect.height / CANVAS_NATIVE_HEIGHT, 1);
-  drawPanX = (wrapRect.width - CANVAS_NATIVE_WIDTH * drawZoom) / 2;
-  drawPanY = (wrapRect.height - CANVAS_NATIVE_HEIGHT * drawZoom) / 2;
+  drawZoom = Math.min(wrapRect.width / drawCanvas.width, wrapRect.height / drawCanvas.height, 1);
+  drawPanX = (wrapRect.width - drawCanvas.width * drawZoom) / 2;
+  drawPanY = (wrapRect.height - drawCanvas.height * drawZoom) / 2;
   pendingDrawFit = false;
   applyDrawTransform();
 }
@@ -1613,6 +1665,7 @@ function selectDoc(id) {
     drawArea.hidden = false;
     loadDrawDocIntoCanvas(doc);
     updateBgColorUI(doc.bgColor || "#ffffff");
+    updateOrientationUI(doc);
     fitDrawView();
   }
 
@@ -2013,15 +2066,138 @@ function sampleCanvasColorAt(x, y) {
 
 let eyedropperActive = false;
 
+// A drag that starts outside the draw canvas (say, on the sidebar) and is
+// then dragged onto it while still held was found to permanently break
+// pointer-event dispatch to the whole page in Chromium, once the drag
+// crosses through a few different elements on its way in (sidebar, then a
+// toolbar button, for instance) -- every draw/pan attempt afterward, for
+// the rest of the page's life, got cut short to a single pointermove and
+// then nothing, even though the button was still genuinely held. A drag
+// that only ever stays within one element on its way to the canvas never
+// triggered it. Rather than chase that specific dispatch bug, this
+// sidesteps it: the moment any press starts somewhere that isn't a control
+// with its own click behavior, a full-page transparent overlay (see
+// #dragGuardOverlay) is shown for the rest of that gesture, giving the
+// browser exactly one element to keep dispatching to no matter how far the
+// cursor wanders before it reaches the canvas.
+document.addEventListener(
+  "pointerdown",
+  (event) => {
+    if (drawArea.hidden) return;
+    // Excludes anything with its own click behavior (so normal button/
+    // input clicks are untouched), and anything with its own already-
+    // working drag of its own -- native HTML5 drag-and-drop (the tab bar's
+    // docking, [draggable="true"]) doesn't fire the pointerup/pointercancel
+    // this overlay relies on to hide itself again, and the split divider/
+    // color wheel drags don't need this protection in the first place.
+    if (event.target.closest(".draw-tool-btn, input, .doc-new-btn, .color-picker-popover, [draggable='true'], #splitDivider, #colorWheel")) return;
+    dragGuardOverlay.hidden = false;
+  },
+  true
+);
+
+function hideDragGuardOverlay() {
+  dragGuardOverlay.hidden = true;
+}
+
+window.addEventListener("pointerup", hideDragGuardOverlay);
+window.addEventListener("pointercancel", hideDragGuardOverlay);
+// Belt-and-suspenders: also hide on a native drag starting (shouldn't
+// happen given the [draggable] exclusion above, but would otherwise leave
+// the overlay stuck since native drag doesn't fire pointerup) and if the
+// window loses focus mid-gesture (the button was released outside the
+// browser entirely).
+window.addEventListener("dragstart", hideDragGuardOverlay);
+window.addEventListener("blur", hideDragGuardOverlay);
+
+// Stroke and pan dragging are tracked with window-level pointermove/up
+// listeners added only while a gesture is active, rather than the more
+// obvious drawCanvas.setPointerCapture() -- capture looks right for this
+// (redirect events to the canvas even once the cursor wanders outside it
+// mid-stroke) but isn't needed now that the overlay above already keeps
+// every event targeted at one stable element, and window-level listeners
+// are the simpler, more standard pattern for canvas painting anyway.
+function beginStroke(event) {
+  isDrawingStroke = true;
+  pushUndoSnapshot();
+  const pos = getCanvasPos(event);
+  drawCtx.beginPath();
+  drawCtx.moveTo(pos.x, pos.y);
+  window.addEventListener("pointermove", onStrokeMove);
+  window.addEventListener("pointerup", onStrokeEnd);
+  window.addEventListener("pointercancel", onStrokeEnd);
+}
+
+function onStrokeMove(event) {
+  if (!isDrawingStroke) return;
+  // Belt-and-suspenders: if a move ever arrives showing no buttons held at
+  // all, the pointerup itself was missed -- treat this as the end of the
+  // stroke instead of leaving it stuck "in progress".
+  if (event.buttons === 0) {
+    onStrokeEnd();
+    return;
+  }
+  updateBrushCursor(event.clientX, event.clientY);
+  const pos = getCanvasPos(event);
+  // Erasing removes ink (destination-out) instead of painting over it with
+  // the background color -- the canvas never contains the background at
+  // all, so this works correctly no matter what the background is set to.
+  drawCtx.globalCompositeOperation = eraserActive ? "destination-out" : "source-over";
+  drawCtx.strokeStyle = currentColor;
+  drawCtx.lineWidth = Number(brushSizeInput.value);
+  drawCtx.lineCap = "round";
+  drawCtx.lineJoin = "round";
+  drawCtx.lineTo(pos.x, pos.y);
+  drawCtx.stroke();
+}
+
+function onStrokeEnd() {
+  if (!isDrawingStroke) return;
+  isDrawingStroke = false;
+  drawCtx.globalCompositeOperation = "source-over";
+  saveCanvasToDoc();
+  window.removeEventListener("pointermove", onStrokeMove);
+  window.removeEventListener("pointerup", onStrokeEnd);
+  window.removeEventListener("pointercancel", onStrokeEnd);
+}
+
+function beginPan(event) {
+  isPanningNow = true;
+  panPointerStart = { x: event.clientX, y: event.clientY, panX: drawPanX, panY: drawPanY };
+  drawCanvasWrap.classList.add("panning");
+  window.addEventListener("pointermove", onPanMove);
+  window.addEventListener("pointerup", onPanEnd);
+  window.addEventListener("pointercancel", onPanEnd);
+}
+
+function onPanMove(event) {
+  if (!isPanningNow) return;
+  if (event.buttons === 0) {
+    onPanEnd();
+    return;
+  }
+  drawPanX = panPointerStart.panX + (event.clientX - panPointerStart.x);
+  drawPanY = panPointerStart.panY + (event.clientY - panPointerStart.y);
+  clampDrawPan();
+  applyDrawTransform();
+}
+
+function onPanEnd() {
+  if (!isPanningNow) return;
+  isPanningNow = false;
+  panPointerStart = null;
+  drawCanvasWrap.classList.remove("panning");
+  window.removeEventListener("pointermove", onPanMove);
+  window.removeEventListener("pointerup", onPanEnd);
+  window.removeEventListener("pointercancel", onPanEnd);
+}
+
 drawCanvas.addEventListener("pointerdown", (event) => {
   // The pan tool, or the middle mouse button regardless of active tool
   // (a common drawing-app convention), moves the view instead of drawing.
   if (panActive || event.button === 1) {
     event.preventDefault();
-    isPanningNow = true;
-    panPointerStart = { x: event.clientX, y: event.clientY, panX: drawPanX, panY: drawPanY };
-    drawCanvas.setPointerCapture(event.pointerId);
-    drawCanvasWrap.classList.add("panning");
+    beginPan(event);
     return;
   }
 
@@ -2039,12 +2215,7 @@ drawCanvas.addEventListener("pointerdown", (event) => {
     return;
   }
 
-  isDrawingStroke = true;
-  pushUndoSnapshot();
-  drawCanvas.setPointerCapture(event.pointerId);
-  const pos = getCanvasPos(event);
-  drawCtx.beginPath();
-  drawCtx.moveTo(pos.x, pos.y);
+  beginStroke(event);
 });
 
 let lastPointerClient = null;
@@ -2078,42 +2249,12 @@ drawCanvas.addEventListener("pointerleave", () => {
   lastPointerClient = null;
 });
 
+// Just the hover preview here -- an active stroke or pan is tracked by its
+// own window-level listeners (see beginStroke/beginPan above), so this
+// only needs to handle the brush cursor while hovering with nothing held.
 drawCanvas.addEventListener("pointermove", (event) => {
-  if (isPanningNow && panPointerStart) {
-    drawPanX = panPointerStart.panX + (event.clientX - panPointerStart.x);
-    drawPanY = panPointerStart.panY + (event.clientY - panPointerStart.y);
-    clampDrawPan();
-    applyDrawTransform();
-    return;
-  }
-
+  if (isDrawingStroke || isPanningNow) return;
   updateBrushCursor(event.clientX, event.clientY);
-  if (!isDrawingStroke) return;
-  const pos = getCanvasPos(event);
-  // Erasing removes ink (destination-out) instead of painting over it with
-  // the background color -- the canvas never contains the background at
-  // all, so this works correctly no matter what the background is set to.
-  drawCtx.globalCompositeOperation = eraserActive ? "destination-out" : "source-over";
-  drawCtx.strokeStyle = currentColor;
-  drawCtx.lineWidth = Number(brushSizeInput.value);
-  drawCtx.lineCap = "round";
-  drawCtx.lineJoin = "round";
-  drawCtx.lineTo(pos.x, pos.y);
-  drawCtx.stroke();
-});
-
-drawCanvas.addEventListener("pointerup", () => {
-  if (isPanningNow) {
-    isPanningNow = false;
-    panPointerStart = null;
-    drawCanvasWrap.classList.remove("panning");
-    return;
-  }
-
-  if (!isDrawingStroke) return;
-  isDrawingStroke = false;
-  drawCtx.globalCompositeOperation = "source-over";
-  saveCanvasToDoc();
 });
 
 function setPenColor(color) {
@@ -2226,6 +2367,12 @@ zoomInBtn.addEventListener("click", () => setDrawZoom(drawZoom * DRAW_ZOOM_STEP)
 zoomOutBtn.addEventListener("click", () => setDrawZoom(drawZoom / DRAW_ZOOM_STEP));
 zoomResetBtn.addEventListener("click", () => setDrawZoom(1));
 fitViewBtn.addEventListener("click", fitDrawView);
+
+orientationBtn.addEventListener("click", () => {
+  const doc = mindmapDocs.find((d) => d.id === currentDocId);
+  if (!doc || doc.type !== "draw") return;
+  setDrawOrientation(doc, (doc.orientation || "landscape") === "portrait" ? "landscape" : "portrait");
+});
 
 // Trackpad/mouse-wheel navigation of the canvas: plain scroll pans, and
 // ctrl+scroll (also how browsers report a trackpad pinch gesture) zooms
