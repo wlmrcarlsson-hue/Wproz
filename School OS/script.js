@@ -805,6 +805,10 @@ const chatTeacherSubject = document.getElementById("chatTeacherSubject");
 const chatMessages = document.getElementById("chatMessages");
 const chatInput = document.getElementById("chatInput");
 const chatSendBtn = document.getElementById("chatSendBtn");
+const sendDocBtn = document.getElementById("sendDocBtn");
+const sendDocPopover = document.getElementById("sendDocPopover");
+const sendDocTeacherList = document.getElementById("sendDocTeacherList");
+const sendDocCancelBtn = document.getElementById("sendDocCancelBtn");
 
 let activeTeacherId = null;
 
@@ -859,9 +863,61 @@ function renderTeachers() {
   });
 }
 
+function docTypeLabel(type) {
+  return type === "draw" ? "Ritning" : "Dokument";
+}
+
+// A shared document is stored in the chat as a reference to the document
+// rather than a copy of its contents -- a drawing's PNG would bloat
+// localStorage badly, and a reference means the teacher's card always
+// opens the current version. The title is stored alongside it so the card
+// still reads sensibly if the document is later deleted.
+function buildDocMessageBubble(msg) {
+  const doc = mindmapDocs.find((d) => d.id === msg.docId);
+
+  const bubble = document.createElement("button");
+  bubble.type = "button";
+  bubble.className = `chat-message chat-message-doc ${
+    msg.from === "user" ? "chat-message-user" : "chat-message-teacher"
+  }`;
+
+  const icon = document.createElement("span");
+  icon.className = "chat-message-doc-icon";
+  icon.textContent = msg.docType === "draw" ? "🎨" : "📝";
+
+  const body = document.createElement("span");
+  body.className = "chat-message-doc-body";
+
+  const name = document.createElement("span");
+  name.className = "chat-message-doc-name";
+  name.textContent = doc ? doc.title : msg.docTitle;
+
+  const meta = document.createElement("span");
+  meta.className = "chat-message-doc-meta";
+  meta.textContent = doc ? `${docTypeLabel(msg.docType)} · Öppna` : "Dokumentet finns inte längre";
+
+  body.appendChild(name);
+  body.appendChild(meta);
+  bubble.appendChild(icon);
+  bubble.appendChild(body);
+
+  if (doc) {
+    bubble.addEventListener("click", () => goToMindmapDoc(doc.id));
+  } else {
+    bubble.classList.add("is-missing");
+    bubble.disabled = true;
+  }
+
+  return bubble;
+}
+
 function renderChatMessages(teacherId) {
   chatMessages.innerHTML = "";
   loadChatMessages(teacherId).forEach((msg) => {
+    if (msg.kind === "doc") {
+      chatMessages.appendChild(buildDocMessageBubble(msg));
+      return;
+    }
     const bubble = document.createElement("div");
     bubble.className = `chat-message ${msg.from === "user" ? "chat-message-user" : "chat-message-teacher"}`;
     bubble.textContent = msg.text;
@@ -939,6 +995,116 @@ function sendChatMessage() {
 chatSendBtn.addEventListener("click", sendChatMessage);
 chatInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") sendChatMessage();
+});
+
+// ---------- Sending a Mindmap document to a teacher ----------
+
+const DOC_RECEIPT_REPLIES = [
+  "Tack, jag har fått dokumentet! Jag tittar på det och återkommer.",
+  "Mottaget! Jag läser igenom det och ger dig feedback.",
+  "Tack för att du skickade in det, jag kikar på det snart.",
+];
+
+function closeSendDocPopover() {
+  sendDocPopover.hidden = true;
+}
+
+function openSendDocPopover() {
+  sendDocTeacherList.innerHTML = "";
+
+  const doc = mindmapDocs.find((d) => d.id === currentDocId);
+  if (!doc) return;
+
+  // A document with a subject suggests its own teacher, so the one most
+  // likely to be wanted is offered first -- the rest still follow.
+  const ordered = [...TEACHERS].sort((a, b) => {
+    const aMatch = doc.subject && a.subject === doc.subject ? 0 : 1;
+    const bMatch = doc.subject && b.subject === doc.subject ? 0 : 1;
+    return aMatch - bMatch;
+  });
+
+  ordered.forEach((teacher) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "send-doc-teacher";
+
+    const avatar = document.createElement("span");
+    avatar.className = "teacher-avatar";
+    avatar.style.background = teacher.color;
+    avatar.textContent = teacherInitials(teacher.name);
+
+    const body = document.createElement("span");
+    body.className = "send-doc-teacher-body";
+    const name = document.createElement("span");
+    name.className = "send-doc-teacher-name";
+    name.textContent = teacher.name;
+    const subject = document.createElement("span");
+    subject.className = "send-doc-teacher-subject";
+    subject.textContent = teacher.subject;
+    body.appendChild(name);
+    body.appendChild(subject);
+
+    btn.appendChild(avatar);
+    btn.appendChild(body);
+    btn.addEventListener("click", () => sendDocToTeacher(teacher.id));
+    sendDocTeacherList.appendChild(btn);
+  });
+
+  sendDocPopover.hidden = false;
+}
+
+function sendDocToTeacher(teacherId) {
+  const doc = mindmapDocs.find((d) => d.id === currentDocId);
+  const teacher = TEACHERS.find((t) => t.id === teacherId);
+  if (!doc || !teacher) return;
+
+  const messages = loadChatMessages(teacherId);
+  messages.push({
+    from: "user",
+    kind: "doc",
+    docId: doc.id,
+    docTitle: doc.title,
+    docType: doc.type,
+    at: Date.now(),
+  });
+  saveChatMessages(teacherId, messages);
+  closeSendDocPopover();
+
+  // Keep the chat live if it happens to be open in the other half of a
+  // split view while the document is sent from Mindmap.
+  if (activeTeacherId === teacherId) renderChatMessages(teacherId);
+
+  setTimeout(() => {
+    const reply = DOC_RECEIPT_REPLIES[Math.floor(Math.random() * DOC_RECEIPT_REPLIES.length)];
+    const current = loadChatMessages(teacherId);
+    current.push({ from: "teacher", text: reply, at: Date.now() });
+    saveChatMessages(teacherId, current);
+    if (activeTeacherId === teacherId) renderChatMessages(teacherId);
+  }, 900);
+
+  showAppModal(
+    "Dokumentet är skickat",
+    `"${doc.title}" har skickats till ${teacher.name}. Du hittar det i chatten under Lärare.`
+  );
+}
+
+sendDocBtn.addEventListener("click", (event) => {
+  event.stopPropagation();
+  if (sendDocPopover.hidden) {
+    openSendDocPopover();
+  } else {
+    closeSendDocPopover();
+  }
+});
+
+sendDocCancelBtn.addEventListener("click", closeSendDocPopover);
+
+// Clicking anywhere outside dismisses the picker, the same way the
+// pen/background color popover behaves.
+document.addEventListener("click", (event) => {
+  if (sendDocPopover.hidden) return;
+  if (sendDocPopover.contains(event.target) || sendDocBtn.contains(event.target)) return;
+  closeSendDocPopover();
 });
 
 // ---------- Subject library ----------
@@ -1565,6 +1731,7 @@ function renderGroupViewIfOpen() {
 function showGroupView(groupId) {
   activeGroupViewId = groupId;
   currentDocId = null;
+  closeSendDocPopover();
 
   docToolbar.hidden = true;
   textEditor.hidden = true;
@@ -1585,6 +1752,7 @@ function showGroupView(groupId) {
 function showEmptyState() {
   currentDocId = null;
   activeGroupViewId = null;
+  closeSendDocPopover();
   docToolbar.hidden = true;
   textEditor.hidden = true;
   textToolbar.hidden = true;
@@ -1740,6 +1908,7 @@ function selectDoc(id) {
   currentDocId = id;
   activeGroupViewId = null;
   groupView.hidden = true;
+  closeSendDocPopover();
   mindmapEmpty.hidden = true;
   docToolbar.hidden = false;
   docTitleInput.value = doc.title;

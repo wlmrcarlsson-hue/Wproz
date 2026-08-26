@@ -289,7 +289,14 @@
 
             <div id="docToolbar" class="doc-toolbar" hidden>
               <input id="docTitleInput" class="doc-title-input" type="text" placeholder="Namnlöst dokument" />
+              <button id="sendDocBtn" class="doc-new-btn doc-send-btn" title="Skicka dokumentet till en lärare">📤 Skicka</button>
               <button id="deleteDocBtn" class="doc-delete-btn" title="Ta bort dokument" aria-label="Ta bort dokument">🗑</button>
+
+              <div id="sendDocPopover" class="send-doc-popover" hidden>
+                <p class="send-doc-title">Skicka till lärare</p>
+                <div id="sendDocTeacherList" class="send-doc-teacher-list"></div>
+                <button id="sendDocCancelBtn" type="button" class="draw-tool-btn send-doc-cancel">Avbryt</button>
+              </div>
             </div>
 
             <div id="textToolbar" class="text-toolbar" hidden>
