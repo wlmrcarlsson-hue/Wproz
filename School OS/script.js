@@ -61,14 +61,18 @@ function updateNestedBadges() {
   });
 }
 
-// Per-tab side effects that used to run only on a direct click (resizing the
-// draw canvas, re-rendering GroupDock) -- centralized here so they also fire
-// when a tab becomes visible as one half of a split, not just on click.
+// Per-tab side effects that used to run only on a direct click (re-
+// rendering GroupDock, fitting the draw canvas view) -- centralized here
+// so they also fire when a tab becomes visible as one half of a split,
+// not just on click.
 function onTabShown(tabId) {
   if (tabId === "groupdock") renderGroupDock();
-  if (tabId === "mindmap") {
+  // Only runs the deferred fit from selectDoc/fitDrawView finding a still-
+  // hidden (zero-sized) wrapper -- once shown, the resize handler and pan/
+  // zoom controls take over, so this never re-fits on a later show.
+  if (tabId === "mindmap" && pendingDrawFit) {
     const doc = mindmapDocs.find((d) => d.id === currentDocId);
-    if (doc && doc.type === "draw") resizeDrawCanvas(doc);
+    if (doc && doc.type === "draw") fitDrawView();
   }
 }
 
@@ -114,19 +118,12 @@ function hideSplitView() {
   if (splitContainer.hidden) return;
   returnSplitSectionsHome();
   splitContainer.hidden = true;
-  contentEl.classList.remove("split-mode");
 }
 
 function showSplitView(pair) {
   const hostSection = document.getElementById(pair.host);
   const childSection = document.getElementById(pair.child);
   if (!hostSection || !childSection) return;
-
-  // The normal 1080px reading-width cap on .content makes sense for one
-  // page, but leaves a lot of dead space on a wide screen once two full
-  // page-layouts need to fit side by side -- let the split use the whole
-  // viewport width instead.
-  contentEl.classList.add("split-mode");
 
   returnSplitSectionsHome();
   pages.forEach((page) => page.classList.remove("active"));
@@ -701,8 +698,23 @@ const textSizeSelect = document.getElementById("textSizeSelect");
 const textColorInput = document.getElementById("textColorInput");
 const textToolBtns = document.querySelectorAll(".text-tool-btn[data-cmd]");
 const drawArea = document.getElementById("drawArea");
+const drawCanvasWrap = document.getElementById("drawCanvasWrap");
 const drawCanvas = document.getElementById("drawCanvas");
 const drawCtx = drawCanvas.getContext("2d");
+
+// The draw canvas bitmap is a fixed resolution sized to whatever this
+// screen could ever show -- set once, here, and never resized again.
+// Previously the bitmap was resized (and its content stretched into the
+// new size) every time its wrapper changed size, which both distorted the
+// drawing and drifted the cursor/stroke alignment a little further out of
+// sync with every resize. Now the wrapper only ever clips a pan/zoomed
+// *view* onto this fixed canvas (see applyDrawTransform), so resizing the
+// window/tab/split just reveals more or less of the same canvas.
+const CANVAS_NATIVE_WIDTH = Math.max(1600, Math.min(3200, Math.round(window.screen.width || 1920)));
+const CANVAS_NATIVE_HEIGHT = Math.max(1000, Math.min(2000, Math.round(window.screen.height || 1080)));
+drawCanvas.width = CANVAS_NATIVE_WIDTH;
+drawCanvas.height = CANVAS_NATIVE_HEIGHT;
+
 const penColorBtn = document.getElementById("penColorBtn");
 const penColorSwatch = document.getElementById("penColorSwatch");
 const bgColorBtn = document.getElementById("bgColorBtn");
@@ -716,8 +728,13 @@ const colorPickerApplyBtn = document.getElementById("colorPickerApplyBtn");
 const brushSizeInput = document.getElementById("brushSize");
 const eraserBtn = document.getElementById("eraserBtn");
 const bucketBtn = document.getElementById("bucketBtn");
+const panBtn = document.getElementById("panBtn");
 const clearCanvasBtn = document.getElementById("clearCanvasBtn");
 const undoDrawBtn = document.getElementById("undoDrawBtn");
+const zoomOutBtn = document.getElementById("zoomOutBtn");
+const zoomInBtn = document.getElementById("zoomInBtn");
+const zoomResetBtn = document.getElementById("zoomResetBtn");
+const fitViewBtn = document.getElementById("fitViewBtn");
 const brushCursor = document.getElementById("brushCursor");
 const mindmapEmpty = document.getElementById("mindmapEmpty");
 const groupSelector = document.getElementById("groupSelector");
@@ -1062,6 +1079,23 @@ let eraserActive = false;
 let isDrawingStroke = false;
 let undoStack = [];
 const UNDO_LIMIT = 20;
+
+// ---------- Draw canvas pan/zoom view ----------
+
+const DRAW_ZOOM_MIN = 0.15;
+const DRAW_ZOOM_MAX = 4;
+const DRAW_ZOOM_STEP = 1.25;
+let drawZoom = 1;
+let drawPanX = 0;
+let drawPanY = 0;
+let panActive = false;
+let isPanningNow = false;
+let panPointerStart = null;
+// Set when a draw doc is selected while its wrapper is still hidden/zero-
+// sized (e.g. it's the inactive half of a split, or a background tab) --
+// the fit can't be computed yet, so it's deferred to onTabShown once the
+// wrapper actually has a size.
+let pendingDrawFit = false;
 
 const PEN_SIZE_KEY = "schoolos-pen-size";
 const ERASER_SIZE_KEY = "schoolos-eraser-size";
@@ -1462,36 +1496,89 @@ function showEmptyState() {
   renderDocList();
 }
 
-function resizeDrawCanvas(doc) {
-  // Assigning canvas.width/height always resets the bitmap to fully
-  // transparent, which is exactly what we want here -- the background is
-  // never part of the raster, it's a CSS color behind it (see
+function loadDrawDocIntoCanvas(doc) {
+  // The bitmap itself is a fixed size (see CANVAS_NATIVE_WIDTH/HEIGHT above)
+  // -- only its content and the view onto it change per doc. Clearing here
+  // (rather than resizing) is what resets it to fully transparent; the
+  // background is never part of the raster, it's a CSS color behind it (see
   // setDrawingBackground), so there's no pixel recoloring left to introduce
   // noise when the background changes.
-  //
-  // The CSS size is left at 100% of the wrapper so the canvas always fills
-  // it exactly (pinning it to a floored pixel value previously left a
-  // sub-pixel gap at the wrapper's edge). The bitmap resolution is then
-  // rounded to the nearest pixel of that *rendered* size -- close enough
-  // that the cursor/stroke mapping fix from before still holds in practice,
-  // without reintroducing a visible gap.
-  drawCanvas.style.width = "100%";
-  drawCanvas.style.height = "100%";
-  const rect = drawCanvas.getBoundingClientRect();
-  const width = Math.max(1, Math.round(rect.width));
-  const height = Math.max(1, Math.round(rect.height));
-  drawCanvas.width = width;
-  drawCanvas.height = height;
+  drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
   drawCanvas.style.background = doc.bgColor || "#ffffff";
 
   if (doc.content) {
     const img = new Image();
     img.onload = () => {
       drawCtx.imageSmoothingEnabled = false;
-      drawCtx.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height);
+      // Drawn at its natural size, unscaled -- a saved doc's image is
+      // always exactly CANVAS_NATIVE_WIDTH x CANVAS_NATIVE_HEIGHT already
+      // (that's what it was saved from), so this is a plain 1:1 restore.
+      drawCtx.drawImage(img, 0, 0);
     };
     img.src = doc.content;
   }
+}
+
+function applyDrawTransform() {
+  drawCanvas.style.transform = `translate(${drawPanX}px, ${drawPanY}px) scale(${drawZoom})`;
+  zoomResetBtn.textContent = `${Math.round(drawZoom * 100)}%`;
+}
+
+function clampPanAxis(pan, viewSize, contentSize) {
+  const minVisible = Math.min(80, contentSize, viewSize);
+  const minPan = minVisible - contentSize;
+  const maxPan = viewSize - minVisible;
+  if (minPan > maxPan) return (viewSize - contentSize) / 2;
+  return Math.min(Math.max(pan, minPan), maxPan);
+}
+
+// Keeps at least a sliver of the canvas visible no matter how far it's
+// panned, so it's never possible to lose it off-screen entirely.
+function clampDrawPan() {
+  const wrapRect = drawCanvasWrap.getBoundingClientRect();
+  if (wrapRect.width <= 0 || wrapRect.height <= 0) return;
+  const scaledW = CANVAS_NATIVE_WIDTH * drawZoom;
+  const scaledH = CANVAS_NATIVE_HEIGHT * drawZoom;
+  drawPanX = clampPanAxis(drawPanX, wrapRect.width, scaledW);
+  drawPanY = clampPanAxis(drawPanY, wrapRect.height, scaledH);
+}
+
+// Zooms so that the canvas point currently under (anchorClientX,
+// anchorClientY) stays under it after the zoom -- defaults to the
+// viewport's center for the toolbar +/- buttons, and the cursor position
+// for ctrl+wheel zooming.
+function setDrawZoom(newZoom, anchorClientX, anchorClientY) {
+  const wrapRect = drawCanvasWrap.getBoundingClientRect();
+  if (wrapRect.width <= 0 || wrapRect.height <= 0) return;
+  const clamped = Math.min(DRAW_ZOOM_MAX, Math.max(DRAW_ZOOM_MIN, newZoom));
+  const ax = anchorClientX !== undefined ? anchorClientX - wrapRect.left : wrapRect.width / 2;
+  const ay = anchorClientY !== undefined ? anchorClientY - wrapRect.top : wrapRect.height / 2;
+  const canvasX = (ax - drawPanX) / drawZoom;
+  const canvasY = (ay - drawPanY) / drawZoom;
+  drawZoom = clamped;
+  drawPanX = ax - canvasX * drawZoom;
+  drawPanY = ay - canvasY * drawZoom;
+  clampDrawPan();
+  applyDrawTransform();
+}
+
+// Scales the whole (fixed-size) canvas down to fit inside whatever space
+// is currently available, centered -- but never scales it up past 100%,
+// so a small canvas in a big window isn't blown up and blurred. This only
+// ever runs when a draw doc is first opened, never on a later resize --
+// resizing the window/tab/split should just reveal more or less of the
+// canvas at the current zoom, not silently rescale it.
+function fitDrawView() {
+  const wrapRect = drawCanvasWrap.getBoundingClientRect();
+  if (wrapRect.width <= 0 || wrapRect.height <= 0) {
+    pendingDrawFit = true;
+    return;
+  }
+  drawZoom = Math.min(wrapRect.width / CANVAS_NATIVE_WIDTH, wrapRect.height / CANVAS_NATIVE_HEIGHT, 1);
+  drawPanX = (wrapRect.width - CANVAS_NATIVE_WIDTH * drawZoom) / 2;
+  drawPanY = (wrapRect.height - CANVAS_NATIVE_HEIGHT * drawZoom) / 2;
+  pendingDrawFit = false;
+  applyDrawTransform();
 }
 
 function selectDoc(id) {
@@ -1506,6 +1593,9 @@ function selectDoc(id) {
   clearCanvasArm.disarm();
   bucketActive = false;
   bucketBtn.classList.remove("active");
+  panActive = false;
+  panBtn.classList.remove("active");
+  drawCanvasWrap.classList.remove("pan-mode");
   closeColorPicker();
   undoStack = [];
   updateUndoButtonState();
@@ -1521,8 +1611,9 @@ function selectDoc(id) {
     textEditor.hidden = true;
     textToolbar.hidden = true;
     drawArea.hidden = false;
-    resizeDrawCanvas(doc);
+    loadDrawDocIntoCanvas(doc);
     updateBgColorUI(doc.bgColor || "#ffffff");
+    fitDrawView();
   }
 
   renderDocList();
@@ -1855,8 +1946,12 @@ textColorInput.addEventListener("input", () => {
 });
 
 function getCanvasPos(event) {
+  // The canvas's rendered box already reflects the current pan/zoom
+  // transform, so dividing by drawZoom here converts a screen position
+  // back into a stable canvas-bitmap pixel coordinate regardless of how
+  // far in/out the view currently is.
   const rect = drawCanvas.getBoundingClientRect();
-  return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+  return { x: (event.clientX - rect.left) / drawZoom, y: (event.clientY - rect.top) / drawZoom };
 }
 
 function saveCanvasToDoc() {
@@ -1883,7 +1978,7 @@ function undoLastStroke() {
   const img = new Image();
   img.onload = () => {
     drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
-    drawCtx.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height);
+    drawCtx.drawImage(img, 0, 0);
     saveCanvasToDoc();
   };
   img.src = snapshot;
@@ -1919,6 +2014,17 @@ function sampleCanvasColorAt(x, y) {
 let eyedropperActive = false;
 
 drawCanvas.addEventListener("pointerdown", (event) => {
+  // The pan tool, or the middle mouse button regardless of active tool
+  // (a common drawing-app convention), moves the view instead of drawing.
+  if (panActive || event.button === 1) {
+    event.preventDefault();
+    isPanningNow = true;
+    panPointerStart = { x: event.clientX, y: event.clientY, panX: drawPanX, panY: drawPanY };
+    drawCanvas.setPointerCapture(event.pointerId);
+    drawCanvasWrap.classList.add("panning");
+    return;
+  }
+
   if (eyedropperActive) {
     const pos = getCanvasPos(event);
     colorPickerInput.value = sampleCanvasColorAt(pos.x, pos.y);
@@ -1945,16 +2051,25 @@ let lastPointerClient = null;
 
 function updateBrushCursor(clientX, clientY) {
   lastPointerClient = { x: clientX, y: clientY };
-  const rect = drawCanvas.getBoundingClientRect();
-  const size = Number(brushSizeInput.value);
+  if (panActive || isPanningNow) {
+    brushCursor.hidden = true;
+    return;
+  }
+  brushCursor.hidden = false;
+  // Positioned relative to the wrap (brushCursor's actual containing
+  // block), not the canvas -- the canvas itself is offset within the wrap
+  // by the current pan, so using its rect here would double-count that
+  // offset. The size is scaled by drawZoom so the preview matches where a
+  // stroke will actually land on screen at the current zoom.
+  const wrapRect = drawCanvasWrap.getBoundingClientRect();
+  const size = Number(brushSizeInput.value) * drawZoom;
   brushCursor.style.width = `${size}px`;
   brushCursor.style.height = `${size}px`;
-  brushCursor.style.left = `${clientX - rect.left - size / 2}px`;
-  brushCursor.style.top = `${clientY - rect.top - size / 2}px`;
+  brushCursor.style.left = `${clientX - wrapRect.left - size / 2}px`;
+  brushCursor.style.top = `${clientY - wrapRect.top - size / 2}px`;
 }
 
 drawCanvas.addEventListener("pointerenter", (event) => {
-  brushCursor.hidden = false;
   updateBrushCursor(event.clientX, event.clientY);
 });
 
@@ -1964,6 +2079,14 @@ drawCanvas.addEventListener("pointerleave", () => {
 });
 
 drawCanvas.addEventListener("pointermove", (event) => {
+  if (isPanningNow && panPointerStart) {
+    drawPanX = panPointerStart.panX + (event.clientX - panPointerStart.x);
+    drawPanY = panPointerStart.panY + (event.clientY - panPointerStart.y);
+    clampDrawPan();
+    applyDrawTransform();
+    return;
+  }
+
   updateBrushCursor(event.clientX, event.clientY);
   if (!isDrawingStroke) return;
   const pos = getCanvasPos(event);
@@ -1980,6 +2103,13 @@ drawCanvas.addEventListener("pointermove", (event) => {
 });
 
 drawCanvas.addEventListener("pointerup", () => {
+  if (isPanningNow) {
+    isPanningNow = false;
+    panPointerStart = null;
+    drawCanvasWrap.classList.remove("panning");
+    return;
+  }
+
   if (!isDrawingStroke) return;
   isDrawingStroke = false;
   drawCtx.globalCompositeOperation = "source-over";
@@ -2085,6 +2215,37 @@ bucketBtn.addEventListener("click", () => {
     eyedropperBtn.classList.remove("active");
   }
 });
+
+panBtn.addEventListener("click", () => {
+  panActive = !panActive;
+  panBtn.classList.toggle("active", panActive);
+  drawCanvasWrap.classList.toggle("pan-mode", panActive);
+});
+
+zoomInBtn.addEventListener("click", () => setDrawZoom(drawZoom * DRAW_ZOOM_STEP));
+zoomOutBtn.addEventListener("click", () => setDrawZoom(drawZoom / DRAW_ZOOM_STEP));
+zoomResetBtn.addEventListener("click", () => setDrawZoom(1));
+fitViewBtn.addEventListener("click", fitDrawView);
+
+// Trackpad/mouse-wheel navigation of the canvas: plain scroll pans, and
+// ctrl+scroll (also how browsers report a trackpad pinch gesture) zooms
+// centered on the cursor -- the same convention as Figma/Google Maps.
+drawCanvasWrap.addEventListener(
+  "wheel",
+  (event) => {
+    event.preventDefault();
+    if (event.ctrlKey) {
+      const factor = Math.exp(-event.deltaY * 0.01);
+      setDrawZoom(drawZoom * factor, event.clientX, event.clientY);
+    } else {
+      drawPanX -= event.deltaX;
+      drawPanY -= event.deltaY;
+      clampDrawPan();
+      applyDrawTransform();
+    }
+  },
+  { passive: false }
+);
 
 // The background is a CSS color behind the (otherwise transparent) canvas,
 // never baked into the raster -- so changing it is just a metadata update,
@@ -2201,10 +2362,15 @@ eyedropperBtn.addEventListener("click", () => {
   eyedropperBtn.classList.toggle("active", eyedropperActive);
 });
 
+// Deliberately does NOT rescale or re-fit the canvas on resize -- the
+// bitmap and the current zoom are both fixed, so a bigger window just
+// reveals more of the same canvas. Re-clamping the pan here only guards
+// against a drastic shrink pushing the canvas fully out of view.
 window.addEventListener("resize", () => {
   const doc = mindmapDocs.find((d) => d.id === currentDocId);
   if (doc && doc.type === "draw" && !drawArea.hidden) {
-    resizeDrawCanvas(doc);
+    clampDrawPan();
+    applyDrawTransform();
   }
 });
 

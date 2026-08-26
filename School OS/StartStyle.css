@@ -897,6 +897,17 @@ body {
   color: #8b96b8;
 }
 
+.draw-toolbar-sep {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.draw-zoom-label {
+  min-width: 52px;
+  text-align: center;
+}
+
 .draw-color-btn {
   display: inline-flex;
   align-items: center;
@@ -1009,13 +1020,28 @@ body {
   min-height: 50vh;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 2px;
+  /* The canvas bitmap is a fixed, screen-sized resolution that never
+     resizes with this wrapper (see resizeDrawCanvas in script.js) -- only
+     a scaled/panned viewport onto it clipped here. Growing or shrinking
+     the wrapper (window resize, tab rescale, split-view resize) just
+     reveals more or less of the same canvas instead of stretching it. */
   overflow: hidden;
+}
+
+.draw-canvas-wrap.pan-mode .draw-canvas {
+  cursor: grab;
+}
+
+.draw-canvas-wrap.panning .draw-canvas {
+  cursor: grabbing;
 }
 
 .draw-canvas {
   display: block;
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
   background: #ffffff;
   cursor: none;
   touch-action: none;
