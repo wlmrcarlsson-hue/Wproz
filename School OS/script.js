@@ -1325,6 +1325,156 @@ const SUBJECT_LIBRARY = {
         },
       ],
     },
+    {
+      title: "Svenska bok prototyp",
+      author: "School OS",
+      publisher: "Prototyputgåvan",
+      year: 2026,
+      pages: 96,
+      isbn: "—",
+      description:
+        "Prototypbok om förberedda samtal: turtagning, kroppsspråk, hur man fördjupar sina resonemang och ett genomgånget samtalsexempel.",
+      chapters: [
+        {
+          title: "Turtagning – så går det till",
+          summary: "Grundbegreppen för hur ordet växlar mellan deltagarna i ett samtal.",
+          points: ["Tur", "Talarbyte", "Paus"],
+          prose: [
+            "Ett samtal som fungerar bygger på att deltagarna turas om att tala utan att behöva förhandla om det varje gång. Mycket av den turordningen sköter vi omedvetet, men den blir lättare att styra i ett förberett samtal om man känner till begreppen bakom den.",
+            {
+              heading: "Tre begrepp att hålla isär",
+              list: [
+                "Tur: det en person säger innan ordet går vidare. En tur kan vara ett enda ord eller flera minuter lång.",
+                "Talarbyte: ögonblicket när någon annan tar över ordet från den som talat.",
+                "Paus: ett kort uppehåll mitt i en tur. Korta pauser betyder oftast att talaren tänker, inte att hen är klar.",
+              ],
+            },
+            "Pauser fylls ofta med tvekljud som \u201deeh\u201d eller \u201dhmm\u201d. De signalerar att talaren fortfarande söker efter ord och vill behålla turen. Blir tystnaden längre än någon sekund tolkar de flesta det däremot som att turen är ledig, och då sker ett talarbyte.",
+            "I ett förberett samtal är det vanligt att en samtalsledare fördelar ordet. Uppgiften går också att dela upp: en deltagare inleder och avslutar, en annan fördelar ordet och en tredje håller koll på tiden.",
+          ],
+        },
+        {
+          title: "Kroppsspråk och samtalsstöd",
+          summary: "Blickar, gester och lyssnarresponser – det som sägs utan ord.",
+          points: ["Ögonkontakt", "Lyssnarresponser", "Aktivt lyssnande"],
+          prose: [
+            "Vi kommunicerar hela tiden med mer än orden. Blickar, ansiktsuttryck och gester pågår parallellt med det som sägs, både när vi talar och när vi lyssnar.",
+            "Har du ordet är ögonkontakten det viktigaste verktyget. Vänder du dig bara till den som råkar sitta närmast, eller till den du känner bäst, tappar de övriga lätt intresset – de uppfattar helt enkelt att du inte talar till dem. Sprid blicken över hela gruppen i stället.",
+            "Ögonkontakt spelar lika stor roll åt andra hållet. För den som talar känns det snabbt obehagligt om lyssnaren tittar bort och tycks ha uppmärksamheten någon annanstans.",
+            {
+              heading: "Lyssnarresponser",
+              text: "Det finns flera sätt att visa att du lyssnar aktivt: nicka, humma, le, och skjuta in småord som \u201dja\u201d, \u201djaså\u201d eller \u201dabsolut\u201d. Den här sortens återkoppling kallas lyssnarresponser, och den gör stor skillnad för hur lätt det är att tala.",
+            },
+            {
+              heading: "Öva i par",
+              list: [
+                "Bestäm vem som är talare och vem som lyssnar.",
+                "Talaren berättar i ungefär en minut om något som hänt den senaste veckan – gärna något helt vardagligt. Lyssnaren ger aktivt samtalsstöd.",
+                "Diskutera efteråt hur det kändes att tala respektive lyssna.",
+                "Gör om övningen med en ny händelse, men den här gången utan något samtalsstöd alls. Jämför känslan med första gången.",
+              ],
+            },
+          ],
+        },
+        {
+          title: "Att utveckla och fördjupa sina tankegångar",
+          summary: "Tre sätt att ta ett resonemang längre än en framkastad åsikt.",
+          points: ["Ge exempel", "Lyft fram flera perspektiv", "Jämför"],
+          prose: [
+            "Ett samtal som bara består av framkastade åsikter utan resonemang bakom blir snabbt platt. Det som gör det intressant är att deltagarna utvecklar och fördjupar det de säger. Här är tre sätt att göra det.",
+            {
+              heading: "Ge exempel",
+              text: "Exempel belyser, tydliggör och styrker det du hävdar – men de måste ha en tydlig koppling till det ni faktiskt talar om. Samtalar ni om en skönlitterär text kan du sammanfatta ett avsnitt kort, hänvisa till hur en karaktär beter sig eller beskriva en miljö som är relevant. Tänk igenom eventuella citat i förväg, så du hittar dem snabbt.",
+            },
+            {
+              heading: "Användbara fraser",
+              list: [
+                "\u201dett exempel är …\u201d, \u201dett annat exempel är …\u201d",
+                "\u201ddet framgår av …\u201d, \u201ddet märks på …\u201d",
+                "\u201ddet blir tydligt genom …\u201d",
+              ],
+            },
+            {
+              heading: "Lyft fram flera perspektiv",
+              text: "Att belysa något ur flera perspektiv kallas att problematisera. Det kan handla om för- och nackdelar, om att växla mellan individnivå, samhällsnivå och global nivå, eller om att lägga ett historiskt, ekonomiskt eller genusperspektiv på frågan. Fraser som \u201då ena sidan … å andra sidan\u201d och \u201den annan viktig aspekt av detta är …\u201d hjälper dig att markera bytet.",
+            },
+            {
+              heading: "Jämför",
+              text: "Jämförelser fördjupar också. Ni kan jämföra karaktärer och miljöer, hur en karaktär är i början mot i slutet, eller texten mot en annan text, en film eller egna erfarenheter. Kravet är att det finns relevanta beröringspunkter. Använd fraser som \u201den likhet är …\u201d, \u201den skillnad är …\u201d och \u201djämfört med …\u201d.",
+            },
+          ],
+        },
+        {
+          title: "Språket i det förberedda samtalet",
+          summary: "Några enkla regler som håller samtalet begripligt och respektfullt.",
+          points: ["Tydlighet", "Turtagning", "Ton"],
+          prose: [
+            "Ett förberett samtal ställer lite högre krav på språket än ett vardagligt. Några saker är värda att ha i bakhuvudet.",
+            {
+              heading: "Saker att tänka på",
+              list: [
+                "Tala så tydligt som möjligt, och inte alltför snabbt.",
+                "Avbryt inte varandra – låt den som har ordet tala till punkt.",
+                "Variera språket och undvik onödiga upprepningar.",
+                "Undvik slang och svordomar.",
+                "Personliga påhopp och nedlåtande kommentarer är aldrig acceptabla.",
+              ],
+            },
+            {
+              heading: "Diskutera",
+              text: "Du använder förmodligen redan knepen ovan – ge exempel, lyft fram flera perspektiv, jämför – utan att tänka på det. Vilka av dem skulle du använda i följande situationer?",
+            },
+            {
+              heading: "",
+              list: [
+                "Du ska köpa en ny telefon och diskuterar olika modeller med en kompis.",
+                "Du berättar för en förälder om en dag som varit väldigt stressig.",
+                "Du och en kompis diskuterar en film ni precis sett.",
+              ],
+            },
+          ],
+        },
+        {
+          title: "Ett exempel på ett förberett samtal",
+          summary: "Ett litteratursamtal i årskurs 2, från inledning till turtagning.",
+          points: ["Upplägget", "Inledningen", "Turtagningen"],
+          prose: [
+            "För att göra det konkret följer här ett samtal av det slag som beskrivits hittills. Exemplet är påhittat men följer ett vanligt upplägg.",
+            "En grupp på fem elever i årskurs 2 samtalar om Goethes brevroman Den unge Werthers lidanden från 1774. Samtalet hålls när klassen läst ungefär halva boken. En av eleverna är samtalsledare och ansvarar för att fördela ordet, men deltar också med egna tankar. Alla får flika in kommentarer och ställa frågor under samtalets gång, så länge ingen avbryter någon annan. Gruppen sitter runt ett bord där alla ser varandra.",
+            {
+              heading: "Inledning",
+              text: "När alla satt sig inleder samtalsledaren med att kort beskriva hur samtalet ska gå till, och ställer sedan den första frågan till en namngiven deltagare:",
+            },
+            {
+              dialogue: [
+                {
+                  who: "Samtalsledaren",
+                  says: "Då kör vi igång med Den unge Werthers lidanden. Vi börjar med huvudpersonen. Vilken bild får ni av Werther? Vill du börja, Hannah?",
+                },
+              ],
+            },
+            {
+              heading: "Turtagning",
+              text: "Att rikta frågan till en bestämd person är den huvudsakliga principen för hur ordet fördelas, även om det står deltagarna fritt att ta ordet när det blir ledigt. Samtalsledaren ger också återkoppling i form av följdfrågor, så att talaren får utveckla sitt svar:",
+            },
+            {
+              dialogue: [
+                {
+                  who: "Samtalsledaren",
+                  says: "Vad tänker du, Vincent? Är Werther kär i Lotte på riktigt, eller är det snarare tanken på kärlek han är besatt av?",
+                },
+                {
+                  who: "Vincent",
+                  says: "Till stor del tror jag att det handlar om själva känslan av att vara kär. Det är den som driver honom. Men också att han vill bli älskad tillbaka.",
+                },
+                { who: "Samtalsledaren", says: "Hur märks det i boken?" },
+              ],
+            },
+            "Lägg märke till att samtalsledaren inte nöjer sig med det första svaret. Följdfrågan \u201dhur märks det i boken?\u201d tvingar fram just den återkoppling till texten som avsnittet om att ge exempel handlade om.",
+          ],
+        },
+      ],
+    },
   ],
   "Engelska 6": [
     {
@@ -1984,6 +2134,60 @@ function buildChapterProse(chapter, chapterIndex) {
   heading.appendChild(label);
   heading.appendChild(document.createTextNode(chapter.title));
   nodes.push(heading);
+
+  // A chapter that carries its own written text is rendered as-is; the
+  // generated filler below is only for the placeholder entries that have
+  // nothing but a summary and a list of points.
+  if (Array.isArray(chapter.prose)) {
+    chapter.prose.forEach((block, i) => {
+      if (typeof block === "string") {
+        const para = document.createElement("p");
+        if (i === 0) para.className = "book-para-first";
+        para.textContent = block;
+        nodes.push(para);
+        return;
+      }
+
+      if (block.heading) {
+        const subheading = document.createElement("h5");
+        subheading.className = "book-subheading";
+        subheading.textContent = block.heading;
+        nodes.push(subheading);
+      }
+
+      if (block.text) {
+        const para = document.createElement("p");
+        para.className = "book-para-first";
+        para.textContent = block.text;
+        nodes.push(para);
+      }
+
+      if (Array.isArray(block.list)) {
+        const list = document.createElement("ul");
+        list.className = "book-prose-list";
+        block.list.forEach((item) => {
+          const li = document.createElement("li");
+          li.textContent = item;
+          list.appendChild(li);
+        });
+        nodes.push(list);
+      }
+
+      if (Array.isArray(block.dialogue)) {
+        block.dialogue.forEach((line) => {
+          const para = document.createElement("p");
+          para.className = "book-dialogue";
+          const who = document.createElement("span");
+          who.className = "book-dialogue-who";
+          who.textContent = `${line.who}: `;
+          para.appendChild(who);
+          para.appendChild(document.createTextNode(line.says));
+          nodes.push(para);
+        });
+      }
+    });
+    return nodes;
+  }
 
   const intro = document.createElement("p");
   intro.className = "book-para-first";

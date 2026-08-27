@@ -1937,11 +1937,47 @@ body {
   font-weight: 650;
   text-align: left;
   letter-spacing: 0.01em;
+  /* break-inside keeps the "Kapitel N" label with the title it belongs to;
+     without it a column break can land between the two. */
+  break-inside: avoid;
   break-after: avoid;
 }
 
 .book-spread-flow h4.book-chapter-heading-continued {
   margin-top: 1.4em;
+}
+
+.book-spread-flow .book-subheading {
+  margin: 1.1em 0 0.4em;
+  font-size: 0.88rem;
+  font-weight: 650;
+  text-align: left;
+  break-inside: avoid;
+  break-after: avoid;
+}
+
+.book-spread-flow .book-prose-list {
+  margin: 0 0 0.4em;
+  padding-left: 1.2em;
+  text-align: left;
+}
+
+.book-spread-flow .book-prose-list li {
+  margin-bottom: 0.35em;
+}
+
+/* Dialogue lines in a worked example are set apart from the running text
+   the way a printed textbook sets them: no indent, a little air, and the
+   speaker's name carried by the label rather than a separate column. */
+.book-spread-flow .book-dialogue {
+  margin: 0.5em 0;
+  text-indent: 0;
+  text-align: left;
+  color: #4a3a52;
+}
+
+.book-spread-flow .book-dialogue-who {
+  font-weight: 650;
 }
 
 .book-spread-flow .book-chapter-label {
