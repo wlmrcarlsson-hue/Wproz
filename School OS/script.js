@@ -810,6 +810,14 @@ const sendDocPopover = document.getElementById("sendDocPopover");
 const sendDocTeacherList = document.getElementById("sendDocTeacherList");
 const sendDocCancelBtn = document.getElementById("sendDocCancelBtn");
 const sendDocNote = document.getElementById("sendDocNote");
+const sendDocStepTeacher = document.getElementById("sendDocStepTeacher");
+const sendDocStepNote = document.getElementById("sendDocStepNote");
+const sendDocRecipient = document.getElementById("sendDocRecipient");
+const sendDocBackBtn = document.getElementById("sendDocBackBtn");
+const sendDocConfirmBtn = document.getElementById("sendDocConfirmBtn");
+
+// Which teacher the note step is composing for.
+let pendingSendTeacherId = null;
 
 let activeTeacherId = null;
 
@@ -1010,9 +1018,29 @@ function closeSendDocPopover() {
   sendDocPopover.hidden = true;
 }
 
+function showSendDocTeacherStep() {
+  pendingSendTeacherId = null;
+  sendDocStepNote.hidden = true;
+  sendDocStepTeacher.hidden = false;
+}
+
+// Second step: pick the recipient first, then write the note that goes
+// with the document.
+function showSendDocNoteStep(teacherId) {
+  const teacher = TEACHERS.find((t) => t.id === teacherId);
+  if (!teacher) return;
+
+  pendingSendTeacherId = teacherId;
+  sendDocRecipient.textContent = `Till ${teacher.name} · ${teacher.subject}`;
+  sendDocStepTeacher.hidden = true;
+  sendDocStepNote.hidden = false;
+  sendDocNote.focus();
+}
+
 function openSendDocPopover() {
   sendDocTeacherList.innerHTML = "";
   sendDocNote.value = "";
+  showSendDocTeacherStep();
 
   const doc = mindmapDocs.find((d) => d.id === currentDocId);
   if (!doc) return;
@@ -1048,7 +1076,7 @@ function openSendDocPopover() {
 
     btn.appendChild(avatar);
     btn.appendChild(body);
-    btn.addEventListener("click", () => sendDocToTeacher(teacher.id));
+    btn.addEventListener("click", () => showSendDocNoteStep(teacher.id));
     sendDocTeacherList.appendChild(btn);
   });
 
@@ -1107,6 +1135,19 @@ sendDocBtn.addEventListener("click", (event) => {
 });
 
 sendDocCancelBtn.addEventListener("click", closeSendDocPopover);
+sendDocBackBtn.addEventListener("click", showSendDocTeacherStep);
+sendDocConfirmBtn.addEventListener("click", () => {
+  if (pendingSendTeacherId) sendDocToTeacher(pendingSendTeacherId);
+});
+
+// Enter alone makes a new line in the note, so ctrl/cmd+Enter sends --
+// the usual shortcut for a multi-line compose box.
+sendDocNote.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && (event.ctrlKey || event.metaKey) && pendingSendTeacherId) {
+    event.preventDefault();
+    sendDocToTeacher(pendingSendTeacherId);
+  }
+});
 
 // Clicking anywhere outside dismisses the picker, the same way the
 // pen/background color popover behaves.

@@ -1642,8 +1642,23 @@ body {
   border-color: var(--accent-line);
 }
 
-.send-doc-title-list {
-  margin-top: 12px;
+.send-doc-recipient {
+  margin: 0 0 8px;
+  font-size: 0.84rem;
+  font-weight: 550;
+  color: var(--text);
+}
+
+.send-doc-note-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.send-doc-confirm {
+  margin-left: auto;
+  text-align: center;
 }
 
 .send-doc-teacher-list {
