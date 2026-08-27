@@ -2253,7 +2253,10 @@ function paginateSpread() {
   // The flow element's own clientWidth is the text area itself. Measuring
   // the viewport instead would include its padding, leaving too little
   // room for two page-wide columns and collapsing the spread into one.
-  const viewportWidth = bookSpreadFlow.clientWidth;
+  // Measured on the container: the flow's own width is pinned by
+  // layoutTwoPageSpread, so reading it back would just return the previous
+  // pass's value and the layout could never grow again.
+  const viewportWidth = bookSpreadViewport.clientWidth;
   if (viewportWidth <= 0) return;
 
   const gutter = parseFloat(getComputedStyle(bookSpread).getPropertyValue("--book-gutter")) || 0;
@@ -2279,10 +2282,19 @@ function layoutTwoPageSpread(viewportWidth, gutter, pageHeight) {
   renderSpreadContent();
 
   spreadColumnsPerView = 2;
-  const columnWidth = (viewportWidth - gutter) / 2;
+
+  // Both the column width and the flow's own width are pinned to whole
+  // pixels that add up exactly. clientWidth is rounded to an integer while
+  // the real content box is fractional, so deriving a column width from it
+  // and leaving the flow to fill its container made two columns fail to fit
+  // at some widths and zoom levels -- the text then reflowed into one wide
+  // column straddling the fold. Giving the browser an exact integer total
+  // removes the rounding entirely, and keeps the paging step integral too.
+  const columnWidth = Math.floor((viewportWidth - gutter) / 2);
 
   bookSpreadViewport.style.maxHeight = "";
   bookSpreadFlow.style.height = `${pageHeight}px`;
+  bookSpreadFlow.style.width = `${columnWidth * 2 + gutter}px`;
   bookSpreadFlow.style.columnWidth = `${columnWidth}px`;
   bookSpreadFlow.style.columnGap = `${gutter}px`;
 
@@ -2308,6 +2320,7 @@ function layoutSingleChapter(pageHeight) {
 
   bookSpreadFlow.style.transform = "none";
   bookSpreadFlow.style.height = "auto";
+  bookSpreadFlow.style.width = "auto";
   bookSpreadFlow.style.columnWidth = "auto";
   bookSpreadFlow.style.columnGap = "0px";
   bookSpreadViewport.style.maxHeight = `${pageHeight}px`;
@@ -2491,7 +2504,7 @@ let lastSpreadWidth = 0;
 
 const spreadResizeObserver = new ResizeObserver(() => {
   if (bookSpreadView.hidden) return;
-  const width = bookSpreadFlow.clientWidth;
+  const width = bookSpreadViewport.clientWidth;
   // Only width matters here, and ignoring same-width callbacks keeps
   // paginateSpread's own height change from re-triggering this.
   if (width <= 0 || width === lastSpreadWidth) return;
