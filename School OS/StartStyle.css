@@ -2017,6 +2017,59 @@ body {
   display: none;
 }
 
+/* One page at a time is a chapter that scrolls vertically rather than a
+   fixed-height column, so a page never opens mid-sentence. */
+/* The native scrollbar is hidden here on purpose. Depending on the
+   platform it renders as an overlay that only appears mid-scroll, and
+   styling it away with scrollbar-width/::-webkit-scrollbar behaves
+   inconsistently between engines -- so the page draws its own always-
+   visible one in the margin instead (see .book-scroll-track). Scrolling
+   itself stays native: wheel, trackpad, touch and keys all still work. */
+.book-spread.is-single-page .book-spread-viewport {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.book-spread.is-single-page .book-spread-viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.book-scroll-track {
+  position: absolute;
+  top: 40px;
+  bottom: 52px;
+  right: 16px;
+  width: 8px;
+  border-radius: 999px;
+  background: rgba(120, 96, 60, 0.14);
+  cursor: pointer;
+}
+
+.book-scroll-track[hidden] {
+  display: none;
+}
+
+.book-scroll-thumb {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  border-radius: 999px;
+  background: rgba(112, 90, 56, 0.5);
+  transition: background 0.18s var(--ease);
+}
+
+.book-scroll-track:hover .book-scroll-thumb,
+.book-scroll-track.is-dragging .book-scroll-thumb {
+  background: rgba(96, 76, 46, 0.75);
+}
+
+/* The scrolling column is the flow itself here, so its transition would
+   fight the scroll position on every re-layout. */
+.book-spread.is-single-page .book-spread-flow {
+  transition: none;
+}
+
 @media (max-width: 700px) {
   .book-spread {
     padding: 28px 24px 44px;

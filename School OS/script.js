@@ -1654,6 +1654,9 @@ const bookSpreadTitle = document.getElementById("bookSpreadTitle");
 const bookSpreadChapter = document.getElementById("bookSpreadChapter");
 const bookSpread = document.getElementById("bookSpread");
 const bookSpreadFlow = document.getElementById("bookSpreadFlow");
+const bookSpreadViewport = bookSpreadFlow.parentElement;
+const bookScrollTrack = document.getElementById("bookScrollTrack");
+const bookScrollThumb = document.getElementById("bookScrollThumb");
 const bookPageLeft = document.getElementById("bookPageLeft");
 const bookPageRight = document.getElementById("bookPageRight");
 const bookSpreadCounter = document.getElementById("bookSpreadCounter");
@@ -2015,15 +2018,23 @@ const MIN_PAGE_WIDTH = 320;
 // resize, or a split pane being dragged) can put the reader back on the
 // same chapter instead of on whatever now happens to have that page number.
 let spreadCurrentChapter = 0;
+let isSinglePage = false;
 // Where in the flow each chapter starts, so opening the book from a
 // chapter lands on the right spread instead of always at page one.
 let spreadChapterStarts = [];
 
-function renderSpreadContent() {
+function renderSpreadContent(onlyChapterIndex) {
   bookSpreadFlow.innerHTML = "";
   spreadChapterStarts = [];
 
-  activeBook.chapters.forEach((chapter, index) => {
+  // One-page mode renders a single chapter at a time; the two-page spread
+  // renders the whole book so the text can flow across the fold.
+  const chapters =
+    onlyChapterIndex === undefined
+      ? activeBook.chapters.map((chapter, index) => ({ chapter, index }))
+      : [{ chapter: activeBook.chapters[onlyChapterIndex], index: onlyChapterIndex }];
+
+  chapters.forEach(({ chapter, index }) => {
     const nodes = buildChapterProse(chapter, index);
     // The heading node is the anchor we later measure to find the chapter.
     spreadChapterStarts.push(nodes[0]);
@@ -2031,9 +2042,9 @@ function renderSpreadContent() {
   });
 }
 
-// Lays the text out into page-sized columns and measures how many there
-// are. Must run while the view is visible -- a hidden element measures
-// zero and would produce a single empty page.
+// Lays the book out for whichever mode the available width allows. Must
+// run while the view is visible -- a hidden element measures zero and
+// would produce a single empty page.
 function paginateSpread() {
   // The flow element's own clientWidth is the text area itself. Measuring
   // the viewport instead would include its padding, leaving too little
@@ -2046,24 +2057,58 @@ function paginateSpread() {
   // Deciding this from the measured text width (rather than a viewport
   // media query) is what makes one-page mode kick in for a book opened in
   // a split pane -- the window can still be wide while the pane is not.
-  const twoPage = viewportWidth >= MIN_PAGE_WIDTH * 2 + gutter;
-  bookSpread.classList.toggle("is-single-page", !twoPage);
-  spreadColumnsPerView = twoPage ? 2 : 1;
-  const gap = twoPage ? gutter : 0;
+  isSinglePage = viewportWidth < MIN_PAGE_WIDTH * 2 + gutter;
+  bookSpread.classList.toggle("is-single-page", isSinglePage);
 
-  const columnWidth = (viewportWidth - gap * (spreadColumnsPerView - 1)) / spreadColumnsPerView;
   const pageHeight = Math.max(320, Math.round(window.innerHeight * 0.56));
 
+  if (isSinglePage) {
+    layoutSingleChapter(pageHeight);
+  } else {
+    layoutTwoPageSpread(viewportWidth, gutter, pageHeight);
+  }
+}
+
+// Two facing pages: the whole book flows through page-wide columns and
+// paging is a horizontal translate.
+function layoutTwoPageSpread(viewportWidth, gutter, pageHeight) {
+  renderSpreadContent();
+
+  spreadColumnsPerView = 2;
+  const columnWidth = (viewportWidth - gutter) / 2;
+
+  bookSpreadViewport.style.maxHeight = "";
   bookSpreadFlow.style.height = `${pageHeight}px`;
   bookSpreadFlow.style.columnWidth = `${columnWidth}px`;
-  bookSpreadFlow.style.columnGap = `${gap}px`;
+  bookSpreadFlow.style.columnGap = `${gutter}px`;
 
-  spreadColumnStep = columnWidth + gap;
-  spreadPageCount = Math.max(1, Math.round((bookSpreadFlow.scrollWidth + gap) / spreadColumnStep));
+  spreadColumnStep = columnWidth + gutter;
+  spreadPageCount = Math.max(1, Math.round((bookSpreadFlow.scrollWidth + gutter) / spreadColumnStep));
 
   // Re-anchor on the chapter that was being read: after a reflow the old
   // spread index points at a different part of the book.
   goToChapterSpread(spreadCurrentChapter);
+}
+
+// One page: a single chapter, laid out as one continuous column that the
+// paper scrolls vertically. Splitting the flow into fixed-height columns
+// here would leave a page starting mid-sentence, which is exactly what
+// makes a narrow pane awkward to read -- a chapter per page always starts
+// at its own heading instead.
+function layoutSingleChapter(pageHeight) {
+  renderSpreadContent(spreadCurrentChapter);
+
+  spreadColumnsPerView = 1;
+  spreadColumnStep = 0;
+  spreadPageCount = activeBook.chapters.length;
+
+  bookSpreadFlow.style.transform = "none";
+  bookSpreadFlow.style.height = "auto";
+  bookSpreadFlow.style.columnWidth = "auto";
+  bookSpreadFlow.style.columnGap = "0px";
+  bookSpreadViewport.style.maxHeight = `${pageHeight}px`;
+
+  showSingleChapter(spreadCurrentChapter);
 }
 
 // Moves the view to the spread where a given chapter begins.
@@ -2077,6 +2122,30 @@ function goToChapterSpread(chapterIndex) {
   showSpread(Math.floor(column / spreadColumnsPerView));
 }
 
+function showSingleChapter(chapterIndex) {
+  const total = activeBook.chapters.length;
+  const next = Math.min(Math.max(chapterIndex, 0), total - 1);
+
+  // Only re-render when actually changing chapter, so a plain re-layout
+  // doesn't throw away where the reader had scrolled to.
+  if (next !== spreadCurrentChapter || bookSpreadFlow.children.length === 0) {
+    spreadCurrentChapter = next;
+    renderSpreadContent(next);
+    bookSpreadViewport.scrollTop = 0;
+  }
+
+  const chapter = activeBook.chapters[next];
+  bookPageLeft.textContent = "";
+  bookPageRight.textContent = next + 1;
+  bookSpreadCounter.textContent = `Kapitel ${next + 1} av ${total}`;
+  bookSpreadChapter.textContent = `${chapter.title} · Kapitel ${next + 1} av ${total}`;
+
+  prevSpreadBtn.disabled = next === 0;
+  nextSpreadBtn.disabled = next === total - 1;
+
+  updateBookScrollbar();
+}
+
 function showSpread(index) {
   const maxIndex = Math.max(0, Math.ceil(spreadPageCount / spreadColumnsPerView) - 1);
   spreadIndex = Math.min(Math.max(index, 0), maxIndex);
@@ -2087,12 +2156,9 @@ function showSpread(index) {
   const rightPage = leftPage + 1;
 
   bookPageLeft.textContent = leftPage <= spreadPageCount ? leftPage : "";
-  bookPageRight.textContent =
-    spreadColumnsPerView === 2 && rightPage <= spreadPageCount ? rightPage : "";
+  bookPageRight.textContent = rightPage <= spreadPageCount ? rightPage : "";
 
-  const shown = spreadColumnsPerView === 2 && rightPage <= spreadPageCount
-    ? `Sida ${leftPage}–${rightPage}`
-    : `Sida ${leftPage}`;
+  const shown = rightPage <= spreadPageCount ? `Sida ${leftPage}–${rightPage}` : `Sida ${leftPage}`;
   bookSpreadCounter.textContent = `${shown} av ${spreadPageCount}`;
 
   prevSpreadBtn.disabled = spreadIndex === 0;
@@ -2106,6 +2172,75 @@ function showSpread(index) {
   });
   spreadCurrentChapter = current;
   bookSpreadChapter.textContent = `${activeBook.chapters[current].title} · Kapitel ${current + 1} av ${activeBook.chapters.length}`;
+
+  updateBookScrollbar();
+}
+
+// The page draws its own scrollbar rather than relying on the native one,
+// which renders as an invisible-until-scrolled overlay on several
+// platforms. Scrolling stays native -- this only reflects and drives it.
+function updateBookScrollbar() {
+  if (!isSinglePage) {
+    bookScrollTrack.hidden = true;
+    return;
+  }
+
+  const { scrollHeight, clientHeight, scrollTop } = bookSpreadViewport;
+  if (scrollHeight <= clientHeight + 1) {
+    bookScrollTrack.hidden = true;
+    return;
+  }
+
+  bookScrollTrack.hidden = false;
+  const trackHeight = bookScrollTrack.clientHeight;
+  const thumbHeight = Math.max(32, (clientHeight / scrollHeight) * trackHeight);
+  const maxScroll = scrollHeight - clientHeight;
+  const progress = maxScroll > 0 ? scrollTop / maxScroll : 0;
+
+  bookScrollThumb.style.height = `${thumbHeight}px`;
+  bookScrollThumb.style.transform = `translateY(${progress * (trackHeight - thumbHeight)}px)`;
+}
+
+bookSpreadViewport.addEventListener("scroll", updateBookScrollbar);
+
+// Dragging the thumb (or clicking anywhere on the track) scrolls the page.
+function scrollToTrackPosition(clientY) {
+  const trackRect = bookScrollTrack.getBoundingClientRect();
+  const thumbHeight = bookScrollThumb.offsetHeight;
+  const travel = trackRect.height - thumbHeight;
+  if (travel <= 0) return;
+
+  const offset = clientY - trackRect.top - thumbHeight / 2;
+  const progress = Math.min(Math.max(offset / travel, 0), 1);
+  bookSpreadViewport.scrollTop =
+    progress * (bookSpreadViewport.scrollHeight - bookSpreadViewport.clientHeight);
+}
+
+bookScrollTrack.addEventListener("pointerdown", (event) => {
+  event.preventDefault();
+  bookScrollTrack.setPointerCapture(event.pointerId);
+  bookScrollTrack.classList.add("is-dragging");
+  scrollToTrackPosition(event.clientY);
+});
+
+bookScrollTrack.addEventListener("pointermove", (event) => {
+  if (!bookScrollTrack.classList.contains("is-dragging")) return;
+  scrollToTrackPosition(event.clientY);
+});
+
+function endScrollbarDrag() {
+  bookScrollTrack.classList.remove("is-dragging");
+}
+
+bookScrollTrack.addEventListener("pointerup", endScrollbarDrag);
+bookScrollTrack.addEventListener("pointercancel", endScrollbarDrag);
+
+// Paging means "next chapter" on one page and "next spread" on two, so
+// the buttons and arrow keys go through here rather than calling either
+// layout's own mover directly.
+function stepSpread(delta) {
+  if (isSinglePage) showSingleChapter(spreadCurrentChapter + delta);
+  else showSpread(spreadIndex + delta);
 }
 
 function openSpread() {
@@ -2115,10 +2250,10 @@ function openSpread() {
   bookSpreadView.hidden = false;
   bookSpreadTitle.textContent = activeBook.title;
 
-  renderSpreadContent();
   spreadIndex = 0;
   // Open on the chapter that was being read in the outline view.
   spreadCurrentChapter = activeChapterIndex;
+  bookSpreadFlow.innerHTML = "";
   paginateSpread();
 
   renderSubjectsBreadcrumb();
@@ -2132,14 +2267,14 @@ function closeSpread() {
 
 openSpreadBtn.addEventListener("click", openSpread);
 closeSpreadBtn.addEventListener("click", closeSpread);
-prevSpreadBtn.addEventListener("click", () => showSpread(spreadIndex - 1));
-nextSpreadBtn.addEventListener("click", () => showSpread(spreadIndex + 1));
+prevSpreadBtn.addEventListener("click", () => stepSpread(-1));
+nextSpreadBtn.addEventListener("click", () => stepSpread(1));
 
 document.addEventListener("keydown", (event) => {
   if (bookSpreadView.hidden) return;
   if (event.target.matches("input, textarea, select, [contenteditable='true']")) return;
-  if (event.key === "ArrowLeft") showSpread(spreadIndex - 1);
-  if (event.key === "ArrowRight") showSpread(spreadIndex + 1);
+  if (event.key === "ArrowLeft") stepSpread(-1);
+  if (event.key === "ArrowRight") stepSpread(1);
   if (event.key === "Escape") closeSpread();
 });
 
