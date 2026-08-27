@@ -809,6 +809,7 @@ const sendDocBtn = document.getElementById("sendDocBtn");
 const sendDocPopover = document.getElementById("sendDocPopover");
 const sendDocTeacherList = document.getElementById("sendDocTeacherList");
 const sendDocCancelBtn = document.getElementById("sendDocCancelBtn");
+const sendDocNote = document.getElementById("sendDocNote");
 
 let activeTeacherId = null;
 
@@ -1011,6 +1012,7 @@ function closeSendDocPopover() {
 
 function openSendDocPopover() {
   sendDocTeacherList.innerHTML = "";
+  sendDocNote.value = "";
 
   const doc = mindmapDocs.find((d) => d.id === currentDocId);
   if (!doc) return;
@@ -1058,7 +1060,14 @@ function sendDocToTeacher(teacherId) {
   const teacher = TEACHERS.find((t) => t.id === teacherId);
   if (!doc || !teacher) return;
 
+  const note = sendDocNote.value.trim();
   const messages = loadChatMessages(teacherId);
+
+  // The note goes in as an ordinary message just before the document, so
+  // the chat reads the way it would if you had typed it and attached the
+  // file: your words first, then the thing they refer to.
+  if (note) messages.push({ from: "user", text: note, at: Date.now() });
+
   messages.push({
     from: "user",
     kind: "doc",
@@ -1084,7 +1093,7 @@ function sendDocToTeacher(teacherId) {
 
   showAppModal(
     "Dokumentet är skickat",
-    `"${doc.title}" har skickats till ${teacher.name}. Du hittar det i chatten under Lärare.`
+    `"${doc.title}"${note ? " och ditt meddelande" : ""} har skickats till ${teacher.name}. Du hittar det i chatten under Lärare.`
   );
 }
 
@@ -3651,7 +3660,11 @@ document.addEventListener(
     // doesn't fire the pointerup/pointercancel this overlay relies on to
     // hide itself again, and the split divider / color wheel drags don't
     // need this protection in the first place.
-    if (event.target.closest("[draggable='true'], #splitDivider, #colorWheel")) return;
+    if (
+      event.target.closest("input, textarea, [draggable='true'], #splitDivider, #colorWheel")
+    ) {
+      return;
+    }
     pendingDragGuard = { x: event.clientX, y: event.clientY };
   },
   true

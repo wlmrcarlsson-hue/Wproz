@@ -1619,6 +1619,33 @@ body {
   color: var(--text-faint);
 }
 
+.send-doc-note {
+  width: 100%;
+  padding: 8px 9px;
+  font: inherit;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--text);
+  background: var(--surface-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  resize: vertical;
+  transition: border-color 0.2s var(--ease);
+}
+
+.send-doc-note::placeholder {
+  color: var(--text-faint);
+}
+
+.send-doc-note:focus {
+  outline: none;
+  border-color: var(--accent-line);
+}
+
+.send-doc-title-list {
+  margin-top: 12px;
+}
+
 .send-doc-teacher-list {
   display: flex;
   flex-direction: column;

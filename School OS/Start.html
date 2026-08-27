@@ -293,7 +293,11 @@
               <button id="deleteDocBtn" class="doc-delete-btn" title="Ta bort dokument" aria-label="Ta bort dokument">🗑</button>
 
               <div id="sendDocPopover" class="send-doc-popover" hidden>
-                <p class="send-doc-title">Skicka till lärare</p>
+                <p class="send-doc-title">Meddelande</p>
+                <textarea id="sendDocNote" class="send-doc-note" rows="3" maxlength="500"
+                  placeholder="Skriv något till läraren (valfritt)…"></textarea>
+
+                <p class="send-doc-title send-doc-title-list">Skicka till</p>
                 <div id="sendDocTeacherList" class="send-doc-teacher-list"></div>
                 <button id="sendDocCancelBtn" type="button" class="draw-tool-btn send-doc-cancel">Avbryt</button>
               </div>
