@@ -1551,7 +1551,9 @@ body {
   border-radius: 50%;
   cursor: pointer;
   transition: transform 0.2s ease, border-color 0.25s ease;
-  z-index: 30;
+  /* Above the startup overlay (z 200): the gear is part of the login
+     window too, so the theme can be set before signing in. */
+  z-index: 210;
 }
 
 .settings-btn:hover {
@@ -1578,7 +1580,7 @@ body {
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  z-index: 30;
+  z-index: 211;
 }
 
 .theme-panel[hidden] {
