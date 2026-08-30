@@ -250,8 +250,28 @@ body {
   backdrop-filter: blur(var(--blur));
 }
 
+.logo-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+/* Which school the session belongs to, under the product name -- the
+   place a tenant name goes. */
+.logo-school {
+  margin: 3px 0 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.logo-school:empty {
+  display: none;
+}
+
 .logo {
-  margin: 0 0 14px;
+  margin: 0;
   font-size: 1.4rem;
   letter-spacing: 0.16em;
   font-weight: 650;
@@ -3307,4 +3327,445 @@ body {
   line-height: 1.6;
   color: var(--text-dim);
   white-space: pre-wrap;
+}
+
+/* ---------- Sortable table headers ---------- */
+
+.table th.th-sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: color 0.16s var(--ease), background 0.16s var(--ease);
+}
+
+.table th.th-sortable:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.table th.th-sortable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.table th.th-sortable.is-sorted {
+  color: var(--text-strong);
+}
+
+/* Always rendered, so the header row's width never shifts when the arrow
+   changes between the neutral and the sorted state. */
+.th-sort-arrow {
+  margin-left: 6px;
+  font-size: 0.68em;
+  opacity: 0.4;
+}
+
+.table th.th-sortable:hover .th-sort-arrow {
+  opacity: 0.75;
+}
+
+.table th.th-sortable.is-sorted .th-sort-arrow {
+  color: var(--accent);
+  opacity: 1;
+}
+
+/* ---------- Prov ---------- */
+
+.exam-cal-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.exam-cal-top h3 {
+  margin: 0;
+}
+
+.exam-cal-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.exam-month-label {
+  min-width: 118px;
+  text-align: center;
+  font-weight: 650;
+  font-size: 0.88rem;
+  color: var(--text-strong);
+  text-transform: capitalize;
+}
+
+.exam-cal-weekdays,
+.exam-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.exam-cal-weekdays {
+  margin-bottom: 6px;
+}
+
+.exam-cal-weekdays span {
+  padding: 4px 0;
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  text-transform: uppercase;
+}
+
+.exam-cal-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  min-height: 58px;
+  padding: 7px 4px 5px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  color: var(--text-dim);
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.16s var(--ease), border-color 0.16s var(--ease);
+}
+
+.exam-cal-cell:hover {
+  background: var(--surface-hover);
+  border-color: var(--line);
+}
+
+.exam-cal-cell.is-empty {
+  border-color: transparent;
+  background: transparent;
+  cursor: default;
+}
+
+.exam-cal-cell.is-today .exam-cal-day {
+  color: var(--text-strong);
+  font-weight: 750;
+}
+
+/* Today gets a ring, the picked day a filled edge -- two different states
+   that have to stay distinguishable when they land on the same cell. */
+.exam-cal-cell.is-today {
+  border-color: var(--accent-line);
+}
+
+.exam-cal-cell.is-selected {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.exam-cal-day {
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.exam-cal-dots {
+  display: flex;
+  gap: 3px;
+  min-height: 6px;
+}
+
+.exam-cal-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.exam-day-panel {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.exam-day-title {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  color: var(--text-strong);
+  text-transform: capitalize;
+}
+
+.exam-day-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.exam-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.exam-subject-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+.exam-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.exam-card-title {
+  font-weight: 650;
+  color: var(--text-strong);
+}
+
+.exam-card-meta {
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}
+
+.exam-card-action {
+  flex: none;
+}
+
+.exam-card-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.exam-run-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.exam-run-heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.exam-run-heading h3 {
+  margin: 0;
+}
+
+.exam-run-meta {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+}
+
+.exam-run-progress {
+  flex: none;
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.exam-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.exam-question {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+}
+
+.exam-question-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.exam-question-number.is-correct {
+  background: var(--status-completed-bg, #1d5b41);
+  border-color: transparent;
+  color: #ffffff;
+}
+
+.exam-question-number.is-wrong {
+  background: #a8392f;
+  border-color: transparent;
+  color: #ffffff;
+}
+
+.exam-question-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.exam-question-text {
+  margin: 3px 0 12px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.exam-options {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.exam-option {
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.16s var(--ease), border-color 0.16s var(--ease);
+}
+
+.exam-option:hover {
+  background: var(--surface-hover);
+  border-color: var(--line-strong);
+}
+
+.exam-option.is-chosen {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+/* In the review the options are no longer buttons, so they must not look
+   or behave like something you can press. */
+.exam-option.is-review {
+  cursor: default;
+}
+
+.exam-option.is-answer {
+  border-color: #3f9e74;
+  background: hsl(155 45% 40% / 0.16);
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.exam-option.is-mistake {
+  border-color: #c2564a;
+  background: hsl(6 55% 45% / 0.16);
+  text-decoration: line-through;
+}
+
+.exam-text-answer {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.exam-text-answer:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.exam-written-answer {
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.exam-question-hint {
+  margin: 8px 0 0;
+  font-size: 0.76rem;
+}
+
+.exam-run-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.exam-score-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+}
+
+.exam-score {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  flex: none;
+}
+
+.exam-score-value {
+  font-size: 2rem;
+  font-weight: 750;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.exam-score-label {
+  font-size: 0.82rem;
+  color: var(--text-faint);
+}
+
+.exam-score-max {
+  font-size: 1.2rem;
+  font-weight: 650;
+  color: var(--text-strong);
+}
+
+.exam-score-note {
+  margin: 0;
+  font-size: 0.84rem;
 }

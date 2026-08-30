@@ -383,6 +383,91 @@ renderTabButtonVisibility();
 // "what is waiting for me to mark?", and a parent asks "how is my child
 // doing?". So the table is rendered from data rather than being fixed
 // markup.
+// The school is the tenant and the programme is the class the account
+// belongs to. Both are picked at login: a real deployment would get them
+// from the account, but here they are what makes one login differ from
+// the next beyond the name.
+const SCHOOLS = [
+  { id: "s1", name: "Björkängs gymnasium", city: "Uppsala", programs: ["na", "sa", "te", "ek"] },
+  { id: "s2", name: "Stenhammars gymnasium", city: "Göteborg", programs: ["na", "te", "es"] },
+  { id: "s3", name: "Vasaskolans gymnasium", city: "Malmö", programs: ["sa", "ek", "es", "vo"] },
+  { id: "s4", name: "Norrlidens gymnasium", city: "Umeå", programs: ["na", "sa", "te", "vo"] },
+];
+
+// The national programmes, with the letter code that starts a class name.
+const PROGRAMS = [
+  { id: "na", name: "Naturvetenskapsprogrammet", code: "NA" },
+  { id: "sa", name: "Samhällsvetenskapsprogrammet", code: "SA" },
+  { id: "te", name: "Teknikprogrammet", code: "TE" },
+  { id: "ek", name: "Ekonomiprogrammet", code: "EK" },
+  { id: "es", name: "Estetiska programmet", code: "ES" },
+  { id: "vo", name: "Vård- och omsorgsprogrammet", code: "VO" },
+];
+
+const DEFAULT_SCHOOL_ID = "s1";
+const DEFAULT_PROGRAM_ID = "na";
+
+// Signing out clears the session, so the last school and programme are
+// kept separately -- otherwise the login form forgets where you go to
+// school every time you step back out of the app.
+const LAST_ORG_KEY = "schoolos-last-org";
+
+function loadLastOrg() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LAST_ORG_KEY));
+    if (saved && findSchool(saved.schoolId)) {
+      return {
+        schoolId: saved.schoolId,
+        programId: findProgram(saved.programId) ? saved.programId : DEFAULT_PROGRAM_ID,
+      };
+    }
+  } catch (e) {
+    // ignore malformed storage
+  }
+  return { schoolId: DEFAULT_SCHOOL_ID, programId: DEFAULT_PROGRAM_ID };
+}
+
+function saveLastOrg(schoolId, programId) {
+  localStorage.setItem(LAST_ORG_KEY, JSON.stringify({ schoolId, programId }));
+}
+
+function findSchool(id) {
+  return SCHOOLS.find((s) => s.id === id) || null;
+}
+
+function findProgram(id) {
+  return PROGRAMS.find((p) => p.id === id) || null;
+}
+
+// Only the programmes the chosen school actually offers.
+function programsForSchool(schoolId) {
+  const school = findSchool(schoolId);
+  if (!school) return PROGRAMS;
+  return PROGRAMS.filter((p) => school.programs.includes(p.id));
+}
+
+function currentSchool() {
+  const session = loadSession();
+  return findSchool(session ? session.schoolId : DEFAULT_SCHOOL_ID) || findSchool(DEFAULT_SCHOOL_ID);
+}
+
+function currentProgram() {
+  const session = loadSession();
+  return findProgram(session ? session.programId : DEFAULT_PROGRAM_ID) || findProgram(DEFAULT_PROGRAM_ID);
+}
+
+// The class every student in this session belongs to, e.g. "TE22B". The
+// student list carries no hardcoded class any more -- it follows whichever
+// programme was picked at login.
+function classNameForProgram(programId) {
+  const program = findProgram(programId) || findProgram(DEFAULT_PROGRAM_ID);
+  return `${program.code}22B`;
+}
+
+function currentClassName() {
+  return classNameForProgram(currentProgram().id);
+}
+
 // Everyone in the prototype has an account, because every role is a real
 // login: a teacher is one named teacher, a guardian follows one named
 // child. The lists double as the people you can talk to -- who that is
@@ -396,13 +481,20 @@ const TEACHERS = [
   { id: "t6", name: "David Karlsson", subject: "Programmering 1", color: "#06b6d4" },
 ];
 
+// Students have no fixed class: `subject` is a getter so the card
+// subtitle follows the programme chosen at login.
 const STUDENTS = [
-  { id: "e1", name: "Hannah Lind", subject: "NA22B", color: "#4361ee" },
-  { id: "e2", name: "Vincent Ohlsson", subject: "NA22B", color: "#e63946" },
-  { id: "e3", name: "Robin Sjögren", subject: "NA22B", color: "#2a9d8f" },
-  { id: "e4", name: "Zoë Hammar", subject: "NA22B", color: "#f4a261" },
-  { id: "e5", name: "Alba Ternström", subject: "NA22B", color: "#8b5cf6" },
-];
+  { id: "e1", name: "Hannah Lind", color: "#4361ee" },
+  { id: "e2", name: "Vincent Ohlsson", color: "#e63946" },
+  { id: "e3", name: "Robin Sjögren", color: "#2a9d8f" },
+  { id: "e4", name: "Zoë Hammar", color: "#f4a261" },
+  { id: "e5", name: "Alba Ternström", color: "#8b5cf6" },
+].map((student) => ({
+  ...student,
+  get subject() {
+    return currentClassName();
+  },
+}));
 
 // A guardian account is defined by the child it follows -- that link is
 // the only thing that decides what the account can see.
@@ -434,12 +526,12 @@ function findAccount(id) {
 // which is what makes a teacher's "Inlämningar" genuinely their own
 // subject rather than a hardcoded mixture.
 const ASSIGNMENTS = [
-  { title: "Algebra-inlämning", subject: "Matematik 2b", due: "Fredag" },
-  { title: "Laborationsrapport: Elektricitet", subject: "Fysik 2", due: "Nästa vecka" },
-  { title: "Novellanalys", subject: "Svenska 3", due: "Om 2 veckor" },
-  { title: "Källkritisk uppgift: Andra världskriget", subject: "Historia 1b", due: "Igår" },
-  { title: "Grammatikövningar", subject: "Engelska 6", due: "Förra veckan" },
-  { title: "Programmeringsprojekt", subject: "Programmering 1", due: "2 veckor sedan" },
+  { title: "Algebra-inlämning", subject: "Matematik 2b", due: "Fredag", dueDays: 3 },
+  { title: "Laborationsrapport: Elektricitet", subject: "Fysik 2", due: "Nästa vecka", dueDays: 7 },
+  { title: "Novellanalys", subject: "Svenska 3", due: "Om 2 veckor", dueDays: 14 },
+  { title: "Källkritisk uppgift: Andra världskriget", subject: "Historia 1b", due: "Igår", dueDays: -1 },
+  { title: "Grammatikövningar", subject: "Engelska 6", due: "Förra veckan", dueDays: -7 },
+  { title: "Programmeringsprojekt", subject: "Programmering 1", due: "2 veckor sedan", dueDays: -14 },
 ];
 
 // How far each student has got, in ASSIGNMENTS order. Two students in the
@@ -447,44 +539,44 @@ const ASSIGNMENTS = [
 // really do differ per account.
 const STUDENT_WORK = {
   e1: [
-    { status: "Pågår", cls: "progress", handed: "Ej inlämnad" },
-    { status: "Ej påbörjad", cls: "notstarted", handed: "Ej inlämnad" },
-    { status: "Ej påbörjad", cls: "notstarted", handed: "Ej inlämnad" },
-    { status: "Väntar på betyg", cls: "submitted", handed: "Idag 08:14" },
-    { status: "Betyg: B", cls: "completed", handed: "Förra veckan" },
-    { status: "Betyg: F", cls: "fail", handed: "2 veckor sedan" },
+    { status: "Pågår", cls: "progress", handed: "Ej inlämnad", days: null },
+    { status: "Ej påbörjad", cls: "notstarted", handed: "Ej inlämnad", days: null },
+    { status: "Ej påbörjad", cls: "notstarted", handed: "Ej inlämnad", days: null },
+    { status: "Väntar på betyg", cls: "submitted", handed: "Idag 08:14", days: 0 },
+    { status: "Betyg: B", cls: "completed", handed: "Förra veckan", days: 7 },
+    { status: "Betyg: F", cls: "fail", handed: "2 veckor sedan", days: 14 },
   ],
   e2: [
-    { status: "Väntar på betyg", cls: "submitted", handed: "Igår 21:40" },
-    { status: "Pågår", cls: "progress", handed: "Ej inlämnad" },
-    { status: "Betyg: C", cls: "completed", handed: "3 dagar sedan" },
-    { status: "Betyg: B", cls: "completed", handed: "Igår 09:30" },
-    { status: "Ej påbörjad", cls: "notstarted", handed: "Ej inlämnad" },
-    { status: "Saknas", cls: "fail", handed: "Ej inlämnad" },
+    { status: "Väntar på betyg", cls: "submitted", handed: "Igår 21:40", days: 1 },
+    { status: "Pågår", cls: "progress", handed: "Ej inlämnad", days: null },
+    { status: "Betyg: C", cls: "completed", handed: "3 dagar sedan", days: 3 },
+    { status: "Betyg: B", cls: "completed", handed: "Igår 09:30", days: 1 },
+    { status: "Ej påbörjad", cls: "notstarted", handed: "Ej inlämnad", days: null },
+    { status: "Saknas", cls: "fail", handed: "Ej inlämnad", days: null },
   ],
   e3: [
-    { status: "Ej påbörjad", cls: "notstarted", handed: "Ej inlämnad" },
-    { status: "Väntar på betyg", cls: "submitted", handed: "Igår 16:02" },
-    { status: "Pågår", cls: "progress", handed: "Ej inlämnad" },
-    { status: "Betyg: A", cls: "completed", handed: "2 dagar sedan" },
-    { status: "Betyg: C", cls: "completed", handed: "Förra veckan" },
-    { status: "Pågår", cls: "progress", handed: "Ej inlämnad" },
+    { status: "Ej påbörjad", cls: "notstarted", handed: "Ej inlämnad", days: null },
+    { status: "Väntar på betyg", cls: "submitted", handed: "Igår 16:02", days: 1 },
+    { status: "Pågår", cls: "progress", handed: "Ej inlämnad", days: null },
+    { status: "Betyg: A", cls: "completed", handed: "2 dagar sedan", days: 2 },
+    { status: "Betyg: C", cls: "completed", handed: "Förra veckan", days: 7 },
+    { status: "Pågår", cls: "progress", handed: "Ej inlämnad", days: null },
   ],
   e4: [
-    { status: "Betyg: A", cls: "completed", handed: "3 dagar sedan" },
-    { status: "Ej påbörjad", cls: "notstarted", handed: "Ej inlämnad" },
-    { status: "Väntar på betyg", cls: "submitted", handed: "2 dagar sedan" },
-    { status: "Saknas", cls: "fail", handed: "Ej inlämnad" },
-    { status: "Betyg: B", cls: "completed", handed: "Förra veckan" },
-    { status: "Väntar på betyg", cls: "submitted", handed: "Igår 22:10" },
+    { status: "Betyg: A", cls: "completed", handed: "3 dagar sedan", days: 3 },
+    { status: "Ej påbörjad", cls: "notstarted", handed: "Ej inlämnad", days: null },
+    { status: "Väntar på betyg", cls: "submitted", handed: "2 dagar sedan", days: 2 },
+    { status: "Saknas", cls: "fail", handed: "Ej inlämnad", days: null },
+    { status: "Betyg: B", cls: "completed", handed: "Förra veckan", days: 7 },
+    { status: "Väntar på betyg", cls: "submitted", handed: "Igår 22:10", days: 1 },
   ],
   e5: [
-    { status: "Pågår", cls: "progress", handed: "Ej inlämnad" },
-    { status: "Betyg: B", cls: "completed", handed: "Förra veckan" },
-    { status: "Ej påbörjad", cls: "notstarted", handed: "Ej inlämnad" },
-    { status: "Betyg: C", cls: "completed", handed: "3 dagar sedan" },
-    { status: "Väntar på betyg", cls: "submitted", handed: "Idag 07:45" },
-    { status: "Betyg: A", cls: "completed", handed: "2 veckor sedan" },
+    { status: "Pågår", cls: "progress", handed: "Ej inlämnad", days: null },
+    { status: "Betyg: B", cls: "completed", handed: "Förra veckan", days: 7 },
+    { status: "Ej påbörjad", cls: "notstarted", handed: "Ej inlämnad", days: null },
+    { status: "Betyg: C", cls: "completed", handed: "3 dagar sedan", days: 3 },
+    { status: "Väntar på betyg", cls: "submitted", handed: "Idag 07:45", days: 0 },
+    { status: "Betyg: A", cls: "completed", handed: "2 veckor sedan", days: 14 },
   ],
 };
 
@@ -518,6 +610,61 @@ function buildRow(cells, statusCell) {
   return tr;
 }
 
+// How far along a piece of work is. Sorting the status column
+// alphabetically would put "Betyg: B" before "Ej påbörjad", which tells
+// you nothing -- this is the order the work actually moves through.
+const STATUS_ORDER = ["notstarted", "progress", "submitted", "completed", "fail"];
+
+function statusRank(work) {
+  const i = STATUS_ORDER.indexOf(work.cls);
+  return i === -1 ? STATUS_ORDER.length : i;
+}
+
+const ASSIGNMENTS_SORT_KEY = "schoolos-assignments-sort";
+
+function loadAssignmentsSort() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(ASSIGNMENTS_SORT_KEY));
+    if (saved && typeof saved.key === "string" && (saved.dir === 1 || saved.dir === -1)) return saved;
+  } catch (e) {
+    // ignore malformed storage
+  }
+  return { key: "", dir: 1 };
+}
+
+let assignmentsSort = loadAssignmentsSort();
+
+function saveAssignmentsSort() {
+  localStorage.setItem(ASSIGNMENTS_SORT_KEY, JSON.stringify(assignmentsSort));
+}
+
+// Clicking the column that is already sorted flips it; any other column
+// starts ascending. A third click on the same column clears the sort and
+// returns the table to its natural order, one assignment at a time.
+function toggleAssignmentsSort(key) {
+  if (assignmentsSort.key !== key) assignmentsSort = { key, dir: 1 };
+  else if (assignmentsSort.dir === 1) assignmentsSort = { key, dir: -1 };
+  else assignmentsSort = { key: "", dir: 1 };
+  saveAssignmentsSort();
+  renderAssignments();
+}
+
+// Swedish collation, so å, ä and ö land after z instead of next to a.
+const collator = new Intl.Collator("sv");
+
+function compareRows(a, b, key) {
+  const x = a.sort[key];
+  const y = b.sort[key];
+  if (typeof x === "number" || typeof y === "number") {
+    // A missing date ("Ej inlämnad", no deadline) has no place on the
+    // timeline, so it sinks to the bottom whichever way the column runs.
+    const ax = typeof x === "number" ? x : Infinity;
+    const by = typeof y === "number" ? y : Infinity;
+    return ax - by;
+  }
+  return collator.compare(String(x ?? ""), String(y ?? ""));
+}
+
 function renderAssignments() {
   const role = currentRole();
   const me = currentAccount();
@@ -526,13 +673,50 @@ function renderAssignments() {
 
   const isTeacher = role === "larare";
   const columns = isTeacher
-    ? ["Elev", "Uppgift", "Ämne", "Inlämnad", "Status"]
-    : ["Uppgift", "Ämne", "Deadline", "Status"];
+    ? [
+        { key: "student", label: "Elev" },
+        { key: "title", label: "Uppgift" },
+        { key: "subject", label: "Ämne" },
+        { key: "handed", label: "Inlämnad" },
+        { key: "status", label: "Status" },
+      ]
+    : [
+        { key: "title", label: "Uppgift" },
+        { key: "subject", label: "Ämne" },
+        { key: "due", label: "Deadline" },
+        { key: "status", label: "Status" },
+      ];
+
+  // A sort on a column this role cannot see would be invisible but still
+  // reorder the table, so it is dropped rather than silently applied.
+  if (assignmentsSort.key && !columns.some((c) => c.key === assignmentsSort.key)) {
+    assignmentsSort = { key: "", dir: 1 };
+  }
 
   const headRow = document.createElement("tr");
-  columns.forEach((label) => {
+  columns.forEach((col) => {
     const th = document.createElement("th");
-    th.textContent = label;
+    th.className = "th-sortable";
+    th.tabIndex = 0;
+    const active = assignmentsSort.key === col.key;
+    if (active) th.classList.add("is-sorted");
+    th.setAttribute("aria-sort", active ? (assignmentsSort.dir === 1 ? "ascending" : "descending") : "none");
+    th.title = `Sortera på ${col.label}`;
+
+    const label = document.createElement("span");
+    label.textContent = col.label;
+    const arrow = document.createElement("span");
+    arrow.className = "th-sort-arrow";
+    arrow.textContent = active ? (assignmentsSort.dir === 1 ? "▲" : "▼") : "↕";
+    th.appendChild(label);
+    th.appendChild(arrow);
+
+    th.addEventListener("click", () => toggleAssignmentsSort(col.key));
+    th.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      toggleAssignmentsSort(col.key);
+    });
     headRow.appendChild(th);
   });
   assignmentsHead.appendChild(headRow);
@@ -562,6 +746,13 @@ function renderAssignments() {
         rows.push({
           cells: [student.name, assignment.title, assignment.subject, work.handed],
           work,
+          sort: {
+            student: student.name,
+            title: assignment.title,
+            subject: assignment.subject,
+            handed: work.days,
+            status: statusRank(work),
+          },
         });
       });
       return;
@@ -569,8 +760,33 @@ function renderAssignments() {
 
     // A student sees their own work; a guardian sees their child's.
     const work = workFor(viewedStudentId(), index);
-    rows.push({ cells: [assignment.title, assignment.subject, assignment.due], work });
+    rows.push({
+      cells: [assignment.title, assignment.subject, assignment.due],
+      work,
+      sort: {
+        title: assignment.title,
+        subject: assignment.subject,
+        due: assignment.dueDays,
+        status: statusRank(work),
+      },
+    });
   });
+
+  if (assignmentsSort.key) {
+    const key = assignmentsSort.key;
+    rows.sort((a, b) => {
+      const primary = compareRows(a, b, key);
+      if (primary !== 0) return primary * assignmentsSort.dir;
+      // Two rows at the same rank keep a stable, readable order: within one
+      // status that means A before B before C, and everywhere else the
+      // assignment's own title decides.
+      if (key === "status") {
+        const grade = collator.compare(a.work.status, b.work.status);
+        if (grade !== 0) return grade * assignmentsSort.dir;
+      }
+      return collator.compare(a.cells[0], b.cells[0]);
+    });
+  }
 
   rows.forEach((row) => assignmentsBody.appendChild(buildRow(row.cells, row.work)));
 
@@ -629,7 +845,9 @@ const ROLE_LABELS = {
 // parent follows their child's work.
 const ROLE_CONFIG = {
   elev: {
-    tabs: ["assignments", "calendar", "mindmap", "teachers", "subjects"],
+    // "Prov" is the student's own: sitting a test and seeing when the next
+    // one falls belongs to the person taking it.
+    tabs: ["assignments", "calendar", "exams", "mindmap", "teachers", "subjects"],
     labels: { assignments: "✓ Uppgifter", teachers: "👩‍🏫 Lärare" },
   },
   larare: {
@@ -689,7 +907,11 @@ const startupRoleStep = document.getElementById("startupRoleStep");
 const startupLoginStep = document.getElementById("startupLoginStep");
 const startupLoginRole = document.getElementById("startupLoginRole");
 const startupRoleSelect = document.getElementById("startupRoleSelect");
+const startupSchool = document.getElementById("startupSchool");
+const startupProgram = document.getElementById("startupProgram");
 const startupIdentity = document.getElementById("startupIdentity");
+const schoolLine = document.getElementById("schoolLine");
+const calendarHeading = document.getElementById("calendarHeading");
 const startupUser = document.getElementById("startupUser");
 const startupPass = document.getElementById("startupPass");
 const startupError = document.getElementById("startupError");
@@ -702,7 +924,12 @@ let pendingRole = null;
 function loadSession() {
   try {
     const saved = JSON.parse(localStorage.getItem(SESSION_KEY));
-    if (saved && ROLE_LABELS[saved.role] && findAccount(saved.id)) return saved;
+    if (saved && ROLE_LABELS[saved.role] && findAccount(saved.id)) {
+      // Sessions written before schools existed just get the defaults.
+      if (!findSchool(saved.schoolId)) saved.schoolId = DEFAULT_SCHOOL_ID;
+      if (!findProgram(saved.programId)) saved.programId = DEFAULT_PROGRAM_ID;
+      return saved;
+    }
   } catch (e) {
     // ignore malformed storage
   }
@@ -736,11 +963,15 @@ function usernameFor(account) {
 // part of the login rather than something set afterwards.
 function fillIdentityOptions(role, preferredId) {
   const accounts = accountsForRole(role);
+  const pendingClass = classNameForProgram(startupProgram.value);
   startupIdentity.innerHTML = "";
   accounts.forEach((account) => {
     const option = document.createElement("option");
     option.value = account.id;
-    option.textContent = `${account.name} · ${account.subject}`;
+    // A student's class comes from the programme selected above, which is
+    // not the session's programme until the form is submitted.
+    const detail = role === "elev" ? pendingClass : account.subject;
+    option.textContent = `${account.name} · ${detail}`;
     startupIdentity.appendChild(option);
   });
   startupIdentity.value = accounts.some((a) => a.id === preferredId) ? preferredId : accounts[0].id;
@@ -752,10 +983,39 @@ function syncUsernameField() {
   if (account) startupUser.value = usernameFor(account);
 }
 
+function fillSchoolOptions(preferredId) {
+  startupSchool.innerHTML = "";
+  SCHOOLS.forEach((school) => {
+    const option = document.createElement("option");
+    option.value = school.id;
+    option.textContent = `${school.name} · ${school.city}`;
+    startupSchool.appendChild(option);
+  });
+  startupSchool.value = findSchool(preferredId) ? preferredId : DEFAULT_SCHOOL_ID;
+  fillProgramOptions();
+}
+
+// Only what the chosen school offers, so the two pickers stay consistent.
+function fillProgramOptions(preferredId) {
+  const programs = programsForSchool(startupSchool.value);
+  const wanted = preferredId || startupProgram.value;
+  startupProgram.innerHTML = "";
+  programs.forEach((program) => {
+    const option = document.createElement("option");
+    option.value = program.id;
+    option.textContent = program.name;
+    startupProgram.appendChild(option);
+  });
+  startupProgram.value = programs.some((p) => p.id === wanted) ? wanted : programs[0].id;
+}
+
 function showLoginStep(role, preferredId) {
   pendingRole = role;
   startupLoginRole.textContent = `Loggar in som ${ROLE_LABELS[role]}`;
   startupRoleSelect.value = role;
+  const org = loadLastOrg();
+  fillSchoolOptions(org.schoolId);
+  fillProgramOptions(org.programId);
   fillIdentityOptions(role, preferredId);
   startupRoleStep.hidden = true;
   startupLoginStep.hidden = false;
@@ -798,6 +1058,7 @@ function applyRole(role) {
   // catalog across.
   reloadAccountDocuments();
   resetPeoplePages();
+  renderExams();
   syncAppChrome();
   closeAppSwitcher();
 
@@ -809,10 +1070,17 @@ function applyRole(role) {
   const me = currentAccount();
   roleBadge.textContent = me ? `${ROLE_LABELS[role]} · ${me.name}` : ROLE_LABELS[role];
   backToStartBtn.title = `${me ? me.name : ROLE_LABELS[role]} · Till startmenyn`;
+
+  const school = currentSchool();
+  schoolLine.textContent = `${school.name} · ${currentProgram().name}`;
+  // The schedule belongs to a programme, so it names the one signed in
+  // rather than a hardcoded one.
+  calendarHeading.textContent = `Schema — ${currentProgram().name} · ${currentClassName()}`;
 }
 
-function signIn(role, id, user) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify({ role, id, user }));
+function signIn(role, id, user, schoolId, programId) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ role, id, user, schoolId, programId }));
+  saveLastOrg(schoolId, programId);
   applyRole(role);
   closeStartupScreen();
 }
@@ -835,6 +1103,18 @@ startupRoleSelect.addEventListener("change", () => {
   startupError.hidden = true;
 });
 
+startupSchool.addEventListener("change", () => {
+  // A programme the new school does not offer must not stay selected.
+  fillProgramOptions();
+  if (pendingRole) fillIdentityOptions(pendingRole, startupIdentity.value);
+  startupError.hidden = true;
+});
+
+startupProgram.addEventListener("change", () => {
+  if (pendingRole) fillIdentityOptions(pendingRole, startupIdentity.value);
+  startupError.hidden = true;
+});
+
 startupIdentity.addEventListener("change", () => {
   syncUsernameField();
   startupError.hidden = true;
@@ -853,7 +1133,7 @@ startupLoginStep.addEventListener("submit", (event) => {
     return;
   }
 
-  signIn(pendingRole, account.id, user);
+  signIn(pendingRole, account.id, user, startupSchool.value, startupProgram.value);
 });
 
 // The arrow returns to the start menu, which is also the login gate -- so
@@ -1971,6 +2251,713 @@ docPreviewCloseBtn.addEventListener("click", () => {
 docPreviewOverlay.addEventListener("click", (event) => {
   if (event.target === docPreviewOverlay) docPreviewOverlay.hidden = true;
 });
+
+// ---------- Prov ----------
+
+// Dates are offsets from today rather than fixed dates, so the calendar
+// is always live instead of drifting into the past as the prototype ages.
+// One exam sits on today so there is always something to actually sit.
+const EXAMS = [
+  {
+    id: "p1",
+    title: "Andragradsekvationer",
+    subject: "Matematik 2b",
+    inDays: 0,
+    time: "10:15",
+    minutes: 60,
+    room: "B214",
+    questions: [
+      {
+        type: "choice",
+        text: "Vilka är rötterna till x² − 5x + 6 = 0?",
+        options: ["x = 2 och x = 3", "x = −2 och x = −3", "x = 1 och x = 6", "x = 5 och x = 6"],
+        answer: 0,
+      },
+      {
+        type: "choice",
+        text: "Vad kallas uttrycket b² − 4ac?",
+        options: ["Koefficienten", "Diskriminanten", "Nollstället", "Symmetrilinjen"],
+        answer: 1,
+      },
+      {
+        type: "choice",
+        text: "En andragradsekvation saknar reella lösningar när diskriminanten är …",
+        options: ["lika med noll", "större än noll", "mindre än noll", "ett heltal"],
+        answer: 2,
+      },
+      {
+        type: "text",
+        text: "Lös ekvationen x² − 4x = 0 och förklara kort hur du tänkte.",
+        hint: "Bedöms av läraren",
+      },
+    ],
+  },
+  {
+    id: "p2",
+    title: "Novellanalys",
+    subject: "Svenska 3",
+    inDays: 4,
+    time: "08:15",
+    minutes: 90,
+    room: "A102",
+    questions: [
+      {
+        type: "choice",
+        text: "Vad kallas den som berättar en historia i en text?",
+        options: ["Protagonist", "Berättare", "Antagonist", "Motiv"],
+        answer: 1,
+      },
+      {
+        type: "choice",
+        text: "En novell som slutar utan att konflikten löses har ett …",
+        options: ["öppet slut", "ramberättande", "allvetande perspektiv", "inre monolog"],
+        answer: 0,
+      },
+      {
+        type: "text",
+        text: "Beskriv skillnaden mellan tema och motiv, med ett exempel.",
+        hint: "Bedöms av läraren",
+      },
+    ],
+  },
+  {
+    id: "p3",
+    title: "Elektricitet och kretsar",
+    subject: "Fysik 2",
+    inDays: 9,
+    time: "13:00",
+    minutes: 80,
+    room: "C301",
+    questions: [
+      {
+        type: "choice",
+        text: "Vilken enhet mäts resistans i?",
+        options: ["Volt", "Ampere", "Ohm", "Watt"],
+        answer: 2,
+      },
+      {
+        type: "choice",
+        text: "Ohms lag skrivs som …",
+        options: ["U = R · I", "P = U · I", "I = Q / t", "E = m · c²"],
+        answer: 0,
+      },
+      {
+        type: "choice",
+        text: "Två resistorer på 10 Ω kopplade i serie ger tillsammans …",
+        options: ["5 Ω", "10 Ω", "20 Ω", "100 Ω"],
+        answer: 2,
+      },
+    ],
+  },
+  {
+    id: "p4",
+    title: "Andra världskriget: källkritik",
+    subject: "Historia 1b",
+    inDays: 16,
+    time: "09:00",
+    minutes: 70,
+    room: "A210",
+    questions: [
+      {
+        type: "choice",
+        text: "Vilket av dessa är ett kriterium i källkritiken?",
+        options: ["Längd", "Tendens", "Språkform", "Upplaga"],
+        answer: 1,
+      },
+      {
+        type: "choice",
+        text: "En källa som tillkommit nära händelsen i tid uppfyller kriteriet …",
+        options: ["äkthet", "närhet", "beroende", "urval"],
+        answer: 1,
+      },
+      {
+        type: "text",
+        text: "Varför är en dagbok från 1943 både en stark och en svag källa?",
+        hint: "Bedöms av läraren",
+      },
+    ],
+  },
+  {
+    id: "p5",
+    title: "Grammar and tenses",
+    subject: "Engelska 6",
+    inDays: -6,
+    time: "11:00",
+    minutes: 60,
+    room: "A118",
+    questions: [
+      {
+        type: "choice",
+        text: "Which sentence is in the present perfect?",
+        options: ["She wrote a letter.", "She has written a letter.", "She writes letters.", "She will write a letter."],
+        answer: 1,
+      },
+      {
+        type: "choice",
+        text: "Choose the correct form: If I ___ more time, I would travel.",
+        options: ["have", "had", "will have", "would have"],
+        answer: 1,
+      },
+    ],
+  },
+];
+
+// A subject's colour comes from the teacher who owns it, so a test is the
+// same colour here as that teacher's avatar in the chat.
+function subjectColor(subject) {
+  const teacher = TEACHERS.find((t) => t.subject === subject);
+  return teacher ? teacher.color : "#4361ee";
+}
+
+function startOfToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function examDate(exam) {
+  const d = startOfToday();
+  d.setDate(d.getDate() + exam.inDays);
+  return d;
+}
+
+function sameDay(a, b) {
+  return (
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+  );
+}
+
+const SWEDISH_MONTHS = [
+  "januari", "februari", "mars", "april", "maj", "juni",
+  "juli", "augusti", "september", "oktober", "november", "december",
+];
+
+function formatExamDate(date) {
+  return `${date.getDate()} ${SWEDISH_MONTHS[date.getMonth()]}`;
+}
+
+// A test opens on its own day and stays open afterwards, so a missed one
+// can still be sat. Only a future test is locked.
+function examState(exam) {
+  if (examResultFor(exam.id)) return "done";
+  return exam.inDays > 0 ? "upcoming" : "open";
+}
+
+const EXAM_RESULTS_PREFIX = "schoolos-exam-results::";
+
+function examResultsKey() {
+  return EXAM_RESULTS_PREFIX + currentAccountId();
+}
+
+function loadExamResults() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(examResultsKey()));
+    if (parsed && typeof parsed === "object") return parsed;
+  } catch (e) {
+    // ignore malformed storage
+  }
+  return {};
+}
+
+function examResultFor(examId) {
+  return loadExamResults()[examId] || null;
+}
+
+function saveExamResult(examId, result) {
+  const all = loadExamResults();
+  all[examId] = result;
+  localStorage.setItem(examResultsKey(), JSON.stringify(all));
+}
+
+function clearExamResult(examId) {
+  const all = loadExamResults();
+  delete all[examId];
+  localStorage.setItem(examResultsKey(), JSON.stringify(all));
+}
+
+const examsBreadcrumb = document.getElementById("examsBreadcrumb");
+const examList = document.getElementById("examList");
+const examCalendarView = document.getElementById("examCalendarView");
+const examCalIntro = document.getElementById("examCalIntro");
+const examCalGrid = document.getElementById("examCalGrid");
+const examMonthLabel = document.getElementById("examMonthLabel");
+const examPrevMonth = document.getElementById("examPrevMonth");
+const examNextMonth = document.getElementById("examNextMonth");
+const examTodayBtn = document.getElementById("examTodayBtn");
+const examDayTitle = document.getElementById("examDayTitle");
+const examDayList = document.getElementById("examDayList");
+
+const examRunView = document.getElementById("examRunView");
+const examRunBadge = document.getElementById("examRunBadge");
+const examRunTitle = document.getElementById("examRunTitle");
+const examRunMeta = document.getElementById("examRunMeta");
+const examRunProgress = document.getElementById("examRunProgress");
+const examQuestions = document.getElementById("examQuestions");
+const examCancelBtn = document.getElementById("examCancelBtn");
+const examSubmitBtn = document.getElementById("examSubmitBtn");
+
+const examResultView = document.getElementById("examResultView");
+const examResultBadge = document.getElementById("examResultBadge");
+const examResultTitle = document.getElementById("examResultTitle");
+const examResultMeta = document.getElementById("examResultMeta");
+const examScoreValue = document.getElementById("examScoreValue");
+const examScoreMax = document.getElementById("examScoreMax");
+const examScoreNote = document.getElementById("examScoreNote");
+const examReview = document.getElementById("examReview");
+const examResultBackBtn = document.getElementById("examResultBackBtn");
+const examRetryBtn = document.getElementById("examRetryBtn");
+
+let examMonth = startOfToday();
+let selectedExamDay = startOfToday();
+let openExamId = null;
+// Answers for the test being sat: index -> chosen option index or text.
+let examAnswers = {};
+
+function findExam(id) {
+  return EXAMS.find((e) => e.id === id) || null;
+}
+
+function examsOn(date) {
+  return EXAMS.filter((exam) => sameDay(examDate(exam), date));
+}
+
+function showExamView(which) {
+  examCalendarView.hidden = which !== "calendar";
+  examRunView.hidden = which !== "run";
+  examResultView.hidden = which !== "result";
+  renderExamsBreadcrumb();
+}
+
+function renderExamsBreadcrumb() {
+  examsBreadcrumb.innerHTML = "";
+
+  const calItem = document.createElement("li");
+  calItem.textContent = "🗓 Kalender";
+  calItem.className = examCalendarView.hidden ? "" : "active";
+  calItem.addEventListener("click", openExamCalendar);
+  examsBreadcrumb.appendChild(calItem);
+
+  const exam = findExam(openExamId);
+  if (exam && examCalendarView.hidden) {
+    const item = document.createElement("li");
+    item.textContent = exam.title;
+    item.className = "active";
+    examsBreadcrumb.appendChild(item);
+  }
+}
+
+function openExamCalendar() {
+  openExamId = null;
+  showExamView("calendar");
+  renderExamCalendar();
+  renderExamList();
+}
+
+// ---------- Calendar ----------
+
+function renderExamCalendar() {
+  const today = startOfToday();
+  examMonthLabel.textContent = `${SWEDISH_MONTHS[examMonth.getMonth()]} ${examMonth.getFullYear()}`;
+
+  const ahead = EXAMS.filter((e) => e.inDays >= 0).length;
+  examCalIntro.textContent =
+    ahead === 1
+      ? "Du har 1 prov framför dig. Klicka på en dag för att se det."
+      : `Du har ${ahead} prov framför dig. Klicka på en dag för att se dem.`;
+
+  examCalGrid.innerHTML = "";
+
+  const first = new Date(examMonth.getFullYear(), examMonth.getMonth(), 1);
+  // Swedish weeks start on Monday; getDay() puts Sunday at 0.
+  const lead = (first.getDay() + 6) % 7;
+  const daysInMonth = new Date(examMonth.getFullYear(), examMonth.getMonth() + 1, 0).getDate();
+
+  for (let i = 0; i < lead; i += 1) {
+    const blank = document.createElement("div");
+    blank.className = "exam-cal-cell is-empty";
+    examCalGrid.appendChild(blank);
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const date = new Date(examMonth.getFullYear(), examMonth.getMonth(), day);
+    const onThisDay = examsOn(date);
+
+    const cell = document.createElement("button");
+    cell.type = "button";
+    cell.className = "exam-cal-cell";
+    if (sameDay(date, today)) cell.classList.add("is-today");
+    if (sameDay(date, selectedExamDay)) cell.classList.add("is-selected");
+    if (onThisDay.length > 0) cell.classList.add("has-exam");
+
+    const number = document.createElement("span");
+    number.className = "exam-cal-day";
+    number.textContent = day;
+    cell.appendChild(number);
+
+    const dots = document.createElement("span");
+    dots.className = "exam-cal-dots";
+    onThisDay.forEach((exam) => {
+      const dot = document.createElement("span");
+      dot.className = "exam-cal-dot";
+      dot.style.background = subjectColor(exam.subject);
+      dot.title = `${exam.subject} · ${exam.title}`;
+      dots.appendChild(dot);
+    });
+    cell.appendChild(dots);
+
+    cell.addEventListener("click", () => {
+      selectedExamDay = date;
+      renderExamCalendar();
+    });
+    examCalGrid.appendChild(cell);
+  }
+
+  renderExamDayPanel();
+}
+
+function renderExamDayPanel() {
+  const onDay = examsOn(selectedExamDay);
+  examDayTitle.textContent = sameDay(selectedExamDay, startOfToday())
+    ? `Idag, ${formatExamDate(selectedExamDay)}`
+    : formatExamDate(selectedExamDay);
+
+  examDayList.innerHTML = "";
+  if (onDay.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = "Inga prov den här dagen.";
+    examDayList.appendChild(empty);
+    return;
+  }
+  onDay.forEach((exam) => examDayList.appendChild(buildExamCard(exam)));
+}
+
+const EXAM_STATE_LABEL = {
+  upcoming: "Kommande",
+  open: "Öppet nu",
+  done: "Genomfört",
+};
+
+function buildExamCard(exam) {
+  const state = examState(exam);
+  const card = document.createElement("div");
+  card.className = "exam-card";
+
+  const badge = document.createElement("span");
+  badge.className = "exam-subject-badge";
+  badge.style.background = subjectColor(exam.subject);
+  badge.textContent = exam.subject.slice(0, 2).toUpperCase();
+
+  const body = document.createElement("div");
+  body.className = "exam-card-body";
+
+  const title = document.createElement("span");
+  title.className = "exam-card-title";
+  title.textContent = exam.title;
+
+  const meta = document.createElement("span");
+  meta.className = "exam-card-meta";
+  meta.textContent = `${exam.subject} · ${exam.time} · ${exam.minutes} min · sal ${exam.room}`;
+
+  body.appendChild(title);
+  body.appendChild(meta);
+
+  const chip = document.createElement("span");
+  chip.className = `status status-${state === "done" ? "completed" : state === "open" ? "progress" : "notstarted"}`;
+  chip.textContent = EXAM_STATE_LABEL[state];
+
+  const action = document.createElement("button");
+  action.type = "button";
+  action.className = "doc-new-btn exam-card-action";
+  if (state === "upcoming") {
+    action.textContent = "Öppnar på provdagen";
+    action.disabled = true;
+  } else if (state === "done") {
+    action.textContent = "Se resultat";
+    action.addEventListener("click", () => showExamResult(exam.id));
+  } else {
+    action.textContent = "Gör provet";
+    action.addEventListener("click", () => startExam(exam.id));
+  }
+
+  card.appendChild(badge);
+  card.appendChild(body);
+  card.appendChild(chip);
+  card.appendChild(action);
+  return card;
+}
+
+// ---------- The catalog list ----------
+
+function renderExamList() {
+  examList.innerHTML = "";
+  const ordered = [...EXAMS].sort((a, b) => a.inDays - b.inDays);
+
+  ordered.forEach((exam) => {
+    const item = document.createElement("li");
+    if (exam.id === openExamId) item.classList.add("active");
+
+    const label = document.createElement("span");
+    label.className = "doc-list-label";
+    const state = examState(exam);
+    const when = exam.inDays === 0 ? "Idag" : formatExamDate(examDate(exam));
+    label.textContent = `${state === "done" ? "✓" : "📝"} ${when} · ${exam.subject}`;
+    item.appendChild(label);
+
+    item.addEventListener("click", () => {
+      selectedExamDay = examDate(exam);
+      examMonth = new Date(selectedExamDay.getFullYear(), selectedExamDay.getMonth(), 1);
+      openExamCalendar();
+    });
+    examList.appendChild(item);
+  });
+}
+
+// ---------- Sitting the test ----------
+
+function startExam(examId) {
+  const exam = findExam(examId);
+  if (!exam) return;
+
+  openExamId = examId;
+  examAnswers = {};
+  examSubmitConfirmed = false;
+  showExamView("run");
+
+  examRunBadge.style.background = subjectColor(exam.subject);
+  examRunBadge.textContent = exam.subject.slice(0, 2).toUpperCase();
+  examRunTitle.textContent = exam.title;
+  examRunMeta.textContent = `${exam.subject} · ${formatExamDate(examDate(exam))} · ${exam.minutes} min · sal ${exam.room}`;
+
+  renderExamQuestions(exam);
+  updateExamProgress(exam);
+}
+
+function renderExamQuestions(exam) {
+  examQuestions.innerHTML = "";
+  exam.questions.forEach((question, index) => {
+    const block = document.createElement("div");
+    block.className = "exam-question";
+
+    const number = document.createElement("span");
+    number.className = "exam-question-number";
+    number.textContent = index + 1;
+
+    const content = document.createElement("div");
+    content.className = "exam-question-body";
+
+    const text = document.createElement("p");
+    text.className = "exam-question-text";
+    text.textContent = question.text;
+    content.appendChild(text);
+
+    if (question.type === "choice") {
+      const options = document.createElement("div");
+      options.className = "exam-options";
+      question.options.forEach((label, optionIndex) => {
+        const option = document.createElement("button");
+        option.type = "button";
+        option.className = "exam-option";
+        option.textContent = label;
+        option.addEventListener("click", () => {
+          examAnswers[index] = optionIndex;
+          options.querySelectorAll(".exam-option").forEach((el, i) => {
+            el.classList.toggle("is-chosen", i === optionIndex);
+          });
+          updateExamProgress(exam);
+        });
+        options.appendChild(option);
+      });
+      content.appendChild(options);
+    } else {
+      const area = document.createElement("textarea");
+      area.className = "exam-text-answer";
+      area.rows = 4;
+      area.placeholder = "Skriv ditt svar här…";
+      area.addEventListener("input", () => {
+        examAnswers[index] = area.value;
+        updateExamProgress(exam);
+      });
+      content.appendChild(area);
+
+      const hint = document.createElement("p");
+      hint.className = "exam-question-hint muted";
+      hint.textContent = question.hint || "Bedöms av läraren";
+      content.appendChild(hint);
+    }
+
+    block.appendChild(number);
+    block.appendChild(content);
+    examQuestions.appendChild(block);
+  });
+}
+
+function answeredCount(exam) {
+  return exam.questions.reduce((count, question, index) => {
+    const answer = examAnswers[index];
+    if (question.type === "choice") return count + (typeof answer === "number" ? 1 : 0);
+    return count + (typeof answer === "string" && answer.trim() ? 1 : 0);
+  }, 0);
+}
+
+function updateExamProgress(exam) {
+  const done = answeredCount(exam);
+  examRunProgress.textContent = `${done} av ${exam.questions.length} besvarade`;
+  examSubmitBtn.disabled = done === 0;
+}
+
+// Set by the first press on a part-finished test; the second press hands
+// it in. Cleared whenever a test is opened, so the warning always shows
+// once per attempt.
+let examSubmitConfirmed = false;
+
+examSubmitBtn.addEventListener("click", () => {
+  const exam = findExam(openExamId);
+  if (!exam) return;
+
+  const missing = exam.questions.length - answeredCount(exam);
+  if (missing > 0 && !examSubmitConfirmed) {
+    examSubmitConfirmed = true;
+    showAppModal(
+      "Obesvarade frågor",
+      `${missing} ${missing === 1 ? "fråga är fortfarande obesvarad" : "frågor är fortfarande obesvarade"}. ` +
+        'Tryck på "Lämna in provet" igen om du ändå vill lämna in.'
+    );
+    return;
+  }
+  submitExam(exam);
+});
+
+function submitExam(exam) {
+  // Only the multiple-choice questions can be marked here; the written
+  // ones are stored as they are and left to the teacher, which is why the
+  // score is out of the auto-marked questions rather than out of all.
+  let score = 0;
+  let max = 0;
+  const answers = [];
+
+  exam.questions.forEach((question, index) => {
+    const given = examAnswers[index];
+    if (question.type === "choice") {
+      max += 1;
+      const correct = given === question.answer;
+      if (correct) score += 1;
+      answers.push({ type: "choice", given: typeof given === "number" ? given : null, correct });
+    } else {
+      answers.push({ type: "text", given: typeof given === "string" ? given : "" });
+    }
+  });
+
+  saveExamResult(exam.id, { score, max, answers, at: Date.now() });
+  showExamResult(exam.id);
+  renderExamList();
+}
+
+// ---------- The result ----------
+
+function showExamResult(examId) {
+  const exam = findExam(examId);
+  const result = examResultFor(examId);
+  if (!exam || !result) return;
+
+  openExamId = examId;
+  showExamView("result");
+
+  examResultBadge.style.background = subjectColor(exam.subject);
+  examResultBadge.textContent = exam.subject.slice(0, 2).toUpperCase();
+  examResultTitle.textContent = exam.title;
+  examResultMeta.textContent = `${exam.subject} · inlämnat ${formatExamDate(new Date(result.at))}`;
+
+  examScoreValue.textContent = result.score;
+  examScoreMax.textContent = result.max;
+
+  const written = exam.questions.filter((q) => q.type === "text").length;
+  examScoreNote.textContent = written
+    ? `Rättat automatiskt. ${written} ${written === 1 ? "fråga" : "frågor"} med eget svar bedöms av läraren.`
+    : "Rättat automatiskt.";
+
+  examReview.innerHTML = "";
+  exam.questions.forEach((question, index) => {
+    const answer = result.answers[index] || {};
+    const block = document.createElement("div");
+    block.className = "exam-question";
+
+    const number = document.createElement("span");
+    number.className = "exam-question-number";
+    if (question.type === "choice") number.classList.add(answer.correct ? "is-correct" : "is-wrong");
+    number.textContent = question.type === "choice" ? (answer.correct ? "✓" : "✕") : index + 1;
+
+    const content = document.createElement("div");
+    content.className = "exam-question-body";
+
+    const text = document.createElement("p");
+    text.className = "exam-question-text";
+    text.textContent = question.text;
+    content.appendChild(text);
+
+    if (question.type === "choice") {
+      const options = document.createElement("div");
+      options.className = "exam-options";
+      question.options.forEach((label, optionIndex) => {
+        const option = document.createElement("div");
+        option.className = "exam-option is-review";
+        if (optionIndex === question.answer) option.classList.add("is-answer");
+        if (optionIndex === answer.given && optionIndex !== question.answer) option.classList.add("is-mistake");
+        option.textContent = label;
+        options.appendChild(option);
+      });
+      content.appendChild(options);
+      if (answer.given === null) {
+        const skipped = document.createElement("p");
+        skipped.className = "exam-question-hint muted";
+        skipped.textContent = "Du lämnade den här frågan obesvarad.";
+        content.appendChild(skipped);
+      }
+    } else {
+      const given = document.createElement("div");
+      given.className = "exam-written-answer";
+      given.textContent = answer.given || "(inget svar)";
+      content.appendChild(given);
+      const hint = document.createElement("p");
+      hint.className = "exam-question-hint muted";
+      hint.textContent = "Väntar på lärarens bedömning.";
+      content.appendChild(hint);
+    }
+
+    block.appendChild(number);
+    block.appendChild(content);
+    examReview.appendChild(block);
+  });
+}
+
+examCancelBtn.addEventListener("click", openExamCalendar);
+examResultBackBtn.addEventListener("click", openExamCalendar);
+examRetryBtn.addEventListener("click", () => {
+  const examId = openExamId;
+  if (!examId) return;
+  clearExamResult(examId);
+  renderExamList();
+  startExam(examId);
+});
+
+examPrevMonth.addEventListener("click", () => {
+  examMonth = new Date(examMonth.getFullYear(), examMonth.getMonth() - 1, 1);
+  renderExamCalendar();
+});
+examNextMonth.addEventListener("click", () => {
+  examMonth = new Date(examMonth.getFullYear(), examMonth.getMonth() + 1, 1);
+  renderExamCalendar();
+});
+examTodayBtn.addEventListener("click", () => {
+  selectedExamDay = startOfToday();
+  examMonth = new Date(selectedExamDay.getFullYear(), selectedExamDay.getMonth(), 1);
+  renderExamCalendar();
+});
+
+// Results are per account, so signing in as someone else has to redraw.
+function renderExams() {
+  openExamCalendar();
+}
 
 // ---------- Subject library ----------
 

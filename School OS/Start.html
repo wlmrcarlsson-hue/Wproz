@@ -52,6 +52,16 @@
         </label>
 
         <label class="startup-field">
+          <span class="startup-field-label">Skola</span>
+          <select id="startupSchool" class="doc-title-input startup-select"></select>
+        </label>
+
+        <label class="startup-field">
+          <span class="startup-field-label">Program</span>
+          <select id="startupProgram" class="doc-title-input startup-select"></select>
+        </label>
+
+        <label class="startup-field">
           <span class="startup-field-label">Konto</span>
           <select id="startupIdentity" class="doc-title-input startup-select"></select>
         </label>
@@ -84,7 +94,10 @@
   <span id="roleBadge" class="role-badge"></span>
 
   <header class="topbar">
-    <h1 class="logo">SCHOOL OS</h1>
+    <div class="logo-block">
+      <h1 class="logo">SCHOOL OS</h1>
+      <p id="schoolLine" class="logo-school"></p>
+    </div>
 
     <nav class="tabs">
       <button class="tab-btn" data-tab="assignments" draggable="true">
@@ -93,6 +106,10 @@
       </button>
       <button class="tab-btn active" data-tab="calendar" draggable="true">
         <span class="tab-btn-label">🗓 Schema</span>
+        <span class="tab-btn-nested" hidden></span>
+      </button>
+      <button class="tab-btn" data-tab="exams" draggable="true">
+        <span class="tab-btn-label">📝 Prov</span>
         <span class="tab-btn-nested" hidden></span>
       </button>
       <button class="tab-btn" data-tab="mindmap" draggable="true">
@@ -224,7 +241,7 @@
 
         <div class="page-body">
           <div class="panel">
-            <h3>Schema — Naturvetenskapsprogrammet</h3>
+            <h3 id="calendarHeading">Schema</h3>
 
             <div class="schedule-scroll">
             <div class="schedule-grid">
@@ -281,6 +298,90 @@
     </section>
 
     <!-- MINDMAP -->
+    <section id="exams" class="page">
+      <div class="page-layout">
+        <aside class="catalog">
+          <h4 class="catalog-title">Position</h4>
+          <ul id="examsBreadcrumb" class="catalog-list catalog-list-clickable"></ul>
+
+          <h4 class="catalog-title catalog-title-section">Prov</h4>
+          <ul id="examList" class="catalog-list doc-list"></ul>
+        </aside>
+
+        <div class="page-body">
+          <div id="examCalendarView" class="panel">
+            <div class="exam-cal-top">
+              <div>
+                <h3 id="examCalTitle">Provkalender</h3>
+                <p id="examCalIntro" class="muted groupdock-intro"></p>
+              </div>
+              <div class="exam-cal-nav">
+                <button id="examPrevMonth" type="button" class="draw-tool-btn" aria-label="Föregående månad">←</button>
+                <span id="examMonthLabel" class="exam-month-label"></span>
+                <button id="examNextMonth" type="button" class="draw-tool-btn" aria-label="Nästa månad">→</button>
+                <button id="examTodayBtn" type="button" class="draw-tool-btn">Idag</button>
+              </div>
+            </div>
+
+            <div class="exam-cal-weekdays">
+              <span>Mån</span><span>Tis</span><span>Ons</span><span>Tor</span>
+              <span>Fre</span><span>Lör</span><span>Sön</span>
+            </div>
+            <div id="examCalGrid" class="exam-cal-grid"></div>
+
+            <div id="examDayPanel" class="exam-day-panel">
+              <h4 id="examDayTitle" class="exam-day-title"></h4>
+              <div id="examDayList" class="exam-day-list"></div>
+            </div>
+          </div>
+
+          <div id="examRunView" class="panel" hidden>
+            <div class="exam-run-head">
+              <span id="examRunBadge" class="exam-subject-badge"></span>
+              <div class="exam-run-heading">
+                <h3 id="examRunTitle"></h3>
+                <p id="examRunMeta" class="muted exam-run-meta"></p>
+              </div>
+              <span id="examRunProgress" class="exam-run-progress"></span>
+            </div>
+
+            <div id="examQuestions" class="exam-questions"></div>
+
+            <div class="exam-run-actions">
+              <button id="examCancelBtn" type="button" class="draw-tool-btn">← Tillbaka till kalendern</button>
+              <button id="examSubmitBtn" type="button" class="doc-new-btn">Lämna in provet</button>
+            </div>
+          </div>
+
+          <div id="examResultView" class="panel" hidden>
+            <div class="exam-run-head">
+              <span id="examResultBadge" class="exam-subject-badge"></span>
+              <div class="exam-run-heading">
+                <h3 id="examResultTitle"></h3>
+                <p id="examResultMeta" class="muted exam-run-meta"></p>
+              </div>
+            </div>
+
+            <div class="exam-score-row">
+              <div class="exam-score">
+                <span id="examScoreValue" class="exam-score-value"></span>
+                <span class="exam-score-label">rätt av</span>
+                <span id="examScoreMax" class="exam-score-max"></span>
+              </div>
+              <p id="examScoreNote" class="muted exam-score-note"></p>
+            </div>
+
+            <div id="examReview" class="exam-questions"></div>
+
+            <div class="exam-run-actions">
+              <button id="examResultBackBtn" type="button" class="draw-tool-btn">← Tillbaka till kalendern</button>
+              <button id="examRetryBtn" type="button" class="draw-tool-btn">Gör om provet</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="mindmap" class="page">
       <div class="page-layout">
         <aside class="catalog">
