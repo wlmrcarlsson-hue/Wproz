@@ -519,7 +519,9 @@ const ROLE_CONFIG = {
     labels: { assignments: "✓ Uppgifter", teachers: "👩‍🏫 Lärare" },
   },
   larare: {
-    tabs: ["assignments", "calendar", "mindmap", "teachers", "subjects"],
+    // A teacher talks to two different groups, so they get both lists:
+    // "Elever" is the class, "Lärare" is the staff room.
+    tabs: ["assignments", "calendar", "mindmap", "teachers", "colleagues", "subjects"],
     labels: { assignments: "📥 Inlämningar", teachers: "🎓 Elever" },
   },
   foralder: {
@@ -1128,16 +1130,6 @@ const TEACHER_REPLIES = [
   "Låter bra, hör av dig om du undrar något mer!",
 ];
 
-const teachersGrid = document.getElementById("teachersGrid");
-const teachersListView = document.getElementById("teachersListView");
-const teacherChatView = document.getElementById("teacherChatView");
-const teachersBreadcrumb = document.getElementById("teachersBreadcrumb");
-const chatTeacherAvatar = document.getElementById("chatTeacherAvatar");
-const chatTeacherName = document.getElementById("chatTeacherName");
-const chatTeacherSubject = document.getElementById("chatTeacherSubject");
-const chatMessages = document.getElementById("chatMessages");
-const chatInput = document.getElementById("chatInput");
-const chatSendBtn = document.getElementById("chatSendBtn");
 const sendDocBtn = document.getElementById("sendDocBtn");
 const sendDocPopover = document.getElementById("sendDocPopover");
 const sendDocTeacherList = document.getElementById("sendDocTeacherList");
@@ -1152,7 +1144,6 @@ const sendDocConfirmBtn = document.getElementById("sendDocConfirmBtn");
 // Which teacher the note step is composing for.
 let pendingSendTeacherId = null;
 
-let activeTeacherId = null;
 
 function teacherInitials(name) {
   const parts = name.trim().split(/\s+/);
@@ -1175,45 +1166,15 @@ function saveChatMessages(teacherId, messages) {
   localStorage.setItem(CHAT_STORAGE_PREFIX + teacherId, JSON.stringify(messages));
 }
 
-function renderTeachers() {
-  teachersGrid.innerHTML = "";
-  contactsForRole().forEach((teacher) => {
-    const card = document.createElement("button");
-    card.type = "button";
-    card.className = "teacher-card";
-
-    const avatar = document.createElement("span");
-    avatar.className = "teacher-avatar";
-    avatar.style.background = teacher.color;
-    avatar.textContent = teacherInitials(teacher.name);
-
-    const body = document.createElement("span");
-    body.className = "teacher-card-body";
-    const nameEl = document.createElement("span");
-    nameEl.className = "teacher-card-name";
-    nameEl.textContent = teacher.name;
-    const subjectEl = document.createElement("span");
-    subjectEl.className = "teacher-card-subject muted";
-    subjectEl.textContent = teacher.subject;
-    body.appendChild(nameEl);
-    body.appendChild(subjectEl);
-
-    card.appendChild(avatar);
-    card.appendChild(body);
-    card.addEventListener("click", () => openTeacherChat(teacher.id));
-    teachersGrid.appendChild(card);
-  });
-}
-
 function docTypeLabel(type) {
   return type === "draw" ? "Ritning" : "Dokument";
 }
 
 // A shared document is stored in the chat as a reference to the document
 // rather than a copy of its contents -- a drawing's PNG would bloat
-// localStorage badly, and a reference means the teacher's card always
-// opens the current version. The title is stored alongside it so the card
-// still reads sensibly if the document is later deleted.
+// localStorage badly, and a reference means the card always opens the
+// current version. The title is stored alongside it so the card still
+// reads sensibly if the document is later deleted.
 function buildDocMessageBubble(msg) {
   const doc = mindmapDocs.find((d) => d.id === msg.docId);
 
@@ -1253,91 +1214,217 @@ function buildDocMessageBubble(msg) {
   return bubble;
 }
 
-function renderChatMessages(teacherId) {
-  chatMessages.innerHTML = "";
-  loadChatMessages(teacherId).forEach((msg) => {
-    if (msg.kind === "doc") {
-      chatMessages.appendChild(buildDocMessageBubble(msg));
-      return;
+// The people-and-chat page exists twice over: a teacher has both a class
+// list and a staff list, and either can be the visible half of a split
+// view at the same time. Each instance therefore owns its own DOM rather
+// than sharing one chat panel, which two open pages would fight over.
+function createPeoplePage(ids, options) {
+  const grid = document.getElementById(ids.grid);
+  const listView = document.getElementById(ids.listView);
+  const chatView = document.getElementById(ids.chatView);
+  const breadcrumb = document.getElementById(ids.breadcrumb);
+  const titleEl = document.getElementById(ids.title);
+  const introEl = document.getElementById(ids.intro);
+  const avatarEl = document.getElementById(ids.avatar);
+  const nameEl = document.getElementById(ids.name);
+  const subjectEl = document.getElementById(ids.subject);
+  const messagesEl = document.getElementById(ids.messages);
+  const inputEl = document.getElementById(ids.input);
+  const sendBtn = document.getElementById(ids.send);
+
+  let openContactId = null;
+
+  function renderMessages(contactId) {
+    messagesEl.innerHTML = "";
+    loadChatMessages(contactId).forEach((msg) => {
+      if (msg.kind === "doc") {
+        messagesEl.appendChild(buildDocMessageBubble(msg));
+        return;
+      }
+      const bubble = document.createElement("div");
+      bubble.className = `chat-message ${msg.from === "user" ? "chat-message-user" : "chat-message-teacher"}`;
+      bubble.textContent = msg.text;
+      messagesEl.appendChild(bubble);
+    });
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function renderBreadcrumb() {
+    breadcrumb.innerHTML = "";
+
+    const listItem = document.createElement("li");
+    listItem.textContent = `🗂 ${options.label()}`;
+    listItem.className = openContactId ? "" : "active";
+    listItem.addEventListener("click", closeChat);
+    breadcrumb.appendChild(listItem);
+
+    if (openContactId) {
+      const contact = findContact(openContactId);
+      if (contact) {
+        const chatItem = document.createElement("li");
+        chatItem.textContent = contact.name;
+        chatItem.className = "active";
+        breadcrumb.appendChild(chatItem);
+      }
     }
-    const bubble = document.createElement("div");
-    bubble.className = `chat-message ${msg.from === "user" ? "chat-message-user" : "chat-message-teacher"}`;
-    bubble.textContent = msg.text;
-    chatMessages.appendChild(bubble);
+  }
+
+  function openChat(contactId) {
+    const contact = findContact(contactId);
+    if (!contact) return;
+
+    openContactId = contactId;
+    listView.hidden = true;
+    chatView.hidden = false;
+
+    avatarEl.style.background = contact.color;
+    avatarEl.textContent = teacherInitials(contact.name);
+    nameEl.textContent = contact.name;
+    subjectEl.textContent = contact.subject;
+
+    renderMessages(contactId);
+    renderBreadcrumb();
+    inputEl.value = "";
+    inputEl.focus();
+  }
+
+  function closeChat() {
+    openContactId = null;
+    chatView.hidden = true;
+    listView.hidden = false;
+    renderBreadcrumb();
+  }
+
+  function render() {
+    titleEl.textContent = options.label();
+    introEl.textContent = options.intro();
+
+    grid.innerHTML = "";
+    options.people().forEach((contact) => {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "teacher-card";
+
+      const avatar = document.createElement("span");
+      avatar.className = "teacher-avatar";
+      avatar.style.background = contact.color;
+      avatar.textContent = teacherInitials(contact.name);
+
+      const body = document.createElement("span");
+      body.className = "teacher-card-body";
+      const name = document.createElement("span");
+      name.className = "teacher-card-name";
+      name.textContent = contact.name;
+      const subject = document.createElement("span");
+      subject.className = "teacher-card-subject muted";
+      subject.textContent = contact.subject;
+      body.appendChild(name);
+      body.appendChild(subject);
+
+      card.appendChild(avatar);
+      card.appendChild(body);
+      card.addEventListener("click", () => openChat(contact.id));
+      grid.appendChild(card);
+    });
+
+    // A contact that the current role can no longer see must not stay
+    // open in the chat half of the page.
+    if (openContactId && !options.people().some((c) => c.id === openContactId)) closeChat();
+    else renderBreadcrumb();
+  }
+
+  function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text || !openContactId) return;
+
+    const messages = loadChatMessages(openContactId);
+    messages.push({ from: "user", text, at: Date.now() });
+    saveChatMessages(openContactId, messages);
+    inputEl.value = "";
+    renderMessages(openContactId);
+
+    const contactId = openContactId;
+    setTimeout(() => {
+      const reply = TEACHER_REPLIES[Math.floor(Math.random() * TEACHER_REPLIES.length)];
+      const current = loadChatMessages(contactId);
+      current.push({ from: "teacher", text: reply, at: Date.now() });
+      saveChatMessages(contactId, current);
+      if (openContactId === contactId) renderMessages(contactId);
+    }, 900);
+  }
+
+  sendBtn.addEventListener("click", sendMessage);
+  inputEl.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") sendMessage();
   });
-  chatMessages.scrollTop = chatMessages.scrollHeight;
+
+  // Lets an outside change (a document sent from Mindmap) refresh this
+  // page only when it is the conversation actually on screen.
+  function refreshIfShowing(contactId) {
+    if (openContactId === contactId) renderMessages(contactId);
+  }
+
+  return { render, renderBreadcrumb, refreshIfShowing };
+}
+
+// The main people tab: a teacher's class list, everyone else's teachers.
+const teachersPage = createPeoplePage(
+  {
+    grid: "teachersGrid",
+    listView: "teachersListView",
+    chatView: "teacherChatView",
+    breadcrumb: "teachersBreadcrumb",
+    title: "teachersTitle",
+    intro: "teachersIntro",
+    avatar: "chatTeacherAvatar",
+    name: "chatTeacherName",
+    subject: "chatTeacherSubject",
+    messages: "chatMessages",
+    input: "chatInput",
+    send: "chatSendBtn",
+  },
+  {
+    people: () => contactsForRole(),
+    label: () => (currentRole() === "larare" ? "Elever" : "Lärare"),
+    intro: () =>
+      currentRole() === "larare"
+        ? "Tryck på en elev för att öppna en chatt."
+        : "Tryck på en lärare för att öppna en chatt.",
+  }
+);
+
+// The staff room, shown only to teachers.
+const colleaguesPage = createPeoplePage(
+  {
+    grid: "colleaguesGrid",
+    listView: "colleaguesListView",
+    chatView: "colleagueChatView",
+    breadcrumb: "colleaguesBreadcrumb",
+    title: "colleaguesTitle",
+    intro: "colleaguesIntro",
+    avatar: "colleagueChatAvatar",
+    name: "colleagueChatName",
+    subject: "colleagueChatSubject",
+    messages: "colleagueChatMessages",
+    input: "colleagueChatInput",
+    send: "colleagueChatSendBtn",
+  },
+  {
+    people: () => TEACHERS,
+    label: () => "Lärare",
+    intro: () => "Tryck på en kollega för att öppna en chatt.",
+  }
+);
+
+const peoplePages = [teachersPage, colleaguesPage];
+
+function renderTeachers() {
+  peoplePages.forEach((page) => page.render());
 }
 
 function renderTeachersBreadcrumb() {
-  teachersBreadcrumb.innerHTML = "";
-
-  const listItem = document.createElement("li");
-  listItem.textContent = "🗂 Lärare";
-  listItem.className = activeTeacherId ? "" : "active";
-  listItem.addEventListener("click", closeTeacherChat);
-  teachersBreadcrumb.appendChild(listItem);
-
-  if (activeTeacherId) {
-    const teacher = findContact(activeTeacherId);
-    if (teacher) {
-      const chatItem = document.createElement("li");
-      chatItem.textContent = teacher.name;
-      chatItem.className = "active";
-      teachersBreadcrumb.appendChild(chatItem);
-    }
-  }
+  peoplePages.forEach((page) => page.renderBreadcrumb());
 }
-
-function openTeacherChat(teacherId) {
-  const teacher = findContact(teacherId);
-  if (!teacher) return;
-
-  activeTeacherId = teacherId;
-  teachersListView.hidden = true;
-  teacherChatView.hidden = false;
-
-  chatTeacherAvatar.style.background = teacher.color;
-  chatTeacherAvatar.textContent = teacherInitials(teacher.name);
-  chatTeacherName.textContent = teacher.name;
-  chatTeacherSubject.textContent = teacher.subject;
-
-  renderChatMessages(teacherId);
-  renderTeachersBreadcrumb();
-  chatInput.value = "";
-  chatInput.focus();
-}
-
-function closeTeacherChat() {
-  activeTeacherId = null;
-  teacherChatView.hidden = true;
-  teachersListView.hidden = false;
-  renderTeachersBreadcrumb();
-}
-
-function sendChatMessage() {
-  const text = chatInput.value.trim();
-  if (!text || !activeTeacherId) return;
-
-  const messages = loadChatMessages(activeTeacherId);
-  messages.push({ from: "user", text, at: Date.now() });
-  saveChatMessages(activeTeacherId, messages);
-  chatInput.value = "";
-  renderChatMessages(activeTeacherId);
-
-  const teacherId = activeTeacherId;
-  setTimeout(() => {
-    const reply = TEACHER_REPLIES[Math.floor(Math.random() * TEACHER_REPLIES.length)];
-    const current = loadChatMessages(teacherId);
-    current.push({ from: "teacher", text: reply, at: Date.now() });
-    saveChatMessages(teacherId, current);
-    if (activeTeacherId === teacherId) renderChatMessages(teacherId);
-  }, 900);
-}
-
-chatSendBtn.addEventListener("click", sendChatMessage);
-chatInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") sendChatMessage();
-});
 
 // ---------- Sending a Mindmap document to a teacher ----------
 
@@ -1442,14 +1529,14 @@ function sendDocToTeacher(teacherId) {
 
   // Keep the chat live if it happens to be open in the other half of a
   // split view while the document is sent from Mindmap.
-  if (activeTeacherId === teacherId) renderChatMessages(teacherId);
+  peoplePages.forEach((page) => page.refreshIfShowing(teacherId));
 
   setTimeout(() => {
     const reply = DOC_RECEIPT_REPLIES[Math.floor(Math.random() * DOC_RECEIPT_REPLIES.length)];
     const current = loadChatMessages(teacherId);
     current.push({ from: "teacher", text: reply, at: Date.now() });
     saveChatMessages(teacherId, current);
-    if (activeTeacherId === teacherId) renderChatMessages(teacherId);
+    peoplePages.forEach((page) => page.refreshIfShowing(teacherId));
   }, 900);
 
   showAppModal(

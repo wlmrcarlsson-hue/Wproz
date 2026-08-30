@@ -89,6 +89,10 @@
         <span class="tab-btn-label">👩‍🏫 Lärare</span>
         <span class="tab-btn-nested" hidden></span>
       </button>
+      <button class="tab-btn" data-tab="colleagues" draggable="true">
+        <span class="tab-btn-label">👩‍🏫 Lärare</span>
+        <span class="tab-btn-nested" hidden></span>
+      </button>
       <button class="tab-btn" data-tab="subjects" draggable="true">
         <span class="tab-btn-label">📚 Ämnen</span>
         <span class="tab-btn-nested" hidden></span>
@@ -430,14 +434,14 @@
         <aside class="catalog">
           <h4 class="catalog-title">Position</h4>
           <ul id="teachersBreadcrumb" class="catalog-list catalog-list-clickable">
-            <li class="active" data-view="list">🗂 Lärare</li>
+            <li class="active" data-view="list"></li>
           </ul>
         </aside>
 
         <div class="page-body">
           <div id="teachersListView" class="panel">
-            <h3>Lärare</h3>
-            <p class="muted groupdock-intro">Tryck på en lärare för att öppna en chatt.</p>
+            <h3 id="teachersTitle"></h3>
+            <p id="teachersIntro" class="muted groupdock-intro"></p>
             <div id="teachersGrid" class="teacher-grid"></div>
           </div>
 
@@ -453,6 +457,41 @@
             <div class="chat-input-row">
               <input id="chatInput" type="text" class="doc-title-input" placeholder="Skriv ett meddelande..." maxlength="500" />
               <button id="chatSendBtn" class="doc-new-btn">Skicka</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COLLEAGUES (teacher role) -->
+    <section id="colleagues" class="page">
+      <div class="page-layout">
+        <aside class="catalog">
+          <h4 class="catalog-title">Position</h4>
+          <ul id="colleaguesBreadcrumb" class="catalog-list catalog-list-clickable">
+            <li class="active" data-view="list"></li>
+          </ul>
+        </aside>
+
+        <div class="page-body">
+          <div id="colleaguesListView" class="panel">
+            <h3 id="colleaguesTitle"></h3>
+            <p id="colleaguesIntro" class="muted groupdock-intro"></p>
+            <div id="colleaguesGrid" class="teacher-grid"></div>
+          </div>
+
+          <div id="colleagueChatView" class="panel teacher-chat-panel" hidden>
+            <div class="teacher-chat-header">
+              <span id="colleagueChatAvatar" class="teacher-avatar teacher-avatar-lg"></span>
+              <div>
+                <h3 id="colleagueChatName" class="teacher-chat-name"></h3>
+                <p id="colleagueChatSubject" class="muted"></p>
+              </div>
+            </div>
+            <div id="colleagueChatMessages" class="chat-messages"></div>
+            <div class="chat-input-row">
+              <input id="colleagueChatInput" type="text" class="doc-title-input" placeholder="Skriv ett meddelande..." maxlength="500" />
+              <button id="colleagueChatSendBtn" class="doc-new-btn">Skicka</button>
             </div>
           </div>
         </div>
