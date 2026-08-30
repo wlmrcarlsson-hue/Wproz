@@ -397,6 +397,74 @@ assignmentsCatalog.querySelectorAll("li").forEach((li) => {
   });
 });
 
+// ---------- UI style ----------
+
+// Each style is a token block in the stylesheet, selected by an attribute
+// on <html>. The colour wheel keeps working on top of any of them, since
+// every style derives its colours from the same --hue/--sat.
+const UI_STYLE_KEY = "schoolos-ui-style";
+const DEFAULT_UI_STYLE = "modern";
+
+const UI_STYLES = [
+  { id: "modern", name: "Modern", chip: "linear-gradient(135deg, hsl(224 60% 34%), hsl(224 40% 16%))", radius: "6px" },
+  { id: "kompakt", name: "Kompakt", chip: "linear-gradient(135deg, hsl(224 28% 30%), hsl(224 24% 14%))", radius: "2px" },
+  { id: "ljus", name: "Ljus", chip: "linear-gradient(135deg, hsl(224 40% 97%), hsl(224 45% 82%))", radius: "6px" },
+  { id: "kontrast", name: "Kontrast", chip: "linear-gradient(135deg, #ffffff 48%, #05070d 52%)", radius: "3px" },
+  { id: "mjuk", name: "Mjuk", chip: "linear-gradient(135deg, hsl(250 70% 60%), hsl(200 70% 55%))", radius: "10px" },
+];
+
+const uiStyleList = document.getElementById("uiStyleList");
+
+function loadUiStyle() {
+  const saved = localStorage.getItem(UI_STYLE_KEY);
+  return UI_STYLES.some((s) => s.id === saved) ? saved : DEFAULT_UI_STYLE;
+}
+
+let activeUiStyle = loadUiStyle();
+
+// Marks the selected button. Deliberately updates in place rather than
+// rebuilding the list: replacing the button mid-click detaches the click
+// target, and the document-level "clicked outside?" check that closes the
+// settings panel would then no longer find it inside the panel.
+function syncUiStyleButtons() {
+  uiStyleList.querySelectorAll(".ui-style-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.style === activeUiStyle);
+  });
+}
+
+function applyUiStyle(styleId) {
+  activeUiStyle = styleId;
+  document.documentElement.setAttribute("data-ui-style", styleId);
+  localStorage.setItem(UI_STYLE_KEY, styleId);
+  syncUiStyleButtons();
+}
+
+function renderUiStyleList() {
+  uiStyleList.innerHTML = "";
+
+  UI_STYLES.forEach((style) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "ui-style-btn";
+    btn.dataset.style = style.id;
+
+    const chip = document.createElement("span");
+    chip.className = "ui-style-chip";
+    chip.style.background = style.chip;
+    chip.style.borderRadius = style.radius;
+
+    btn.appendChild(chip);
+    btn.appendChild(document.createTextNode(style.name));
+    btn.addEventListener("click", () => applyUiStyle(style.id));
+    uiStyleList.appendChild(btn);
+  });
+
+  syncUiStyleButtons();
+}
+
+renderUiStyleList();
+applyUiStyle(activeUiStyle);
+
 // ---------- Theme settings (color wheel) ----------
 
 const THEME_STORAGE_KEY = "schoolos-theme";
@@ -533,6 +601,7 @@ closeThemeBtn.addEventListener("click", () => {
 resetThemeBtn.addEventListener("click", () => {
   applyTheme(DEFAULT_THEME.hue, DEFAULT_THEME.sat);
   localStorage.removeItem(THEME_STORAGE_KEY);
+  applyUiStyle(DEFAULT_UI_STYLE);
 });
 
 document.addEventListener("click", (event) => {
