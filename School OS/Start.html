@@ -43,6 +43,20 @@
         <p class="startup-login-role"><span id="startupLoginRole"></span></p>
 
         <label class="startup-field">
+          <span class="startup-field-label">Kategori</span>
+          <select id="startupRoleSelect" class="doc-title-input startup-select">
+            <option value="larare">Lärare</option>
+            <option value="elev">Elev</option>
+            <option value="foralder">Förälder</option>
+          </select>
+        </label>
+
+        <label class="startup-field">
+          <span class="startup-field-label">Konto</span>
+          <select id="startupIdentity" class="doc-title-input startup-select"></select>
+        </label>
+
+        <label class="startup-field">
           <span class="startup-field-label">Användarnamn</span>
           <input id="startupUser" type="text" class="doc-title-input" placeholder="fornamn.efternamn" autocomplete="off" />
         </label>
@@ -586,6 +600,19 @@
     </section>
 
   </main>
+
+  <div id="docPreviewOverlay" class="app-modal-overlay" hidden>
+    <div class="app-modal doc-preview">
+      <div class="doc-preview-header">
+        <div>
+          <h3 id="docPreviewTitle" class="app-modal-title"></h3>
+          <p id="docPreviewMeta" class="doc-preview-meta muted"></p>
+        </div>
+        <button id="docPreviewCloseBtn" type="button" class="theme-close" aria-label="Stäng dokumentet">✕</button>
+      </div>
+      <div id="docPreviewBody" class="doc-preview-body"></div>
+    </div>
+  </div>
 
   <div id="appModalOverlay" class="app-modal-overlay" hidden>
     <div class="app-modal">

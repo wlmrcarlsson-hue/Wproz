@@ -383,13 +383,17 @@ renderTabButtonVisibility();
 // "what is waiting for me to mark?", and a parent asks "how is my child
 // doing?". So the table is rendered from data rather than being fixed
 // markup.
-const ASSIGNMENTS = [
-  { title: "Algebra-inlämning", subject: "Matematik 2b", due: "Fredag", status: "Pågår", cls: "progress" },
-  { title: "Laborationsrapport: Elektricitet", subject: "Fysik 2", due: "Nästa vecka", status: "Ej påbörjad", cls: "notstarted" },
-  { title: "Novellanalys", subject: "Svenska 3", due: "Om 2 veckor", status: "Ej påbörjad", cls: "notstarted" },
-  { title: "Källkritisk uppgift: Andra världskriget", subject: "Historia 1b", due: "Igår", status: "Väntar på betyg", cls: "submitted" },
-  { title: "Grammatikövningar", subject: "Engelska 6", due: "Förra veckan", status: "Betyg: B", cls: "completed" },
-  { title: "Programmeringsprojekt", subject: "Programmering 1", due: "2 veckor sedan", status: "Betyg: F", cls: "fail" },
+// Everyone in the prototype has an account, because every role is a real
+// login: a teacher is one named teacher, a guardian follows one named
+// child. The lists double as the people you can talk to -- who that is
+// depends on which account you are signed in as.
+const TEACHERS = [
+  { id: "t1", name: "Anna Berg", subject: "Matematik 2b", color: "#4361ee" },
+  { id: "t2", name: "Erik Lindqvist", subject: "Fysik 2", color: "#e63946" },
+  { id: "t3", name: "Maria Söderström", subject: "Svenska 3", color: "#2a9d8f" },
+  { id: "t4", name: "Johan Ekström", subject: "Historia 1b", color: "#f4a261" },
+  { id: "t5", name: "Sara Nilsson", subject: "Engelska 6", color: "#8b5cf6" },
+  { id: "t6", name: "David Karlsson", subject: "Programmering 1", color: "#06b6d4" },
 ];
 
 const STUDENTS = [
@@ -400,18 +404,94 @@ const STUDENTS = [
   { id: "e5", name: "Alba Ternström", subject: "NA22B", color: "#8b5cf6" },
 ];
 
-// What a teacher sees: work handed in, waiting to be marked.
-const SUBMISSIONS = [
-  { student: "Hannah Lind", title: "Algebra-inlämning", subject: "Matematik 2b", handed: "Idag 08:14", status: "Ej rättad", cls: "notstarted" },
-  { student: "Vincent Ohlsson", title: "Algebra-inlämning", subject: "Matematik 2b", handed: "Igår 21:40", status: "Ej rättad", cls: "notstarted" },
-  { student: "Robin Sjögren", title: "Laborationsrapport: Elektricitet", subject: "Fysik 2", handed: "Igår 16:02", status: "Påbörjad rättning", cls: "progress" },
-  { student: "Zoë Hammar", title: "Novellanalys", subject: "Svenska 3", handed: "2 dagar sedan", status: "Rättad: B", cls: "completed" },
-  { student: "Alba Ternström", title: "Källkritisk uppgift: Andra världskriget", subject: "Historia 1b", handed: "3 dagar sedan", status: "Rättad: C", cls: "completed" },
-  { student: "Hannah Lind", title: "Grammatikövningar", subject: "Engelska 6", handed: "Förra veckan", status: "Rättad: A", cls: "completed" },
-  { student: "Vincent Ohlsson", title: "Programmeringsprojekt", subject: "Programmering 1", handed: "Ej inlämnad", status: "Saknas", cls: "fail" },
+// A guardian account is defined by the child it follows -- that link is
+// the only thing that decides what the account can see.
+const GUARDIANS = [
+  { id: "f1", name: "Petra Lind", childId: "e1", subject: "Förälder till Hannah Lind", color: "#4361ee" },
+  { id: "f2", name: "Marcus Ohlsson", childId: "e2", subject: "Förälder till Vincent Ohlsson", color: "#e63946" },
+  { id: "f3", name: "Lena Sjögren", childId: "e3", subject: "Förälder till Robin Sjögren", color: "#2a9d8f" },
+  { id: "f4", name: "Ida Hammar", childId: "e4", subject: "Förälder till Zoë Hammar", color: "#f4a261" },
+  { id: "f5", name: "Tobias Ternström", childId: "e5", subject: "Förälder till Alba Ternström", color: "#8b5cf6" },
 ];
 
-const CHILD_NAME = "Hannah Lind";
+function accountsForRole(role) {
+  if (role === "larare") return TEACHERS;
+  if (role === "foralder") return GUARDIANS;
+  return STUDENTS;
+}
+
+function findAccount(id) {
+  return (
+    TEACHERS.find((a) => a.id === id) ||
+    STUDENTS.find((a) => a.id === id) ||
+    GUARDIANS.find((a) => a.id === id) ||
+    null
+  );
+}
+
+// One assignment per subject, i.e. one per teacher. The table a student
+// sees and the table a teacher sees are two views of this same list --
+// which is what makes a teacher's "Inlämningar" genuinely their own
+// subject rather than a hardcoded mixture.
+const ASSIGNMENTS = [
+  { title: "Algebra-inlämning", subject: "Matematik 2b", due: "Fredag" },
+  { title: "Laborationsrapport: Elektricitet", subject: "Fysik 2", due: "Nästa vecka" },
+  { title: "Novellanalys", subject: "Svenska 3", due: "Om 2 veckor" },
+  { title: "Källkritisk uppgift: Andra världskriget", subject: "Historia 1b", due: "Igår" },
+  { title: "Grammatikövningar", subject: "Engelska 6", due: "Förra veckan" },
+  { title: "Programmeringsprojekt", subject: "Programmering 1", due: "2 veckor sedan" },
+];
+
+// How far each student has got, in ASSIGNMENTS order. Two students in the
+// same class are at different places in the same course, so the tables
+// really do differ per account.
+const STUDENT_WORK = {
+  e1: [
+    { status: "Pågår", cls: "progress", handed: "Ej inlämnad" },
+    { status: "Ej påbörjad", cls: "notstarted", handed: "Ej inlämnad" },
+    { status: "Ej påbörjad", cls: "notstarted", handed: "Ej inlämnad" },
+    { status: "Väntar på betyg", cls: "submitted", handed: "Idag 08:14" },
+    { status: "Betyg: B", cls: "completed", handed: "Förra veckan" },
+    { status: "Betyg: F", cls: "fail", handed: "2 veckor sedan" },
+  ],
+  e2: [
+    { status: "Väntar på betyg", cls: "submitted", handed: "Igår 21:40" },
+    { status: "Pågår", cls: "progress", handed: "Ej inlämnad" },
+    { status: "Betyg: C", cls: "completed", handed: "3 dagar sedan" },
+    { status: "Betyg: B", cls: "completed", handed: "Igår 09:30" },
+    { status: "Ej påbörjad", cls: "notstarted", handed: "Ej inlämnad" },
+    { status: "Saknas", cls: "fail", handed: "Ej inlämnad" },
+  ],
+  e3: [
+    { status: "Ej påbörjad", cls: "notstarted", handed: "Ej inlämnad" },
+    { status: "Väntar på betyg", cls: "submitted", handed: "Igår 16:02" },
+    { status: "Pågår", cls: "progress", handed: "Ej inlämnad" },
+    { status: "Betyg: A", cls: "completed", handed: "2 dagar sedan" },
+    { status: "Betyg: C", cls: "completed", handed: "Förra veckan" },
+    { status: "Pågår", cls: "progress", handed: "Ej inlämnad" },
+  ],
+  e4: [
+    { status: "Betyg: A", cls: "completed", handed: "3 dagar sedan" },
+    { status: "Ej påbörjad", cls: "notstarted", handed: "Ej inlämnad" },
+    { status: "Väntar på betyg", cls: "submitted", handed: "2 dagar sedan" },
+    { status: "Saknas", cls: "fail", handed: "Ej inlämnad" },
+    { status: "Betyg: B", cls: "completed", handed: "Förra veckan" },
+    { status: "Väntar på betyg", cls: "submitted", handed: "Igår 22:10" },
+  ],
+  e5: [
+    { status: "Pågår", cls: "progress", handed: "Ej inlämnad" },
+    { status: "Betyg: B", cls: "completed", handed: "Förra veckan" },
+    { status: "Ej påbörjad", cls: "notstarted", handed: "Ej inlämnad" },
+    { status: "Betyg: C", cls: "completed", handed: "3 dagar sedan" },
+    { status: "Väntar på betyg", cls: "submitted", handed: "Idag 07:45" },
+    { status: "Betyg: A", cls: "completed", handed: "2 veckor sedan" },
+  ],
+};
+
+function workFor(studentId, index) {
+  const rows = STUDENT_WORK[studentId];
+  return (rows && rows[index]) || { status: "Ej påbörjad", cls: "notstarted", handed: "Ej inlämnad" };
+}
 
 const assignmentsCatalog = document.getElementById("assignmentsCatalog");
 const assignmentsHead = document.getElementById("assignmentsHead");
@@ -440,6 +520,7 @@ function buildRow(cells, statusCell) {
 
 function renderAssignments() {
   const role = currentRole();
+  const me = currentAccount();
   assignmentsHead.innerHTML = "";
   assignmentsBody.innerHTML = "";
 
@@ -456,15 +537,42 @@ function renderAssignments() {
   });
   assignmentsHead.appendChild(headRow);
 
-  const source = isTeacher ? SUBMISSIONS : ASSIGNMENTS;
-  const rows = source.filter((item) => !assignmentsSubject || item.subject === assignmentsSubject);
-
-  rows.forEach((item) => {
-    const cells = isTeacher
-      ? [item.student, item.title, item.subject, item.handed]
-      : [item.title, item.subject, item.due];
-    assignmentsBody.appendChild(buildRow(cells, item));
+  // A teacher only ever sees their own subject, so the subject catalog is
+  // trimmed to it -- clicking a colleague's course to find it empty would
+  // read as a bug rather than as a boundary.
+  assignmentsCatalog.querySelectorAll("li").forEach((li) => {
+    const subject = li.dataset.subject;
+    const visible = !isTeacher || !subject || subject === (me ? me.subject : "");
+    li.hidden = !visible;
+    if (!visible && assignmentsSubject === subject) {
+      assignmentsSubject = "";
+      assignmentsCatalog.querySelectorAll("li").forEach((el) => el.classList.remove("active"));
+      assignmentsCatalog.querySelector('li[data-subject=""]').classList.add("active");
+    }
   });
+
+  const rows = [];
+  ASSIGNMENTS.forEach((assignment, index) => {
+    if (assignmentsSubject && assignment.subject !== assignmentsSubject) return;
+
+    if (isTeacher) {
+      if (!me || assignment.subject !== me.subject) return;
+      STUDENTS.forEach((student) => {
+        const work = workFor(student.id, index);
+        rows.push({
+          cells: [student.name, assignment.title, assignment.subject, work.handed],
+          work,
+        });
+      });
+      return;
+    }
+
+    // A student sees their own work; a guardian sees their child's.
+    const work = workFor(viewedStudentId(), index);
+    rows.push({ cells: [assignment.title, assignment.subject, assignment.due], work });
+  });
+
+  rows.forEach((row) => assignmentsBody.appendChild(buildRow(row.cells, row.work)));
 
   assignmentsEmpty.hidden = rows.length > 0;
   assignmentsEmpty.textContent = isTeacher
@@ -472,13 +580,18 @@ function renderAssignments() {
     : "Inga uppgifter i det här ämnet.";
 
   if (isTeacher) {
-    const unmarked = SUBMISSIONS.filter((s) => s.cls === "notstarted" || s.cls === "progress").length;
-    assignmentsHeading.textContent = "Inlämningar";
-    assignmentsIntro.textContent = `${unmarked} inlämningar väntar på rättning.`;
+    const waiting = rows.filter((r) => r.work.cls === "submitted").length;
+    assignmentsHeading.textContent = `Inlämningar · ${me ? me.subject : ""}`;
+    assignmentsIntro.textContent =
+      waiting === 1
+        ? "1 inlämning väntar på rättning."
+        : `${waiting} inlämningar väntar på rättning.`;
     assignmentsIntro.hidden = false;
   } else if (role === "foralder") {
-    assignmentsHeading.textContent = `Uppgifter · ${CHILD_NAME}`;
-    assignmentsIntro.textContent = `Du följer ${CHILD_NAME}. Uppgifterna visas som de ser ut för eleven.`;
+    const child = findAccount(viewedStudentId());
+    const childName = child ? child.name : "";
+    assignmentsHeading.textContent = `Uppgifter · ${childName}`;
+    assignmentsIntro.textContent = `Du följer ${childName}. Uppgifterna visas som de ser ut för eleven.`;
     assignmentsIntro.hidden = false;
   } else {
     assignmentsHeading.textContent = "Uppgifter";
@@ -498,8 +611,9 @@ assignmentsCatalog.querySelectorAll("li").forEach((li) => {
 // ---------- Startup screen (role picker + login gate) ----------
 
 // The login is deliberately decorative: this is a local prototype with no
-// server and no accounts, so it validates that both fields are filled and
-// nothing more. Only the chosen role is remembered -- the password is
+// server, so it validates that both fields are filled and nothing more.
+// What it does take seriously is *which account* you picked -- that is
+// what every per-account boundary below is keyed on. The password is
 // never stored anywhere.
 const SESSION_KEY = "schoolos-session";
 
@@ -537,20 +651,45 @@ function currentRole() {
   return session ? session.role : "elev";
 }
 
+// Signed out, the app still has to render something behind the login
+// gate, so it falls back to the first account of the default role.
+function currentAccountId() {
+  const session = loadSession();
+  if (session) return session.id;
+  return accountsForRole("elev")[0].id;
+}
+
+function currentAccount() {
+  return findAccount(currentAccountId());
+}
+
+// Whose schoolwork the Uppgifter tab shows: your own as a student, your
+// child's as a guardian. A teacher has no single student, and never
+// reaches this.
+function viewedStudentId() {
+  const me = currentAccount();
+  if (!me) return STUDENTS[0].id;
+  return me.childId || me.id;
+}
+
 // The Lärare/Elever tab and the send-document picker both address "the
-// people this role talks to", which differs by role.
+// people this account talks to", which differs by role.
 function contactsForRole() {
   return currentRole() === "larare" ? STUDENTS : TEACHERS;
 }
 
-function findContact(id) {
-  return TEACHERS.find((t) => t.id === id) || STUDENTS.find((t) => t.id === id) || null;
+// The staff room, minus yourself -- you cannot message your own account.
+function colleaguesForAccount() {
+  const myId = currentAccountId();
+  return TEACHERS.filter((t) => t.id !== myId);
 }
 
 const startupScreen = document.getElementById("startupScreen");
 const startupRoleStep = document.getElementById("startupRoleStep");
 const startupLoginStep = document.getElementById("startupLoginStep");
 const startupLoginRole = document.getElementById("startupLoginRole");
+const startupRoleSelect = document.getElementById("startupRoleSelect");
+const startupIdentity = document.getElementById("startupIdentity");
 const startupUser = document.getElementById("startupUser");
 const startupPass = document.getElementById("startupPass");
 const startupError = document.getElementById("startupError");
@@ -563,7 +702,7 @@ let pendingRole = null;
 function loadSession() {
   try {
     const saved = JSON.parse(localStorage.getItem(SESSION_KEY));
-    if (saved && ROLE_LABELS[saved.role]) return saved;
+    if (saved && ROLE_LABELS[saved.role] && findAccount(saved.id)) return saved;
   } catch (e) {
     // ignore malformed storage
   }
@@ -579,13 +718,50 @@ function showRoleStep() {
   startupPass.value = "";
 }
 
-function showLoginStep(role) {
+// The username is only decoration, but deriving it from the chosen
+// account keeps the form honest about who is about to sign in.
+function usernameFor(account) {
+  return account.name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z\s]/g, "")
+    .trim()
+    .split(/\s+/)
+    .join(".");
+}
+
+// Which account within the chosen category you are signing in as. Every
+// per-account boundary in the app follows from this one choice, so it is
+// part of the login rather than something set afterwards.
+function fillIdentityOptions(role, preferredId) {
+  const accounts = accountsForRole(role);
+  startupIdentity.innerHTML = "";
+  accounts.forEach((account) => {
+    const option = document.createElement("option");
+    option.value = account.id;
+    option.textContent = `${account.name} · ${account.subject}`;
+    startupIdentity.appendChild(option);
+  });
+  startupIdentity.value = accounts.some((a) => a.id === preferredId) ? preferredId : accounts[0].id;
+  syncUsernameField();
+}
+
+function syncUsernameField() {
+  const account = findAccount(startupIdentity.value);
+  if (account) startupUser.value = usernameFor(account);
+}
+
+function showLoginStep(role, preferredId) {
   pendingRole = role;
   startupLoginRole.textContent = `Loggar in som ${ROLE_LABELS[role]}`;
+  startupRoleSelect.value = role;
+  fillIdentityOptions(role, preferredId);
   startupRoleStep.hidden = true;
   startupLoginStep.hidden = false;
   startupError.hidden = true;
-  startupUser.focus();
+  startupPass.value = "";
+  startupPass.focus();
 }
 
 function openStartupScreen() {
@@ -617,16 +793,24 @@ function applyRole(role) {
   saveDockedPairs();
   activateTab(config.tabs.includes(currentActiveTab) ? currentActiveTab : config.tabs[0]);
 
+  // Documents and groups live per account, so switching who is signed in
+  // means reloading them rather than carrying the previous account's
+  // catalog across.
+  reloadAccountDocuments();
+  resetPeoplePages();
+
   renderTabButtonVisibility();
   renderTeachers();
   renderTeachersBreadcrumb();
   renderAssignments();
-  roleBadge.textContent = ROLE_LABELS[role];
-  backToStartBtn.title = `${ROLE_LABELS[role]} · Till startmenyn`;
+
+  const me = currentAccount();
+  roleBadge.textContent = me ? `${ROLE_LABELS[role]} · ${me.name}` : ROLE_LABELS[role];
+  backToStartBtn.title = `${me ? me.name : ROLE_LABELS[role]} · Till startmenyn`;
 }
 
-function signIn(role, user) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify({ role, user }));
+function signIn(role, id, user) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ role, id, user }));
   applyRole(role);
   closeStartupScreen();
 }
@@ -640,6 +824,20 @@ document.querySelectorAll(".startup-role").forEach((btn) => {
   btn.addEventListener("click", () => showLoginStep(btn.dataset.role));
 });
 
+// The category can also be changed from inside the form, so you can move
+// between lärare/elev/förälder without stepping back out.
+startupRoleSelect.addEventListener("change", () => {
+  pendingRole = startupRoleSelect.value;
+  startupLoginRole.textContent = `Loggar in som ${ROLE_LABELS[pendingRole]}`;
+  fillIdentityOptions(pendingRole);
+  startupError.hidden = true;
+});
+
+startupIdentity.addEventListener("change", () => {
+  syncUsernameField();
+  startupError.hidden = true;
+});
+
 startupBackBtn.addEventListener("click", showRoleStep);
 
 startupLoginStep.addEventListener("submit", (event) => {
@@ -647,12 +845,13 @@ startupLoginStep.addEventListener("submit", (event) => {
   if (!pendingRole) return;
 
   const user = startupUser.value.trim();
-  if (!user || !startupPass.value) {
+  const account = findAccount(startupIdentity.value);
+  if (!user || !startupPass.value || !account) {
     startupError.hidden = false;
     return;
   }
 
-  signIn(pendingRole, user);
+  signIn(pendingRole, account.id, user);
 });
 
 // The arrow returns to the start menu, which is also the login gate -- so
@@ -1000,27 +1199,65 @@ const UNGROUPED_COLLAPSED_KEY = "schoolos-ungrouped-collapsed";
 
 const SUBJECTS = ["Matematik 2b", "Svenska 3", "Engelska 6", "Fysik 2", "Historia 1b", "Programmering 1"];
 
-const DEFAULT_GROUPS = [{ id: "grp-math", name: "Matematik 2b", collapsed: false, subject: "Matematik 2b" }];
-const DEFAULT_DOCS = [
-  {
-    id: "seed-1",
-    title: "Idéer inför nationella prov",
-    type: "text",
-    content: "Saker att öva på:<br>- Ekvationer med två okända<br>- Källkritik i historia<br>- Oregelbundna verb i engelska",
-    groupId: "grp-math",
-    subject: "Matematik 2b",
-    updatedAt: Date.now(),
-  },
-  {
-    id: "seed-2",
-    title: "Formelblad",
-    type: "draw",
-    content: "",
-    groupId: "grp-math",
-    subject: "Matematik 2b",
-    updatedAt: Date.now(),
-  },
-];
+// Seeds so a fresh account is not an empty screen. They are built per
+// account: the ids have to be unique across accounts, since a document
+// shared into a chat is looked up by id across every account's catalog.
+function defaultGroupsFor(accountId) {
+  return accountId.startsWith("t")
+    ? [{ id: `grp-${accountId}-plan`, name: "Lektionsplanering", collapsed: false, subject: "" }]
+    : [{ id: `grp-${accountId}-math`, name: "Matematik 2b", collapsed: false, subject: "Matematik 2b" }];
+}
+
+function defaultDocsFor(accountId) {
+  const now = Date.now();
+  if (accountId.startsWith("t")) {
+    const group = `grp-${accountId}-plan`;
+    const teacher = findAccount(accountId);
+    const subject = teacher ? teacher.subject : "";
+    return [
+      {
+        id: `seed-${accountId}-1`,
+        title: "Lektionsupplägg",
+        type: "text",
+        content: `Att förbereda i ${subject}:<br>- Genomgång på tavlan<br>- Övningar i par<br>- Kort avstämning på slutet`,
+        groupId: group,
+        subject,
+        updatedAt: now,
+      },
+      {
+        id: `seed-${accountId}-2`,
+        title: "Skiss till tavlan",
+        type: "draw",
+        content: "",
+        groupId: group,
+        subject,
+        updatedAt: now,
+      },
+    ];
+  }
+
+  const group = `grp-${accountId}-math`;
+  return [
+    {
+      id: `seed-${accountId}-1`,
+      title: "Idéer inför nationella prov",
+      type: "text",
+      content: "Saker att öva på:<br>- Ekvationer med två okända<br>- Källkritik i historia<br>- Oregelbundna verb i engelska",
+      groupId: group,
+      subject: "Matematik 2b",
+      updatedAt: now,
+    },
+    {
+      id: `seed-${accountId}-2`,
+      title: "Formelblad",
+      type: "draw",
+      content: "",
+      groupId: group,
+      subject: "Matematik 2b",
+      updatedAt: now,
+    },
+  ];
+}
 
 const docList = document.getElementById("docList");
 const newDocBtn = document.getElementById("newDocBtn");
@@ -1113,22 +1350,17 @@ appModalOverlay.addEventListener("click", (event) => {
 
 // ---------- Teachers ----------
 
-const TEACHERS = [
-  { id: "t1", name: "Anna Berg", subject: "Matematik 2b", color: "#4361ee" },
-  { id: "t2", name: "Erik Lindqvist", subject: "Fysik 2", color: "#e63946" },
-  { id: "t3", name: "Maria Söderström", subject: "Svenska 3", color: "#2a9d8f" },
-  { id: "t4", name: "Johan Ekström", subject: "Historia 1b", color: "#f4a261" },
-  { id: "t5", name: "Sara Nilsson", subject: "Engelska 6", color: "#8b5cf6" },
-  { id: "t6", name: "David Karlsson", subject: "Programmering 1", color: "#06b6d4" },
-];
+// A conversation belongs to the *pair* of accounts having it, not to one
+// of them, so both sides address the same thread from opposite ends. The
+// ids are sorted so the key is the same whichever end asks for it. This
+// is what keeps the roles apart: what a student sends to Anna Berg is in
+// Anna Berg's thread and nowhere else -- sign in as another teacher and
+// that same student's chat is empty.
+const CHAT_STORAGE_PREFIX = "schoolos-chat::";
 
-const CHAT_STORAGE_PREFIX = "schoolos-chat-";
-const TEACHER_REPLIES = [
-  "Tack för ditt meddelande! Jag återkommer så snart jag kan.",
-  "Bra fråga, det tar vi upp på nästa lektion.",
-  "Noterat, jag kollar på det innan imorgon.",
-  "Låter bra, hör av dig om du undrar något mer!",
-];
+function threadKey(otherId) {
+  return CHAT_STORAGE_PREFIX + [currentAccountId(), otherId].sort().join("|");
+}
 
 const sendDocBtn = document.getElementById("sendDocBtn");
 const sendDocPopover = document.getElementById("sendDocPopover");
@@ -1151,7 +1383,7 @@ function teacherInitials(name) {
 }
 
 function loadChatMessages(teacherId) {
-  const raw = localStorage.getItem(CHAT_STORAGE_PREFIX + teacherId);
+  const raw = localStorage.getItem(threadKey(teacherId));
   if (raw === null) return [];
   try {
     const parsed = JSON.parse(raw);
@@ -1163,7 +1395,13 @@ function loadChatMessages(teacherId) {
 }
 
 function saveChatMessages(teacherId, messages) {
-  localStorage.setItem(CHAT_STORAGE_PREFIX + teacherId, JSON.stringify(messages));
+  localStorage.setItem(threadKey(teacherId), JSON.stringify(messages));
+}
+
+// Who sent it is stored as an account id, so the same stored message is
+// "mine" from one end of the thread and "theirs" from the other.
+function isOwnMessage(msg) {
+  return msg.from === currentAccountId();
 }
 
 function docTypeLabel(type) {
@@ -1176,12 +1414,13 @@ function docTypeLabel(type) {
 // current version. The title is stored alongside it so the card still
 // reads sensibly if the document is later deleted.
 function buildDocMessageBubble(msg) {
-  const doc = mindmapDocs.find((d) => d.id === msg.docId);
+  const mine = mindmapDocs.find((d) => d.id === msg.docId);
+  const doc = mine || findDocInAnyAccount(msg.docId);
 
   const bubble = document.createElement("button");
   bubble.type = "button";
   bubble.className = `chat-message chat-message-doc ${
-    msg.from === "user" ? "chat-message-user" : "chat-message-teacher"
+    isOwnMessage(msg) ? "chat-message-user" : "chat-message-teacher"
   }`;
 
   const icon = document.createElement("span");
@@ -1205,7 +1444,9 @@ function buildDocMessageBubble(msg) {
   bubble.appendChild(body);
 
   if (doc) {
-    bubble.addEventListener("click", () => goToMindmapDoc(doc.id));
+    // Someone else's document is not in your catalog, so there is nothing
+    // for the Mindmap editor to open -- it gets a read-only viewer.
+    bubble.addEventListener("click", () => (mine ? goToMindmapDoc(doc.id) : openDocPreview(doc)));
   } else {
     bubble.classList.add("is-missing");
     bubble.disabled = true;
@@ -1242,7 +1483,7 @@ function createPeoplePage(ids, options) {
         return;
       }
       const bubble = document.createElement("div");
-      bubble.className = `chat-message ${msg.from === "user" ? "chat-message-user" : "chat-message-teacher"}`;
+      bubble.className = `chat-message ${isOwnMessage(msg) ? "chat-message-user" : "chat-message-teacher"}`;
       bubble.textContent = msg.text;
       messagesEl.appendChild(bubble);
     });
@@ -1259,7 +1500,7 @@ function createPeoplePage(ids, options) {
     breadcrumb.appendChild(listItem);
 
     if (openContactId) {
-      const contact = findContact(openContactId);
+      const contact = findAccount(openContactId);
       if (contact) {
         const chatItem = document.createElement("li");
         chatItem.textContent = contact.name;
@@ -1270,7 +1511,7 @@ function createPeoplePage(ids, options) {
   }
 
   function openChat(contactId) {
-    const contact = findContact(contactId);
+    const contact = findAccount(contactId);
     if (!contact) return;
 
     openContactId = contactId;
@@ -1338,19 +1579,10 @@ function createPeoplePage(ids, options) {
     if (!text || !openContactId) return;
 
     const messages = loadChatMessages(openContactId);
-    messages.push({ from: "user", text, at: Date.now() });
+    messages.push({ from: currentAccountId(), text, at: Date.now() });
     saveChatMessages(openContactId, messages);
     inputEl.value = "";
     renderMessages(openContactId);
-
-    const contactId = openContactId;
-    setTimeout(() => {
-      const reply = TEACHER_REPLIES[Math.floor(Math.random() * TEACHER_REPLIES.length)];
-      const current = loadChatMessages(contactId);
-      current.push({ from: "teacher", text: reply, at: Date.now() });
-      saveChatMessages(contactId, current);
-      if (openContactId === contactId) renderMessages(contactId);
-    }, 900);
   }
 
   sendBtn.addEventListener("click", sendMessage);
@@ -1364,7 +1596,15 @@ function createPeoplePage(ids, options) {
     if (openContactId === contactId) renderMessages(contactId);
   }
 
-  return { render, renderBreadcrumb, refreshIfShowing };
+  // Signing in as someone else must drop whatever conversation the
+  // previous account had open -- render() alone would leave the chat panel
+  // up (the contact is usually still in the new account's list) showing
+  // the previous account's messages until something redrew it.
+  function reset() {
+    closeChat();
+  }
+
+  return { render, renderBreadcrumb, refreshIfShowing, reset };
 }
 
 // The main people tab: a teacher's class list, everyone else's teachers.
@@ -1410,7 +1650,7 @@ const colleaguesPage = createPeoplePage(
     send: "colleagueChatSendBtn",
   },
   {
-    people: () => TEACHERS,
+    people: () => colleaguesForAccount(),
     label: () => "Lärare",
     intro: () => "Tryck på en kollega för att öppna en chatt.",
   }
@@ -1422,17 +1662,15 @@ function renderTeachers() {
   peoplePages.forEach((page) => page.render());
 }
 
+function resetPeoplePages() {
+  peoplePages.forEach((page) => page.reset());
+}
+
 function renderTeachersBreadcrumb() {
   peoplePages.forEach((page) => page.renderBreadcrumb());
 }
 
 // ---------- Sending a Mindmap document to a teacher ----------
-
-const DOC_RECEIPT_REPLIES = [
-  "Tack, jag har fått dokumentet! Jag tittar på det och återkommer.",
-  "Mottaget! Jag läser igenom det och ger dig feedback.",
-  "Tack för att du skickade in det, jag kikar på det snart.",
-];
 
 function closeSendDocPopover() {
   sendDocPopover.hidden = true;
@@ -1447,7 +1685,7 @@ function showSendDocTeacherStep() {
 // Second step: pick the recipient first, then write the note that goes
 // with the document.
 function showSendDocNoteStep(teacherId) {
-  const teacher = findContact(teacherId);
+  const teacher = findAccount(teacherId);
   if (!teacher) return;
 
   pendingSendTeacherId = teacherId;
@@ -1505,7 +1743,7 @@ function openSendDocPopover() {
 
 function sendDocToTeacher(teacherId) {
   const doc = mindmapDocs.find((d) => d.id === currentDocId);
-  const teacher = findContact(teacherId);
+  const teacher = findAccount(teacherId);
   if (!doc || !teacher) return;
 
   const note = sendDocNote.value.trim();
@@ -1514,10 +1752,10 @@ function sendDocToTeacher(teacherId) {
   // The note goes in as an ordinary message just before the document, so
   // the chat reads the way it would if you had typed it and attached the
   // file: your words first, then the thing they refer to.
-  if (note) messages.push({ from: "user", text: note, at: Date.now() });
+  if (note) messages.push({ from: currentAccountId(), text: note, at: Date.now() });
 
   messages.push({
-    from: "user",
+    from: currentAccountId(),
     kind: "doc",
     docId: doc.id,
     docTitle: doc.title,
@@ -1531,17 +1769,10 @@ function sendDocToTeacher(teacherId) {
   // split view while the document is sent from Mindmap.
   peoplePages.forEach((page) => page.refreshIfShowing(teacherId));
 
-  setTimeout(() => {
-    const reply = DOC_RECEIPT_REPLIES[Math.floor(Math.random() * DOC_RECEIPT_REPLIES.length)];
-    const current = loadChatMessages(teacherId);
-    current.push({ from: "teacher", text: reply, at: Date.now() });
-    saveChatMessages(teacherId, current);
-    peoplePages.forEach((page) => page.refreshIfShowing(teacherId));
-  }, 900);
-
   showAppModal(
     "Dokumentet är skickat",
-    `"${doc.title}"${note ? " och ditt meddelande" : ""} har skickats till ${teacher.name}. Du hittar det i chatten under Lärare.`
+    `"${doc.title}"${note ? " och ditt meddelande" : ""} har skickats till ${teacher.name}. ` +
+      `Det syns bara i er chatt — ${teacher.name} ser det när ${teacher.name.split(" ")[0]} loggar in.`
   );
 }
 
@@ -1575,6 +1806,43 @@ document.addEventListener("click", (event) => {
   if (sendDocPopover.hidden) return;
   if (sendDocPopover.contains(event.target) || sendDocBtn.contains(event.target)) return;
   closeSendDocPopover();
+});
+
+// ---------- Read-only view of a document someone shared with you ----------
+
+const docPreviewOverlay = document.getElementById("docPreviewOverlay");
+const docPreviewTitle = document.getElementById("docPreviewTitle");
+const docPreviewMeta = document.getElementById("docPreviewMeta");
+const docPreviewBody = document.getElementById("docPreviewBody");
+const docPreviewCloseBtn = document.getElementById("docPreviewCloseBtn");
+
+function openDocPreview(doc) {
+  docPreviewTitle.textContent = doc.title;
+  docPreviewMeta.textContent = `${docTypeLabel(doc.type)}${doc.subject ? ` · ${doc.subject}` : ""} · delat med dig`;
+  docPreviewBody.innerHTML = "";
+
+  if (doc.type === "draw") {
+    const img = document.createElement("img");
+    img.className = "doc-preview-image";
+    img.alt = doc.title;
+    img.style.background = doc.bgColor || "#ffffff";
+    img.src = doc.content || "";
+    docPreviewBody.appendChild(img);
+  } else {
+    const text = document.createElement("div");
+    text.className = "doc-preview-text";
+    text.innerHTML = doc.content || "";
+    docPreviewBody.appendChild(text);
+  }
+
+  docPreviewOverlay.hidden = false;
+}
+
+docPreviewCloseBtn.addEventListener("click", () => {
+  docPreviewOverlay.hidden = true;
+});
+docPreviewOverlay.addEventListener("click", (event) => {
+  if (event.target === docPreviewOverlay) docPreviewOverlay.hidden = true;
 });
 
 // ---------- Subject library ----------
@@ -2989,6 +3257,72 @@ window.addEventListener("resize", () => {
   paginateSpread();
 });
 
+// Storage written before accounts existed was global: one chat per
+// contact, one document catalog for the whole browser. It is re-filed
+// under the account it must have belonged to, so an existing prototype
+// keeps its notes and conversations instead of appearing wiped.
+const STORAGE_MIGRATION_KEY = "schoolos-storage-accounts";
+
+function migrateLegacyStorage() {
+  if (localStorage.getItem(STORAGE_MIGRATION_KEY)) return;
+  localStorage.setItem(STORAGE_MIGRATION_KEY, "1");
+
+  let legacySelf = null;
+  try {
+    const saved = JSON.parse(localStorage.getItem(SESSION_KEY));
+    if (saved && ROLE_LABELS[saved.role] && !saved.id) {
+      legacySelf = accountsForRole(saved.role)[0].id;
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ ...saved, id: legacySelf }));
+    }
+  } catch (e) {
+    // ignore malformed storage
+  }
+
+  const legacyChats = [];
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith("schoolos-chat-") && !key.startsWith(CHAT_STORAGE_PREFIX)) legacyChats.push(key);
+  }
+
+  legacyChats.forEach((key) => {
+    const contactId = key.slice("schoolos-chat-".length);
+    const contact = findAccount(contactId);
+    if (!contact) return;
+    // Whoever you were chatting with tells you which end you were on: a
+    // teacher contact means you were the default student, and vice versa.
+    const selfId = contactId.startsWith("t") ? STUDENTS[0].id : TEACHERS[0].id;
+
+    let messages = [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem(key));
+      if (Array.isArray(parsed)) messages = parsed;
+    } catch (e) {
+      // ignore malformed storage
+    }
+
+    const moved = messages.map((msg) => ({
+      ...msg,
+      from: msg.from === "user" ? selfId : contactId,
+    }));
+    localStorage.setItem(`${CHAT_STORAGE_PREFIX}${[selfId, contactId].sort().join("|")}`, JSON.stringify(moved));
+    localStorage.removeItem(key);
+  });
+
+  const owner = legacySelf || STUDENTS[0].id;
+  [
+    [MINDMAP_STORAGE_KEY, `${MINDMAP_STORAGE_KEY}::${owner}`],
+    [GROUPS_STORAGE_KEY, `${GROUPS_STORAGE_KEY}::${owner}`],
+  ].forEach(([from, to]) => {
+    const raw = localStorage.getItem(from);
+    if (raw === null) return;
+    if (localStorage.getItem(to) === null) localStorage.setItem(to, raw);
+    localStorage.removeItem(from);
+  });
+}
+
+// Runs before the first read of any account-scoped key.
+migrateLegacyStorage();
+
 let mindmapDocs = loadMindmapDocs();
 let mindmapGroups = loadGroups();
 let ungroupedCollapsed = loadUngroupedCollapsed();
@@ -3027,9 +3361,21 @@ let penSize = Number(localStorage.getItem(PEN_SIZE_KEY)) || 3;
 let eraserSize = Number(localStorage.getItem(ERASER_SIZE_KEY)) || 3;
 brushSizeInput.value = penSize;
 
-function loadMindmapDocs() {
-  const raw = localStorage.getItem(MINDMAP_STORAGE_KEY);
-  if (raw === null) return DEFAULT_DOCS.slice();
+// Notes and drawings are private to the account that made them: a teacher
+// signing in on the same browser gets their own catalog, not the
+// student's. That is just a matter of which key the catalog is stored
+// under.
+function docsKeyFor(accountId) {
+  return `${MINDMAP_STORAGE_KEY}::${accountId}`;
+}
+
+function groupsKeyFor(accountId) {
+  return `${GROUPS_STORAGE_KEY}::${accountId}`;
+}
+
+function readStoredArray(key) {
+  const raw = localStorage.getItem(key);
+  if (raw === null) return null;
   try {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) return parsed;
@@ -3037,26 +3383,60 @@ function loadMindmapDocs() {
     // ignore malformed storage
   }
   return [];
+}
+
+// A freshly seeded catalog is written straight back, because a document
+// shared into a chat is found by scanning the stored catalogs -- seeds
+// that only ever existed in memory would be invisible to the recipient.
+function loadMindmapDocs() {
+  const key = docsKeyFor(currentAccountId());
+  const stored = readStoredArray(key);
+  if (stored !== null) return stored;
+  const seeded = defaultDocsFor(currentAccountId());
+  localStorage.setItem(key, JSON.stringify(seeded));
+  return seeded;
 }
 
 function saveMindmapDocs() {
-  localStorage.setItem(MINDMAP_STORAGE_KEY, JSON.stringify(mindmapDocs));
+  localStorage.setItem(docsKeyFor(currentAccountId()), JSON.stringify(mindmapDocs));
 }
 
 function loadGroups() {
-  const raw = localStorage.getItem(GROUPS_STORAGE_KEY);
-  if (raw === null) return DEFAULT_GROUPS.slice();
-  try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed;
-  } catch (e) {
-    // ignore malformed storage
-  }
-  return [];
+  const key = groupsKeyFor(currentAccountId());
+  const stored = readStoredArray(key);
+  if (stored !== null) return stored;
+  const seeded = defaultGroupsFor(currentAccountId());
+  localStorage.setItem(key, JSON.stringify(seeded));
+  return seeded;
 }
 
 function saveGroups() {
-  localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(mindmapGroups));
+  localStorage.setItem(groupsKeyFor(currentAccountId()), JSON.stringify(mindmapGroups));
+}
+
+// A document shared into a chat stays in its author's catalog -- copying
+// a drawing's PNG into the recipient's storage would bloat it badly, and
+// a reference means the card always shows the current version. So the
+// lookup has to reach across accounts.
+function findDocInAnyAccount(docId) {
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (!key || !key.startsWith(`${MINDMAP_STORAGE_KEY}::`)) continue;
+    const docs = readStoredArray(key) || [];
+    const found = docs.find((d) => d.id === docId);
+    if (found) return found;
+  }
+  return null;
+}
+
+// Called when the signed-in account changes: swap the whole Mindmap
+// catalog over and drop whatever the previous account had open.
+function reloadAccountDocuments() {
+  mindmapDocs = loadMindmapDocs();
+  mindmapGroups = loadGroups();
+  currentDocId = null;
+  activeGroupViewId = null;
+  showEmptyState();
 }
 
 function loadUngroupedCollapsed() {

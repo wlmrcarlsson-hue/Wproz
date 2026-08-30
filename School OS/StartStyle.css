@@ -2719,3 +2719,73 @@ body {
     cursor: row-resize;
   }
 }
+
+/* ---------- Account picker in the login form ---------- */
+
+/* The native select keeps the same shell as the text fields around it,
+   with a chevron drawn in so it reads as a picker rather than an input. */
+.startup-select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding-right: 32px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-faint) 50%),
+    linear-gradient(135deg, var(--text-faint) 50%, transparent 50%);
+  background-position: calc(100% - 17px) calc(50% + 1px), calc(100% - 12px) calc(50% + 1px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+/* Long account labels must not run under the chevron. */
+.startup-select {
+  text-overflow: ellipsis;
+}
+
+.startup-select option {
+  background: var(--popover-bg);
+  color: var(--text-strong);
+}
+
+/* ---------- Read-only view of a shared document ---------- */
+
+.doc-preview {
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  max-height: min(80vh, 720px);
+}
+
+.doc-preview-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.doc-preview-meta {
+  margin: 0 0 12px;
+  font-size: 0.78rem;
+}
+
+.doc-preview-body {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-sunken);
+  padding: 14px 16px;
+}
+
+.doc-preview-text {
+  color: var(--text);
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+/* Sized to the box rather than to the bitmap: a full-page drawing is far
+   wider than the modal, and it is being read, not edited. */
+.doc-preview-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
