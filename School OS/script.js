@@ -84,7 +84,8 @@ function onTabShown(tabId) {
 
 function renderTabButtonVisibility() {
   tabButtons.forEach((btn) => {
-    btn.hidden = dockedPairs.some((p) => p.child === btn.dataset.tab);
+    const dockedAway = dockedPairs.some((p) => p.child === btn.dataset.tab);
+    btn.hidden = dockedAway || btn.dataset.roleHidden === "true";
   });
   updateNestedBadges();
 }
@@ -375,25 +376,122 @@ splitDivider.addEventListener("pointerup", () => {
 
 renderTabButtonVisibility();
 
-// ---------- Uppgifter (assignments subject filter) ----------
+// ---------- Uppgifter (role-aware) ----------
+
+// The same page serves all three roles, but the question it answers is
+// different for each: a student asks "what do I owe?", a teacher asks
+// "what is waiting for me to mark?", and a parent asks "how is my child
+// doing?". So the table is rendered from data rather than being fixed
+// markup.
+const ASSIGNMENTS = [
+  { title: "Algebra-inlämning", subject: "Matematik 2b", due: "Fredag", status: "Pågår", cls: "progress" },
+  { title: "Laborationsrapport: Elektricitet", subject: "Fysik 2", due: "Nästa vecka", status: "Ej påbörjad", cls: "notstarted" },
+  { title: "Novellanalys", subject: "Svenska 3", due: "Om 2 veckor", status: "Ej påbörjad", cls: "notstarted" },
+  { title: "Källkritisk uppgift: Andra världskriget", subject: "Historia 1b", due: "Igår", status: "Väntar på betyg", cls: "submitted" },
+  { title: "Grammatikövningar", subject: "Engelska 6", due: "Förra veckan", status: "Betyg: B", cls: "completed" },
+  { title: "Programmeringsprojekt", subject: "Programmering 1", due: "2 veckor sedan", status: "Betyg: F", cls: "fail" },
+];
+
+const STUDENTS = [
+  { id: "e1", name: "Hannah Lind", subject: "NA22B", color: "#4361ee" },
+  { id: "e2", name: "Vincent Ohlsson", subject: "NA22B", color: "#e63946" },
+  { id: "e3", name: "Robin Sjögren", subject: "NA22B", color: "#2a9d8f" },
+  { id: "e4", name: "Zoë Hammar", subject: "NA22B", color: "#f4a261" },
+  { id: "e5", name: "Alba Ternström", subject: "NA22B", color: "#8b5cf6" },
+];
+
+// What a teacher sees: work handed in, waiting to be marked.
+const SUBMISSIONS = [
+  { student: "Hannah Lind", title: "Algebra-inlämning", subject: "Matematik 2b", handed: "Idag 08:14", status: "Ej rättad", cls: "notstarted" },
+  { student: "Vincent Ohlsson", title: "Algebra-inlämning", subject: "Matematik 2b", handed: "Igår 21:40", status: "Ej rättad", cls: "notstarted" },
+  { student: "Robin Sjögren", title: "Laborationsrapport: Elektricitet", subject: "Fysik 2", handed: "Igår 16:02", status: "Påbörjad rättning", cls: "progress" },
+  { student: "Zoë Hammar", title: "Novellanalys", subject: "Svenska 3", handed: "2 dagar sedan", status: "Rättad: B", cls: "completed" },
+  { student: "Alba Ternström", title: "Källkritisk uppgift: Andra världskriget", subject: "Historia 1b", handed: "3 dagar sedan", status: "Rättad: C", cls: "completed" },
+  { student: "Hannah Lind", title: "Grammatikövningar", subject: "Engelska 6", handed: "Förra veckan", status: "Rättad: A", cls: "completed" },
+  { student: "Vincent Ohlsson", title: "Programmeringsprojekt", subject: "Programmering 1", handed: "Ej inlämnad", status: "Saknas", cls: "fail" },
+];
+
+const CHILD_NAME = "Hannah Lind";
 
 const assignmentsCatalog = document.getElementById("assignmentsCatalog");
-const assignmentsRows = document.querySelectorAll("#assignmentsBody tr");
+const assignmentsHead = document.getElementById("assignmentsHead");
+const assignmentsBody = document.getElementById("assignmentsBody");
+const assignmentsHeading = document.getElementById("assignmentsHeading");
+const assignmentsIntro = document.getElementById("assignmentsIntro");
 const assignmentsEmpty = document.getElementById("assignmentsEmpty");
+
+let assignmentsSubject = "";
+
+function buildRow(cells, statusCell) {
+  const tr = document.createElement("tr");
+  cells.forEach((text) => {
+    const td = document.createElement("td");
+    td.textContent = text;
+    tr.appendChild(td);
+  });
+  const td = document.createElement("td");
+  const chip = document.createElement("span");
+  chip.className = `status status-${statusCell.cls}`;
+  chip.textContent = statusCell.status;
+  td.appendChild(chip);
+  tr.appendChild(td);
+  return tr;
+}
+
+function renderAssignments() {
+  const role = currentRole();
+  assignmentsHead.innerHTML = "";
+  assignmentsBody.innerHTML = "";
+
+  const isTeacher = role === "larare";
+  const columns = isTeacher
+    ? ["Elev", "Uppgift", "Ämne", "Inlämnad", "Status"]
+    : ["Uppgift", "Ämne", "Deadline", "Status"];
+
+  const headRow = document.createElement("tr");
+  columns.forEach((label) => {
+    const th = document.createElement("th");
+    th.textContent = label;
+    headRow.appendChild(th);
+  });
+  assignmentsHead.appendChild(headRow);
+
+  const source = isTeacher ? SUBMISSIONS : ASSIGNMENTS;
+  const rows = source.filter((item) => !assignmentsSubject || item.subject === assignmentsSubject);
+
+  rows.forEach((item) => {
+    const cells = isTeacher
+      ? [item.student, item.title, item.subject, item.handed]
+      : [item.title, item.subject, item.due];
+    assignmentsBody.appendChild(buildRow(cells, item));
+  });
+
+  assignmentsEmpty.hidden = rows.length > 0;
+  assignmentsEmpty.textContent = isTeacher
+    ? "Inga inlämningar i det här ämnet."
+    : "Inga uppgifter i det här ämnet.";
+
+  if (isTeacher) {
+    const unmarked = SUBMISSIONS.filter((s) => s.cls === "notstarted" || s.cls === "progress").length;
+    assignmentsHeading.textContent = "Inlämningar";
+    assignmentsIntro.textContent = `${unmarked} inlämningar väntar på rättning.`;
+    assignmentsIntro.hidden = false;
+  } else if (role === "foralder") {
+    assignmentsHeading.textContent = `Uppgifter · ${CHILD_NAME}`;
+    assignmentsIntro.textContent = `Du följer ${CHILD_NAME}. Uppgifterna visas som de ser ut för eleven.`;
+    assignmentsIntro.hidden = false;
+  } else {
+    assignmentsHeading.textContent = "Uppgifter";
+    assignmentsIntro.hidden = true;
+  }
+}
 
 assignmentsCatalog.querySelectorAll("li").forEach((li) => {
   li.addEventListener("click", () => {
     assignmentsCatalog.querySelectorAll("li").forEach((el) => el.classList.remove("active"));
     li.classList.add("active");
-
-    const subject = li.dataset.subject;
-    let visibleCount = 0;
-    assignmentsRows.forEach((tr) => {
-      const matches = !subject || tr.dataset.subject === subject;
-      tr.hidden = !matches;
-      if (matches) visibleCount++;
-    });
-    assignmentsEmpty.hidden = visibleCount > 0;
+    assignmentsSubject = li.dataset.subject;
+    renderAssignments();
   });
 });
 
@@ -411,6 +509,42 @@ const ROLE_LABELS = {
   foralder: "Förälder",
 };
 
+// What each role gets. Tabs that make no sense for a role are hidden
+// rather than shown empty, and the two tabs whose meaning shifts are
+// relabelled: a teacher marks "Inlämningar" and talks to "Elever", a
+// parent follows their child's work.
+const ROLE_CONFIG = {
+  elev: {
+    tabs: ["assignments", "calendar", "mindmap", "teachers", "subjects"],
+    labels: { assignments: "✓ Uppgifter", teachers: "👩‍🏫 Lärare" },
+  },
+  larare: {
+    tabs: ["assignments", "calendar", "mindmap", "teachers", "subjects"],
+    labels: { assignments: "📥 Inlämningar", teachers: "🎓 Elever" },
+  },
+  foralder: {
+    // No Mindmap: the notes and drawings belong to the student, not the
+    // guardian following along.
+    tabs: ["assignments", "calendar", "teachers", "subjects"],
+    labels: { assignments: "✓ Uppgifter", teachers: "👩‍🏫 Lärare" },
+  },
+};
+
+function currentRole() {
+  const session = loadSession();
+  return session ? session.role : "elev";
+}
+
+// The Lärare/Elever tab and the send-document picker both address "the
+// people this role talks to", which differs by role.
+function contactsForRole() {
+  return currentRole() === "larare" ? STUDENTS : TEACHERS;
+}
+
+function findContact(id) {
+  return TEACHERS.find((t) => t.id === id) || STUDENTS.find((t) => t.id === id) || null;
+}
+
 const startupScreen = document.getElementById("startupScreen");
 const startupRoleStep = document.getElementById("startupRoleStep");
 const startupLoginStep = document.getElementById("startupLoginStep");
@@ -420,6 +554,7 @@ const startupPass = document.getElementById("startupPass");
 const startupError = document.getElementById("startupError");
 const startupBackBtn = document.getElementById("startupBackBtn");
 const backToStartBtn = document.getElementById("backToStartBtn");
+const roleBadge = document.getElementById("roleBadge");
 
 let pendingRole = null;
 
@@ -462,9 +597,35 @@ function closeStartupScreen() {
   backToStartBtn.hidden = false;
 }
 
+function applyRole(role) {
+  const config = ROLE_CONFIG[role] || ROLE_CONFIG.elev;
+
+  tabButtons.forEach((btn) => {
+    const tabId = btn.dataset.tab;
+    btn.dataset.roleHidden = config.tabs.includes(tabId) ? "" : "true";
+    const label = config.labels[tabId];
+    if (label) btn.querySelector(".tab-btn-label").textContent = label;
+  });
+
+  // A tab the new role cannot see must not stay open, and any docking
+  // pair naming it has to go with it. Re-activating unconditionally lets
+  // activateTab tear down a split whose pair was just pruned -- skipping
+  // it when the active tab happened to survive left the split on screen.
+  dockedPairs = dockedPairs.filter((p) => config.tabs.includes(p.host) && config.tabs.includes(p.child));
+  saveDockedPairs();
+  activateTab(config.tabs.includes(currentActiveTab) ? currentActiveTab : config.tabs[0]);
+
+  renderTabButtonVisibility();
+  renderTeachers();
+  renderTeachersBreadcrumb();
+  renderAssignments();
+  roleBadge.textContent = ROLE_LABELS[role];
+  backToStartBtn.title = `${ROLE_LABELS[role]} · Till startmenyn`;
+}
+
 function signIn(role, user) {
   localStorage.setItem(SESSION_KEY, JSON.stringify({ role, user }));
-  backToStartBtn.title = `${ROLE_LABELS[role]} · Till startmenyn`;
+  applyRole(role);
   closeStartupScreen();
 }
 
@@ -496,13 +657,9 @@ startupLoginStep.addEventListener("submit", (event) => {
 // going back means signing out and picking a role again.
 backToStartBtn.addEventListener("click", signOut);
 
-const existingSession = loadSession();
-if (existingSession) {
-  backToStartBtn.title = `${ROLE_LABELS[existingSession.role]} · Till startmenyn`;
-  closeStartupScreen();
-} else {
-  openStartupScreen();
-}
+// Deliberately not run here: applyRole touches TEACHERS/STUDENTS and the
+// renderers, which are declared further down the file. The initial call
+// lives at the very bottom instead.
 
 // ---------- UI style ----------
 
@@ -1020,7 +1177,7 @@ function saveChatMessages(teacherId, messages) {
 
 function renderTeachers() {
   teachersGrid.innerHTML = "";
-  TEACHERS.forEach((teacher) => {
+  contactsForRole().forEach((teacher) => {
     const card = document.createElement("button");
     card.type = "button";
     card.className = "teacher-card";
@@ -1121,7 +1278,7 @@ function renderTeachersBreadcrumb() {
   teachersBreadcrumb.appendChild(listItem);
 
   if (activeTeacherId) {
-    const teacher = TEACHERS.find((t) => t.id === activeTeacherId);
+    const teacher = findContact(activeTeacherId);
     if (teacher) {
       const chatItem = document.createElement("li");
       chatItem.textContent = teacher.name;
@@ -1132,7 +1289,7 @@ function renderTeachersBreadcrumb() {
 }
 
 function openTeacherChat(teacherId) {
-  const teacher = TEACHERS.find((t) => t.id === teacherId);
+  const teacher = findContact(teacherId);
   if (!teacher) return;
 
   activeTeacherId = teacherId;
@@ -1203,7 +1360,7 @@ function showSendDocTeacherStep() {
 // Second step: pick the recipient first, then write the note that goes
 // with the document.
 function showSendDocNoteStep(teacherId) {
-  const teacher = TEACHERS.find((t) => t.id === teacherId);
+  const teacher = findContact(teacherId);
   if (!teacher) return;
 
   pendingSendTeacherId = teacherId;
@@ -1223,7 +1380,7 @@ function openSendDocPopover() {
 
   // A document with a subject suggests its own teacher, so the one most
   // likely to be wanted is offered first -- the rest still follow.
-  const ordered = [...TEACHERS].sort((a, b) => {
+  const ordered = [...contactsForRole()].sort((a, b) => {
     const aMatch = doc.subject && a.subject === doc.subject ? 0 : 1;
     const bMatch = doc.subject && b.subject === doc.subject ? 0 : 1;
     return aMatch - bMatch;
@@ -1261,7 +1418,7 @@ function openSendDocPopover() {
 
 function sendDocToTeacher(teacherId) {
   const doc = mindmapDocs.find((d) => d.id === currentDocId);
-  const teacher = TEACHERS.find((t) => t.id === teacherId);
+  const teacher = findContact(teacherId);
   if (!doc || !teacher) return;
 
   const note = sendDocNote.value.trim();
@@ -4362,4 +4519,16 @@ if (mindmapDocs.length > 0) {
 // tab's own init (mindmapDocs, GroupDock, etc.) has actually run.
 if (findDockPairByHost(currentActiveTab)) {
   activateTab(currentActiveTab);
+}
+
+// ---------- Boot ----------
+
+// Runs last so applyRole can safely touch the contact lists and renderers
+// declared throughout the file.
+const bootSession = loadSession();
+if (bootSession) {
+  applyRole(bootSession.role);
+  closeStartupScreen();
+} else {
+  openStartupScreen();
 }

@@ -67,6 +67,7 @@
   </div>
 
   <button id="backToStartBtn" class="start-menu-btn" aria-label="Till startmenyn" title="Till startmenyn">←</button>
+  <span id="roleBadge" class="role-badge"></span>
 
   <header class="topbar">
     <h1 class="logo">SCHOOL OS</h1>
@@ -163,54 +164,11 @@
 
         <div class="page-body">
           <div class="panel">
-            <h3>Uppgifter</h3>
+            <h3 id="assignmentsHeading">Uppgifter</h3>
+            <p id="assignmentsIntro" class="muted groupdock-intro" hidden></p>
             <table class="table">
-              <thead>
-                <tr>
-                  <th>Uppgift</th>
-                  <th>Ämne</th>
-                  <th>Deadline</th>
-                  <th>Betyg</th>
-                </tr>
-              </thead>
-              <tbody id="assignmentsBody">
-                <tr data-subject="Matematik 2b">
-                  <td>Algebra-inlämning</td>
-                  <td>Matematik 2b</td>
-                  <td>Fredag</td>
-                  <td><span class="status status-progress">Pågår</span></td>
-                </tr>
-                <tr data-subject="Fysik 2">
-                  <td>Laborationsrapport: Elektricitet</td>
-                  <td>Fysik 2</td>
-                  <td>Nästa vecka</td>
-                  <td><span class="status status-notstarted">Ej påbörjad</span></td>
-                </tr>
-                <tr data-subject="Svenska 3">
-                  <td>Novellanalys</td>
-                  <td>Svenska 3</td>
-                  <td>Om 2 veckor</td>
-                  <td><span class="status status-notstarted">Ej påbörjad</span></td>
-                </tr>
-                <tr data-subject="Historia 1b">
-                  <td>Källkritisk uppgift: Andra världskriget</td>
-                  <td>Historia 1b</td>
-                  <td>Igår</td>
-                  <td><span class="status status-submitted">Väntar på betyg</span></td>
-                </tr>
-                <tr data-subject="Engelska 6">
-                  <td>Grammatikövningar</td>
-                  <td>Engelska 6</td>
-                  <td>Förra veckan</td>
-                  <td><span class="status status-completed">Betyg: B</span></td>
-                </tr>
-                <tr data-subject="Programmering 1">
-                  <td>Programmeringsprojekt</td>
-                  <td>Programmering 1</td>
-                  <td>2 veckor sedan</td>
-                  <td><span class="status status-fail">Betyg: F</span></td>
-                </tr>
-              </tbody>
+              <thead id="assignmentsHead"></thead>
+              <tbody id="assignmentsBody"></tbody>
             </table>
             <p id="assignmentsEmpty" class="muted" hidden>Inga uppgifter i det här ämnet.</p>
           </div>

@@ -1504,6 +1504,29 @@ body {
   border-color: var(--accent-line);
 }
 
+/* Sits beside the back arrow so the active role is always visible. Fixed
+   like the arrow itself, so it costs the layout nothing. */
+.role-badge {
+  position: fixed;
+  top: 30px;
+  left: 70px;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.role-badge:empty {
+  display: none;
+}
+
 .settings-btn {
   position: fixed;
   top: 20px;
