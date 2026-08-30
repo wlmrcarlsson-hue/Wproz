@@ -78,7 +78,7 @@ function onTabShown(tabId) {
   // zoom controls take over, so this never re-fits on a later show.
   if (tabId === "mindmap" && pendingDrawFit) {
     const doc = mindmapDocs.find((d) => d.id === currentDocId);
-    if (doc && doc.type === "draw") fitDrawView();
+    if (isDrawDoc(doc)) fitDrawView();
   }
 }
 
@@ -798,6 +798,8 @@ function applyRole(role) {
   // catalog across.
   reloadAccountDocuments();
   resetPeoplePages();
+  syncAppChrome();
+  closeAppSwitcher();
 
   renderTabButtonVisibility();
   renderTeachers();
@@ -1193,6 +1195,86 @@ function createDeleteControl({ category, compact, onDelete }) {
 
 // ---------- Mindmap (documents: text notes + drawings, in groups) ----------
 
+// ---------- Microsoft 365 apps ----------
+
+// The workspace tab is one app at a time, picked from the arrow on the tab
+// itself -- the same shape as the app launcher in Microsoft 365. Each app
+// owns a document kind, and a document's `type` is the app that made it.
+const OFFICE_APPS = [
+  {
+    id: "word",
+    name: "Word",
+    initial: "W",
+    icon: "📄",
+    color: "#2b579a",
+    tagline: "Skriv och formatera dokument.",
+    noun: "dokument",
+    newTitle: "Namnlöst dokument",
+    url: "https://www.office.com/launch/word",
+  },
+  {
+    id: "excel",
+    name: "Excel",
+    initial: "X",
+    icon: "📊",
+    color: "#217346",
+    tagline: "Räkna, sortera och sammanställ i ett kalkylblad.",
+    noun: "kalkylblad",
+    newTitle: "Namnlöst kalkylblad",
+    url: "https://www.office.com/launch/excel",
+  },
+  {
+    id: "powerpoint",
+    name: "PowerPoint",
+    initial: "P",
+    icon: "📽",
+    color: "#d24726",
+    tagline: "Bygg en presentation, en bild i taget.",
+    noun: "presentation",
+    newTitle: "Namnlös presentation",
+    url: "https://www.office.com/launch/powerpoint",
+  },
+  {
+    id: "onenote",
+    name: "OneNote",
+    initial: "N",
+    icon: "🖊",
+    color: "#7719aa",
+    tagline: "Anteckna för hand på en oändlig sida.",
+    noun: "anteckning",
+    newTitle: "Namnlös anteckning",
+    url: "https://www.office.com/launch/onenote",
+  },
+];
+
+const OFFICE_APP_IDS = OFFICE_APPS.map((a) => a.id);
+const ACTIVE_APP_KEY = "schoolos-office-app";
+
+function officeApp(id) {
+  return OFFICE_APPS.find((a) => a.id === id) || OFFICE_APPS[0];
+}
+
+let activeAppId = OFFICE_APP_IDS.includes(localStorage.getItem(ACTIVE_APP_KEY))
+  ? localStorage.getItem(ACTIVE_APP_KEY)
+  : "word";
+
+function activeApp() {
+  return officeApp(activeAppId);
+}
+
+// Only OneNote uses the drawing canvas; the other three are typed surfaces.
+function isDrawDoc(doc) {
+  return !!doc && doc.type === "onenote";
+}
+
+// Documents made before the tab became an app workspace: a text note is a
+// Word document, a drawing is a OneNote page.
+function normalizeDocType(type) {
+  if (type === "text") return "word";
+  if (type === "draw") return "onenote";
+  return OFFICE_APP_IDS.includes(type) ? type : "word";
+}
+
 const MINDMAP_STORAGE_KEY = "schoolos-mindmap-docs";
 const GROUPS_STORAGE_KEY = "schoolos-mindmap-groups";
 const UNGROUPED_COLLAPSED_KEY = "schoolos-ungrouped-collapsed";
@@ -1218,7 +1300,7 @@ function defaultDocsFor(accountId) {
       {
         id: `seed-${accountId}-1`,
         title: "Lektionsupplägg",
-        type: "text",
+        type: "word",
         content: `Att förbereda i ${subject}:<br>- Genomgång på tavlan<br>- Övningar i par<br>- Kort avstämning på slutet`,
         groupId: group,
         subject,
@@ -1227,7 +1309,7 @@ function defaultDocsFor(accountId) {
       {
         id: `seed-${accountId}-2`,
         title: "Skiss till tavlan",
-        type: "draw",
+        type: "onenote",
         content: "",
         groupId: group,
         subject,
@@ -1241,7 +1323,7 @@ function defaultDocsFor(accountId) {
     {
       id: `seed-${accountId}-1`,
       title: "Idéer inför nationella prov",
-      type: "text",
+      type: "word",
       content: "Saker att öva på:<br>- Ekvationer med två okända<br>- Källkritik i historia<br>- Oregelbundna verb i engelska",
       groupId: group,
       subject: "Matematik 2b",
@@ -1250,7 +1332,7 @@ function defaultDocsFor(accountId) {
     {
       id: `seed-${accountId}-2`,
       title: "Formelblad",
-      type: "draw",
+      type: "onenote",
       content: "",
       groupId: group,
       subject: "Matematik 2b",
@@ -1264,7 +1346,6 @@ const newDocBtn = document.getElementById("newDocBtn");
 const newDocForm = document.getElementById("newDocForm");
 const newDocInput = document.getElementById("newDocInput");
 const newDocSubject = document.getElementById("newDocSubject");
-const newDocType = document.getElementById("newDocType");
 const confirmNewDocBtn = document.getElementById("confirmNewDocBtn");
 const docToolbar = document.getElementById("docToolbar");
 const docTitleInput = document.getElementById("docTitleInput");
@@ -1405,7 +1486,7 @@ function isOwnMessage(msg) {
 }
 
 function docTypeLabel(type) {
-  return type === "draw" ? "Ritning" : "Dokument";
+  return officeApp(normalizeDocType(type)).name;
 }
 
 // A shared document is stored in the chat as a reference to the document
@@ -1425,7 +1506,7 @@ function buildDocMessageBubble(msg) {
 
   const icon = document.createElement("span");
   icon.className = "chat-message-doc-icon";
-  icon.textContent = msg.docType === "draw" ? "🎨" : "📝";
+  icon.textContent = officeApp(normalizeDocType(msg.docType)).icon;
 
   const body = document.createElement("span");
   body.className = "chat-message-doc-body";
@@ -1821,17 +1902,63 @@ function openDocPreview(doc) {
   docPreviewMeta.textContent = `${docTypeLabel(doc.type)}${doc.subject ? ` · ${doc.subject}` : ""} · delat med dig`;
   docPreviewBody.innerHTML = "";
 
-  if (doc.type === "draw") {
+  const app = normalizeDocType(doc.type);
+
+  if (app === "onenote") {
     const img = document.createElement("img");
     img.className = "doc-preview-image";
     img.alt = doc.title;
     img.style.background = doc.bgColor || "#ffffff";
     img.src = doc.content || "";
     docPreviewBody.appendChild(img);
+  } else if (app === "excel") {
+    // Trailing empty rows and columns are trimmed: a shared sheet should
+    // show the data, not the eleven blank rows below it.
+    const grid = sheetGrid(doc);
+    const lastRow = grid.reduce((last, row, r) => (row.some((c) => c !== "") ? r : last), -1);
+    const lastCol = grid.reduce(
+      (last, row) => row.reduce((inner, cell, c) => (cell !== "" ? Math.max(inner, c) : inner), last),
+      -1
+    );
+
+    const table = document.createElement("table");
+    table.className = "sheet-table doc-preview-sheet";
+    for (let r = 0; r <= lastRow; r += 1) {
+      const tr = document.createElement("tr");
+      for (let c = 0; c <= lastCol; c += 1) {
+        const td = document.createElement("td");
+        const shown = evaluateCell(grid, grid[r][c]);
+        td.textContent = shown;
+        if (shown !== "" && !Number.isNaN(Number(String(shown).replace(",", ".")))) {
+          td.classList.add("is-number");
+        }
+        tr.appendChild(td);
+      }
+      table.appendChild(tr);
+    }
+    if (lastRow < 0) table.textContent = "";
+    docPreviewBody.appendChild(table);
+  } else if (app === "powerpoint") {
+    slideDeck(doc).forEach((slide, index) => {
+      const card = document.createElement("div");
+      card.className = "doc-preview-slide";
+
+      const heading = document.createElement("h5");
+      heading.className = "doc-preview-slide-title";
+      heading.textContent = `${index + 1}. ${slide.title || "Rubrik"}`;
+
+      const body = document.createElement("p");
+      body.className = "doc-preview-slide-body";
+      body.textContent = slide.body;
+
+      card.appendChild(heading);
+      card.appendChild(body);
+      docPreviewBody.appendChild(card);
+    });
   } else {
     const text = document.createElement("div");
     text.className = "doc-preview-text";
-    text.innerHTML = doc.content || "";
+    text.innerHTML = typeof doc.content === "string" ? doc.content : "";
     docPreviewBody.appendChild(text);
   }
 
@@ -3391,7 +3518,9 @@ function readStoredArray(key) {
 function loadMindmapDocs() {
   const key = docsKeyFor(currentAccountId());
   const stored = readStoredArray(key);
-  if (stored !== null) return stored;
+  // Documents saved before the workspace became an app switcher carry the
+  // old "text"/"draw" kinds; they are Word and OneNote files now.
+  if (stored !== null) return stored.map((d) => ({ ...d, type: normalizeDocType(d.type) }));
   const seeded = defaultDocsFor(currentAccountId());
   localStorage.setItem(key, JSON.stringify(seeded));
   return seeded;
@@ -3437,6 +3566,11 @@ function reloadAccountDocuments() {
   currentDocId = null;
   activeGroupViewId = null;
   showEmptyState();
+
+  // Land on the new account's first file in the app the workspace is
+  // already in, rather than on an empty panel.
+  const first = mindmapDocs.find((d) => normalizeDocType(d.type) === activeAppId);
+  if (first) selectDoc(first.id);
 }
 
 function loadUngroupedCollapsed() {
@@ -3558,10 +3692,14 @@ function deleteGroupById(id) {
 function renderDocList() {
   docList.innerHTML = "";
 
-  if (mindmapDocs.length === 0) {
+  // The catalog is the active app's files only -- the same way the real
+  // Word only lists Word documents. Switching app switches the list.
+  const appDocs = mindmapDocs.filter((d) => normalizeDocType(d.type) === activeAppId);
+
+  if (appDocs.length === 0) {
     const empty = document.createElement("li");
     empty.className = "doc-list-empty";
-    empty.textContent = "Inga dokument än.";
+    empty.textContent = `Inget ${activeApp().name}-${activeApp().noun} än.`;
     docList.appendChild(empty);
     return;
   }
@@ -3573,12 +3711,12 @@ function renderDocList() {
 
     const label = document.createElement("span");
     label.className = "doc-list-label";
-    label.textContent = `${doc.type === "draw" ? "🎨" : "📝"} ${doc.title}`;
+    label.textContent = `${officeApp(doc.type).icon} ${doc.title}`;
     item.appendChild(label);
 
     item.appendChild(
       createDeleteControl({
-        category: doc.type === "draw" ? "drawings" : "docs",
+        category: isDrawDoc(doc) ? "drawings" : "docs",
         compact: true,
         onDelete: () => deleteDocById(doc.id),
       })
@@ -3649,8 +3787,8 @@ function renderDocList() {
     docList.appendChild(header);
   }
 
-  const ungrouped = mindmapDocs.filter((d) => !d.groupId);
-  const hasGroups = mindmapGroups.length > 0;
+  const ungrouped = appDocs.filter((d) => !d.groupId);
+  const hasGroups = mindmapGroups.some((g) => appDocs.some((d) => d.groupId === g.id));
 
   if (hasGroups && ungrouped.length > 0) {
     appendUngroupedHeader();
@@ -3660,27 +3798,632 @@ function renderDocList() {
   }
 
   mindmapGroups.forEach((group) => {
-    const docsInGroup = mindmapDocs.filter((d) => d.groupId === group.id);
+    const docsInGroup = appDocs.filter((d) => d.groupId === group.id);
     if (docsInGroup.length === 0) return;
     appendGroupHeader(group);
     if (!group.collapsed) docsInGroup.forEach(appendDocItem);
   });
 }
 
-function pluralizeDrawings(count) {
-  return count === 1 ? "ritning" : "ritningar";
-}
-
 function groupMetaLabel(docsInGroup, subject) {
-  const textCount = docsInGroup.filter((d) => d.type === "text").length;
-  const drawCount = docsInGroup.filter((d) => d.type === "draw").length;
-  const typeParts = [];
-  if (textCount > 0) typeParts.push(`${textCount} dokument`);
-  if (drawCount > 0) typeParts.push(`${drawCount} ${pluralizeDrawings(drawCount)}`);
+  // Named per app, so a group reads as "2 Word, 1 Excel" rather than
+  // flattening four different kinds of file into one word.
+  const typeParts = OFFICE_APPS.map((app) => {
+    const count = docsInGroup.filter((d) => normalizeDocType(d.type) === app.id).length;
+    return count > 0 ? `${count} ${app.name}` : null;
+  }).filter(Boolean);
   const typeLabel = typeParts.length > 0 ? typeParts.join(", ") : "inga projekt";
   const base = `${docsInGroup.length} projekt · ${typeLabel}`;
   return subject ? `${base} · ${subject}` : base;
 }
+
+// ---------- Excel: the spreadsheet surface ----------
+
+const SHEET_COLS = 8;
+const SHEET_ROWS = 14;
+
+const sheetArea = document.getElementById("sheetArea");
+const sheetTable = document.getElementById("sheetTable");
+const sheetCellRef = document.getElementById("sheetCellRef");
+const sheetFormula = document.getElementById("sheetFormula");
+const sheetAddRowBtn = document.getElementById("sheetAddRowBtn");
+const sheetAddColBtn = document.getElementById("sheetAddColBtn");
+
+let sheetSelection = { row: 0, col: 0 };
+
+function columnName(index) {
+  let name = "";
+  let n = index;
+  do {
+    name = String.fromCharCode(65 + (n % 26)) + name;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return name;
+}
+
+function emptyGrid(rows, cols) {
+  return Array.from({ length: rows }, () => Array.from({ length: cols }, () => ""));
+}
+
+// Stored content is a plain array of rows; anything else (an older text
+// document, a half-written value) is normalised rather than trusted.
+function sheetGrid(doc) {
+  const raw = Array.isArray(doc.content) ? doc.content : [];
+  const rows = Math.max(SHEET_ROWS, raw.length);
+  const cols = Math.max(SHEET_COLS, ...raw.map((r) => (Array.isArray(r) ? r.length : 0)));
+  return Array.from({ length: rows }, (_, r) =>
+    Array.from({ length: cols }, (_, c) => {
+      const row = raw[r];
+      const value = Array.isArray(row) ? row[c] : "";
+      return typeof value === "string" ? value : "";
+    })
+  );
+}
+
+// Only the handful of functions a school spreadsheet actually uses. A cell
+// starting with "=" is evaluated; everything else is literal text, so a
+// stray equals sign shows the formula rather than an error.
+function cellNumber(grid, ref) {
+  const match = /^([A-Z]+)(\d+)$/.exec(ref.trim().toUpperCase());
+  if (!match) return 0;
+  let col = 0;
+  for (const ch of match[1]) col = col * 26 + (ch.charCodeAt(0) - 64);
+  const value = (grid[Number(match[2]) - 1] || [])[col - 1];
+  return Number(String(value ?? "").replace(",", ".")) || 0;
+}
+
+function expandRange(grid, range) {
+  const [from, to] = range.split(":").map((r) => r.trim().toUpperCase());
+  if (!to) return [cellNumber(grid, from)];
+  const parse = (ref) => {
+    const m = /^([A-Z]+)(\d+)$/.exec(ref);
+    if (!m) return null;
+    let col = 0;
+    for (const ch of m[1]) col = col * 26 + (ch.charCodeAt(0) - 64);
+    return { col, row: Number(m[2]) };
+  };
+  const a = parse(from);
+  const b = parse(to);
+  if (!a || !b) return [];
+  const values = [];
+  for (let r = Math.min(a.row, b.row); r <= Math.max(a.row, b.row); r += 1) {
+    for (let c = Math.min(a.col, b.col); c <= Math.max(a.col, b.col); c += 1) {
+      values.push(cellNumber(grid, columnName(c - 1) + r));
+    }
+  }
+  return values;
+}
+
+const SHEET_FUNCTIONS = {
+  SUMMA: (v) => v.reduce((a, b) => a + b, 0),
+  SUM: (v) => v.reduce((a, b) => a + b, 0),
+  MEDEL: (v) => (v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0),
+  AVERAGE: (v) => (v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0),
+  MIN: (v) => (v.length ? Math.min(...v) : 0),
+  MAX: (v) => (v.length ? Math.max(...v) : 0),
+  ANTAL: (v) => v.length,
+  COUNT: (v) => v.length,
+};
+
+function evaluateCell(grid, raw) {
+  if (typeof raw !== "string" || !raw.startsWith("=")) return raw;
+
+  const body = raw.slice(1).trim();
+  const call = /^([A-ZÅÄÖa-zåäö]+)\((.*)\)$/.exec(body);
+  if (call) {
+    const fn = SHEET_FUNCTIONS[call[1].toUpperCase()];
+    if (!fn) return "#NAMN?";
+    const values = call[2]
+      .split(";")
+      .flatMap((part) => (part.includes(":") ? expandRange(grid, part) : [cellNumber(grid, part)]));
+    return String(Math.round(fn(values) * 1000) / 1000);
+  }
+
+  // A bare arithmetic expression over cell references, e.g. =B2*1.25.
+  const expression = body.replace(/[A-Z]+\d+/gi, (ref) => String(cellNumber(grid, ref)));
+  if (!/^[-+*/().\d\s]*$/.test(expression)) return "#FEL?";
+  try {
+    // eslint-disable-next-line no-new-func
+    const result = Function(`"use strict";return (${expression || 0});`)();
+    return Number.isFinite(result) ? String(Math.round(result * 1000) / 1000) : "#FEL?";
+  } catch (e) {
+    return "#FEL?";
+  }
+}
+
+function currentSheetDoc() {
+  const doc = mindmapDocs.find((d) => d.id === currentDocId);
+  return doc && normalizeDocType(doc.type) === "excel" ? doc : null;
+}
+
+// The table is built once per shape and repainted in place afterwards.
+// Rebuilding it on every commit detached the very cell being clicked --
+// the blur that commits the formula bar fires before the click lands, so
+// the click had nothing left to land on and the selection never moved.
+let sheetShape = { rows: 0, cols: 0 };
+
+function buildSheetTable(rows, cols) {
+  sheetShape = { rows, cols };
+  sheetTable.innerHTML = "";
+
+  const head = document.createElement("tr");
+  head.appendChild(document.createElement("th"));
+  for (let c = 0; c < cols; c += 1) {
+    const th = document.createElement("th");
+    th.textContent = columnName(c);
+    head.appendChild(th);
+  }
+  sheetTable.appendChild(head);
+
+  for (let r = 0; r < rows; r += 1) {
+    const tr = document.createElement("tr");
+    const rowHead = document.createElement("th");
+    rowHead.textContent = r + 1;
+    tr.appendChild(rowHead);
+
+    for (let c = 0; c < cols; c += 1) {
+      const td = document.createElement("td");
+      td.tabIndex = 0;
+      td.dataset.row = r;
+      td.dataset.col = c;
+      td.addEventListener("click", () => selectSheetCell(r, c));
+      tr.appendChild(td);
+    }
+    sheetTable.appendChild(tr);
+  }
+}
+
+function renderSheet() {
+  const doc = currentSheetDoc();
+  if (!doc) return;
+
+  const grid = sheetGrid(doc);
+  doc.content = grid;
+
+  const rows = grid.length;
+  const cols = grid[0].length;
+  if (sheetShape.rows !== rows || sheetShape.cols !== cols) buildSheetTable(rows, cols);
+
+  sheetTable.querySelectorAll("td").forEach((td) => {
+    const r = Number(td.dataset.row);
+    const c = Number(td.dataset.col);
+    const raw = grid[r][c];
+    const shown = evaluateCell(grid, raw);
+    td.textContent = shown;
+    td.classList.toggle("is-formula", raw.startsWith("="));
+    td.classList.toggle(
+      "is-number",
+      shown !== "" && !Number.isNaN(Number(String(shown).replace(",", ".")))
+    );
+    td.classList.toggle("is-selected", r === sheetSelection.row && c === sheetSelection.col);
+  });
+}
+
+function selectSheetCell(row, col) {
+  const doc = currentSheetDoc();
+  if (!doc) return;
+  sheetSelection = { row, col };
+  sheetCellRef.textContent = `${columnName(col)}${row + 1}`;
+  sheetFormula.value = (sheetGrid(doc)[row] || [])[col] || "";
+  renderSheet();
+}
+
+function commitSheetCell() {
+  const doc = currentSheetDoc();
+  if (!doc) return;
+  const grid = sheetGrid(doc);
+  if (grid[sheetSelection.row][sheetSelection.col] === sheetFormula.value) return;
+
+  grid[sheetSelection.row][sheetSelection.col] = sheetFormula.value;
+  doc.content = grid;
+  doc.updatedAt = Date.now();
+  saveMindmapDocs();
+  renderSheet();
+}
+
+sheetFormula.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  commitSheetCell();
+  const doc = currentSheetDoc();
+  if (doc) selectSheetCell(Math.min(sheetSelection.row + 1, sheetGrid(doc).length - 1), sheetSelection.col);
+});
+sheetFormula.addEventListener("blur", commitSheetCell);
+
+sheetAddRowBtn.addEventListener("click", () => {
+  const doc = currentSheetDoc();
+  if (!doc) return;
+  const grid = sheetGrid(doc);
+  grid.push(Array.from({ length: grid[0].length }, () => ""));
+  doc.content = grid;
+  saveMindmapDocs();
+  renderSheet();
+});
+
+sheetAddColBtn.addEventListener("click", () => {
+  const doc = currentSheetDoc();
+  if (!doc) return;
+  const grid = sheetGrid(doc).map((row) => [...row, ""]);
+  doc.content = grid;
+  saveMindmapDocs();
+  renderSheet();
+});
+
+// ---------- PowerPoint: the slide surface ----------
+
+const slidesArea = document.getElementById("slidesArea");
+const slidesList = document.getElementById("slidesList");
+const slideTitle = document.getElementById("slideTitle");
+const slideBody = document.getElementById("slideBody");
+const slideCounter = document.getElementById("slideCounter");
+const addSlideBtn = document.getElementById("addSlideBtn");
+const deleteSlideBtn = document.getElementById("deleteSlideBtn");
+
+let activeSlideIndex = 0;
+
+function emptySlide() {
+  return { title: "", body: "" };
+}
+
+function slideDeck(doc) {
+  const raw = Array.isArray(doc.content) ? doc.content : [];
+  const deck = raw
+    .filter((slide) => slide && typeof slide === "object")
+    .map((slide) => ({ title: String(slide.title || ""), body: String(slide.body || "") }));
+  return deck.length > 0 ? deck : [emptySlide()];
+}
+
+function currentSlideDoc() {
+  const doc = mindmapDocs.find((d) => d.id === currentDocId);
+  return doc && normalizeDocType(doc.type) === "powerpoint" ? doc : null;
+}
+
+// Thumbnails are rebuilt only when the deck's length changes, and
+// repainted in place otherwise. Rebuilding them on every edit detached
+// the thumbnail being clicked -- the blur that commits the slide fires
+// first, so the click landed on a node that no longer existed and the
+// deck never advanced.
+let slidesBuiltCount = -1;
+
+function buildSlideThumbs(count) {
+  slidesBuiltCount = count;
+  slidesList.innerHTML = "";
+
+  for (let index = 0; index < count; index += 1) {
+    const thumb = document.createElement("button");
+    thumb.type = "button";
+    thumb.className = "slide-thumb";
+    thumb.dataset.index = index;
+
+    const number = document.createElement("span");
+    number.className = "slide-thumb-number";
+    number.textContent = index + 1;
+
+    const preview = document.createElement("span");
+    preview.className = "slide-thumb-preview";
+    const heading = document.createElement("span");
+    heading.className = "slide-thumb-title";
+    const lines = document.createElement("span");
+    lines.className = "slide-thumb-body";
+    preview.appendChild(heading);
+    preview.appendChild(lines);
+
+    thumb.appendChild(number);
+    thumb.appendChild(preview);
+    thumb.addEventListener("click", () => {
+      activeSlideIndex = index;
+      renderSlides();
+    });
+    slidesList.appendChild(thumb);
+  }
+}
+
+function renderSlides() {
+  const doc = currentSlideDoc();
+  if (!doc) return;
+
+  const deck = slideDeck(doc);
+  doc.content = deck;
+  activeSlideIndex = Math.min(Math.max(activeSlideIndex, 0), deck.length - 1);
+
+  if (slidesBuiltCount !== deck.length) buildSlideThumbs(deck.length);
+
+  slidesList.querySelectorAll(".slide-thumb").forEach((thumb) => {
+    const index = Number(thumb.dataset.index);
+    const slide = deck[index];
+    thumb.classList.toggle("is-active", index === activeSlideIndex);
+    thumb.querySelector(".slide-thumb-title").textContent = slide.title || "Rubrik";
+    thumb.querySelector(".slide-thumb-body").textContent = slide.body
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .join(" · ")
+      .slice(0, 60);
+  });
+
+  const slide = deck[activeSlideIndex];
+  slideTitle.textContent = slide.title;
+  slideBody.textContent = slide.body;
+  slideCounter.textContent = `Bild ${activeSlideIndex + 1} av ${deck.length}`;
+  deleteSlideBtn.disabled = deck.length <= 1;
+}
+
+function commitSlide() {
+  const doc = currentSlideDoc();
+  if (!doc) return;
+  const deck = slideDeck(doc);
+  // innerText, not textContent: pressing Enter in a contenteditable makes
+  // block elements, and textContent would run the lines together into one
+  // unbroken string. innerText reports the breaks the user actually sees.
+  deck[activeSlideIndex] = {
+    title: slideTitle.innerText.replace(/\s+/g, " ").trim(),
+    body: slideBody.innerText.replace(/\u00a0/g, " ").replace(/\s+$/, ""),
+  };
+  doc.content = deck;
+  doc.updatedAt = Date.now();
+  saveMindmapDocs();
+}
+
+[slideTitle, slideBody].forEach((el) => {
+  // Painting in place on every keystroke keeps the thumbnail live without
+  // ever replacing the node the caret is in.
+  el.addEventListener("input", () => {
+    commitSlide();
+    const doc = currentSlideDoc();
+    if (!doc) return;
+    const deck = slideDeck(doc);
+    const thumb = slidesList.querySelector(`.slide-thumb[data-index="${activeSlideIndex}"]`);
+    if (!thumb) return;
+    thumb.querySelector(".slide-thumb-title").textContent = deck[activeSlideIndex].title || "Rubrik";
+    thumb.querySelector(".slide-thumb-body").textContent = deck[activeSlideIndex].body
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .join(" · ")
+      .slice(0, 60);
+  });
+  el.addEventListener("blur", commitSlide);
+});
+
+addSlideBtn.addEventListener("click", () => {
+  const doc = currentSlideDoc();
+  if (!doc) return;
+  const deck = slideDeck(doc);
+  deck.splice(activeSlideIndex + 1, 0, emptySlide());
+  doc.content = deck;
+  activeSlideIndex += 1;
+  saveMindmapDocs();
+  renderSlides();
+  slideTitle.focus();
+});
+
+deleteSlideBtn.addEventListener("click", () => {
+  const doc = currentSlideDoc();
+  if (!doc) return;
+  const deck = slideDeck(doc);
+  if (deck.length <= 1) return;
+  deck.splice(activeSlideIndex, 1);
+  doc.content = deck;
+  activeSlideIndex = Math.max(0, activeSlideIndex - 1);
+  saveMindmapDocs();
+  renderSlides();
+});
+
+// The shape an app's editor expects from a brand new document.
+function emptyContentFor(type) {
+  const app = normalizeDocType(type);
+  if (app === "excel") return emptyGrid(SHEET_ROWS, SHEET_COLS);
+  if (app === "powerpoint") return [emptySlide()];
+  return "";
+}
+
+// ---------- Switching between the Microsoft apps ----------
+
+const appSwitcher = document.getElementById("appSwitcher");
+const appSwitcherList = document.getElementById("appSwitcherList");
+const appSwitcherArrow = document.getElementById("appSwitcherArrow");
+const appSwitcherEmbed = document.getElementById("appSwitcherEmbed");
+const officeSwitchBtn = document.getElementById("officeSwitchBtn");
+const officeAppBadge = document.getElementById("officeAppBadge");
+const officeAppName = document.getElementById("officeAppName");
+const officeAppTagline = document.getElementById("officeAppTagline");
+const docListTitle = document.getElementById("docListTitle");
+const newDocBtnLabel = document.getElementById("newDocBtnLabel");
+
+// Every surface the workspace can show. Switching app or opening a
+// document hides all of them and un-hides the one that applies, so no two
+// editors can ever be on screen at once.
+function hideAllWorkspaceViews() {
+  textEditor.hidden = true;
+  textToolbar.hidden = true;
+  drawArea.hidden = true;
+  sheetArea.hidden = true;
+  slidesArea.hidden = true;
+  officeEmbedView.hidden = true;
+  groupView.hidden = true;
+  mindmapEmpty.hidden = true;
+}
+
+function renderAppSwitcher() {
+  appSwitcherList.innerHTML = "";
+  OFFICE_APPS.forEach((app) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `app-switcher-item${app.id === activeAppId ? " is-active" : ""}`;
+
+    const badge = document.createElement("span");
+    badge.className = "office-app-badge office-app-badge-sm";
+    badge.style.background = app.color;
+    badge.textContent = app.initial;
+
+    const name = document.createElement("span");
+    name.textContent = app.name;
+
+    btn.appendChild(badge);
+    btn.appendChild(name);
+    btn.addEventListener("click", () => {
+      closeAppSwitcher();
+      setActiveApp(app.id);
+    });
+    appSwitcherList.appendChild(btn);
+  });
+}
+
+function openAppSwitcher() {
+  renderAppSwitcher();
+  appSwitcher.hidden = false;
+
+  // Anchored under whichever control opened it, and nudged back inside the
+  // window if the tab sits near the right edge.
+  const anchor = appSwitcherArrow.getClientRects().length
+    ? appSwitcherArrow
+    : officeSwitchBtn;
+  const rect = anchor.getBoundingClientRect();
+  const width = appSwitcher.offsetWidth;
+  appSwitcher.style.top = `${rect.bottom + 8}px`;
+  appSwitcher.style.left = `${Math.max(8, Math.min(rect.left - 12, window.innerWidth - width - 8))}px`;
+}
+
+function closeAppSwitcher() {
+  appSwitcher.hidden = true;
+}
+
+function toggleAppSwitcher() {
+  if (appSwitcher.hidden) openAppSwitcher();
+  else closeAppSwitcher();
+}
+
+// The workspace tab shows the app it is currently in, so the tab bar reads
+// "Word"/"Excel" rather than one generic name for four different tools.
+function syncAppChrome() {
+  const app = activeApp();
+  const tabBtn = document.querySelector('.tab-btn[data-tab="mindmap"] .tab-btn-label');
+  if (tabBtn) tabBtn.textContent = `${app.icon} ${app.name}`;
+
+  officeAppBadge.textContent = app.initial;
+  officeAppBadge.style.background = app.color;
+  officeAppName.textContent = app.name;
+  officeAppTagline.textContent = app.tagline;
+  docListTitle.textContent = app.name;
+  newDocBtnLabel.textContent = `➕ Nytt ${app.name}-${app.noun}`;
+  newDocInput.placeholder = app.newTitle;
+}
+
+function setActiveApp(appId, options) {
+  activeAppId = normalizeDocType(appId);
+  localStorage.setItem(ACTIVE_APP_KEY, activeAppId);
+  syncAppChrome();
+
+  // Leaving an app closes its document: the catalog now lists another
+  // app's files, so keeping one open would show an editor for a document
+  // no longer in the list.
+  if (!(options && options.keepDoc)) {
+    currentDocId = null;
+    activeGroupViewId = null;
+    showEmptyState();
+  }
+  renderDocList();
+  renderGroupList();
+}
+
+appSwitcherArrow.addEventListener("click", (event) => {
+  // The arrow lives inside the tab button, which would otherwise just
+  // activate the tab and swallow the click.
+  event.stopPropagation();
+  event.preventDefault();
+  activateTab("mindmap");
+  toggleAppSwitcher();
+});
+
+appSwitcherArrow.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  event.stopPropagation();
+  event.preventDefault();
+  activateTab("mindmap");
+  toggleAppSwitcher();
+});
+
+// Dragging the tab to dock it must not start from the arrow -- that press
+// is aimed at the menu, not at the tab.
+appSwitcherArrow.addEventListener("mousedown", (event) => event.stopPropagation());
+appSwitcherArrow.addEventListener("dragstart", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+});
+
+officeSwitchBtn.addEventListener("click", (event) => {
+  event.stopPropagation();
+  toggleAppSwitcher();
+});
+
+document.addEventListener("click", (event) => {
+  if (appSwitcher.hidden) return;
+  if (appSwitcher.contains(event.target)) return;
+  if (appSwitcherArrow.contains(event.target) || officeSwitchBtn.contains(event.target)) return;
+  closeAppSwitcher();
+});
+
+window.addEventListener("resize", () => {
+  if (!appSwitcher.hidden) openAppSwitcher();
+});
+
+// ---------- The Microsoft 365 frame ----------
+
+const officeEmbedView = document.getElementById("officeEmbedView");
+const officeFrame = document.getElementById("officeFrame");
+const officeEmbedUrl = document.getElementById("officeEmbedUrl");
+const officeEmbedBadge = document.getElementById("officeEmbedBadge");
+const officeEmbedLoadBtn = document.getElementById("officeEmbedLoadBtn");
+const officeEmbedOpenBtn = document.getElementById("officeEmbedOpenBtn");
+const officeEmbedBlocked = document.getElementById("officeEmbedBlocked");
+const officeEmbedBlockedIcon = document.getElementById("officeEmbedBlockedIcon");
+const officeEmbedBlockedTitle = document.getElementById("officeEmbedBlockedTitle");
+const officeEmbedBlockedOpenBtn = document.getElementById("officeEmbedBlockedOpenBtn");
+
+function loadOfficeFrame(url) {
+  officeEmbedUrl.value = url;
+  // A refused frame still fires load (it loads the browser's own error
+  // page) and is cross-origin either way, so there is no reliable way to
+  // ask whether it rendered. The explanation therefore sits under the
+  // frame permanently instead of being toggled on a guess.
+  officeFrame.src = url;
+}
+
+function openOfficeEmbed() {
+  const app = activeApp();
+  hideAllWorkspaceViews();
+  officeEmbedView.hidden = false;
+  docToolbar.hidden = true;
+  currentDocId = null;
+  activeGroupViewId = null;
+
+  officeEmbedBadge.textContent = app.initial;
+  officeEmbedBadge.style.background = app.color;
+  officeEmbedBlockedIcon.textContent = app.initial;
+  officeEmbedBlockedIcon.style.background = app.color;
+  officeEmbedBlockedTitle.textContent = `${app.name} kan inte visas i en iframe`;
+  officeEmbedBlockedOpenBtn.textContent = `↗ Öppna ${app.name} i en ny flik`;
+  loadOfficeFrame(app.url);
+  renderDocList();
+}
+
+appSwitcherEmbed.addEventListener("click", () => {
+  closeAppSwitcher();
+  activateTab("mindmap");
+  openOfficeEmbed();
+});
+
+officeEmbedLoadBtn.addEventListener("click", () => loadOfficeFrame(officeEmbedUrl.value.trim()));
+officeEmbedUrl.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") loadOfficeFrame(officeEmbedUrl.value.trim());
+});
+
+[officeEmbedOpenBtn, officeEmbedBlockedOpenBtn].forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const url = officeEmbedUrl.value.trim() || activeApp().url;
+    window.open(url, "_blank", "noopener");
+  });
+});
 
 function goToMindmapDoc(docId) {
   activateTab("mindmap");
@@ -3740,7 +4483,7 @@ function buildGroupBox(name, groupId, docsInGroup, collapsed, onToggle, showDele
     docsInGroup.forEach((doc) => {
       const item = document.createElement("div");
       item.className = "group-dock-item";
-      item.textContent = `${doc.type === "draw" ? "🎨" : "📝"} ${doc.title}`;
+      item.textContent = `${officeApp(doc.type).icon} ${doc.title}`;
       item.addEventListener("click", () => goToMindmapDoc(doc.id));
       body.appendChild(item);
     });
@@ -3857,10 +4600,7 @@ function showGroupView(groupId) {
   closeSendDocPopover();
 
   docToolbar.hidden = true;
-  textEditor.hidden = true;
-  textToolbar.hidden = true;
-  drawArea.hidden = true;
-  mindmapEmpty.hidden = true;
+  hideAllWorkspaceViews();
   groupView.hidden = false;
 
   deleteDocArm.disarm();
@@ -3877,11 +4617,10 @@ function showEmptyState() {
   activeGroupViewId = null;
   closeSendDocPopover();
   docToolbar.hidden = true;
-  textEditor.hidden = true;
-  textToolbar.hidden = true;
-  drawArea.hidden = true;
-  groupView.hidden = true;
+  hideAllWorkspaceViews();
   mindmapEmpty.hidden = false;
+  mindmapEmpty.textContent =
+    `Välj ett ${activeApp().name}-${activeApp().noun} i listan till vänster, eller skapa ett nytt.`;
   deleteDocArm.disarm();
   clearCanvasArm.disarm();
   bucketActive = false;
@@ -4046,16 +4785,30 @@ function selectDoc(id) {
   undoStack = [];
   updateUndoButtonState();
 
-  if (doc.type === "text") {
+  // Opening a document also switches the workspace to the app that made
+  // it -- following a link from a chat can land on any of the four.
+  const app = normalizeDocType(doc.type);
+  if (app !== activeAppId) setActiveApp(app, { keepDoc: true });
+
+  hideAllWorkspaceViews();
+
+  if (app === "word") {
     textEditor.hidden = false;
     textToolbar.hidden = false;
-    drawArea.hidden = true;
-    textEditor.innerHTML = doc.content || "";
+    textEditor.innerHTML = typeof doc.content === "string" ? doc.content : "";
     updateEditorPlaceholder();
     updateToolbarState();
+  } else if (app === "excel") {
+    sheetArea.hidden = false;
+    sheetSelection = { row: 0, col: 0 };
+    sheetShape = { rows: 0, cols: 0 };
+    selectSheetCell(0, 0);
+  } else if (app === "powerpoint") {
+    slidesArea.hidden = false;
+    activeSlideIndex = 0;
+    slidesBuiltCount = -1;
+    renderSlides();
   } else {
-    textEditor.hidden = true;
-    textToolbar.hidden = true;
     drawArea.hidden = false;
     loadDrawDocIntoCanvas(doc);
     updateBgColorUI(doc.bgColor || "#ffffff");
@@ -4076,7 +4829,7 @@ function createDoc(type, title, subject, groupId) {
     id: `doc-${Date.now()}`,
     title,
     type,
-    content: "",
+    content: emptyContentFor(type),
     bgColor: "#ffffff",
     groupId: groupId || null,
     subject: subject || "",
@@ -4169,10 +4922,9 @@ function submitNewDoc() {
     subject = targetGroup.subject;
   }
 
-  createDoc(newDocType.value, title, subject, targetGroupId);
+  createDoc(activeAppId, title, subject, targetGroupId);
   newDocInput.value = "";
   newDocSubject.value = "";
-  newDocType.value = "text";
   newDocForm.hidden = true;
   newDocBtn.classList.remove("open");
 }
@@ -4187,7 +4939,7 @@ const deleteDocArm = armConfirm(deleteDocBtn, "Säker? Klicka igen", deleteCurre
 docTitleInput.addEventListener("input", () => {
   const doc = mindmapDocs.find((d) => d.id === currentDocId);
   if (!doc) return;
-  doc.title = docTitleInput.value.trim() || (doc.type === "draw" ? "Namnlös ritning" : "Namnlöst dokument");
+  doc.title = docTitleInput.value.trim() || officeApp(doc.type).newTitle;
   doc.updatedAt = Date.now();
   saveMindmapDocs();
   renderDocList();
@@ -4798,7 +5550,7 @@ fitViewBtn.addEventListener("click", fitDrawView);
 
 orientationBtn.addEventListener("click", () => {
   const doc = mindmapDocs.find((d) => d.id === currentDocId);
-  if (!doc || doc.type !== "draw") return;
+  if (!isDrawDoc(doc)) return;
   setDrawOrientation(doc, (doc.orientation || "landscape") === "portrait" ? "landscape" : "portrait");
 });
 
@@ -4828,7 +5580,7 @@ drawCanvasWrap.addEventListener(
 // many times it's applied.
 function setDrawingBackground(newColor) {
   const doc = mindmapDocs.find((d) => d.id === currentDocId);
-  if (!doc || doc.type !== "draw") return;
+  if (!isDrawDoc(doc)) return;
   if (doc.bgColor === newColor) return;
 
   doc.bgColor = newColor;
@@ -4943,7 +5695,7 @@ eyedropperBtn.addEventListener("click", () => {
 // against a drastic shrink pushing the canvas fully out of view.
 window.addEventListener("resize", () => {
   const doc = mindmapDocs.find((d) => d.id === currentDocId);
-  if (doc && doc.type === "draw" && !drawArea.hidden) {
+  if (isDrawDoc(doc) && !drawArea.hidden) {
     clampDrawPan();
     applyDrawTransform();
   }
@@ -4976,8 +5728,14 @@ renderTeachersBreadcrumb();
 renderSubjects();
 renderSubjectsBreadcrumb();
 
-if (mindmapDocs.length > 0) {
-  selectDoc(mindmapDocs[0].id);
+syncAppChrome();
+
+// Open the active app's first document, if it has one. A document of some
+// other app must not be opened here: that would silently switch the
+// workspace away from the app the user left it in.
+const firstAppDoc = mindmapDocs.find((d) => normalizeDocType(d.type) === activeAppId);
+if (firstAppDoc) {
+  selectDoc(firstAppDoc.id);
 } else {
   showEmptyState();
 }

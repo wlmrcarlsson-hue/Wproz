@@ -96,7 +96,11 @@
         <span class="tab-btn-nested" hidden></span>
       </button>
       <button class="tab-btn" data-tab="mindmap" draggable="true">
-        <span class="tab-btn-label">🧠 Mindmap</span>
+        <span class="tab-btn-line">
+          <span class="tab-btn-label">📄 Word</span>
+          <span id="appSwitcherArrow" class="tab-btn-apps" role="button" tabindex="0"
+            title="Byt Microsoft-app" aria-label="Byt Microsoft-app">▾</span>
+        </span>
         <span class="tab-btn-nested" hidden></span>
       </button>
       <button class="tab-btn" data-tab="teachers" draggable="true">
@@ -113,6 +117,15 @@
       </button>
     </nav>
   </header>
+
+  <div id="appSwitcher" class="app-switcher" hidden>
+    <div id="appSwitcherList" class="app-switcher-list"></div>
+    <div class="app-switcher-sep"></div>
+    <button id="appSwitcherEmbed" type="button" class="app-switcher-item app-switcher-embed">
+      <span class="app-switcher-embed-icon">⤓</span>
+      <span>Öppna Microsoft 365 i appen</span>
+    </button>
+  </div>
 
   <button id="settingsBtn" class="settings-btn" aria-label="Temainställningar" title="Temainställningar">⚙️</button>
 
@@ -271,11 +284,11 @@
     <section id="mindmap" class="page">
       <div class="page-layout">
         <aside class="catalog">
-          <h4 class="catalog-title doc-list-title">Dokument</h4>
+          <h4 id="docListTitle" class="catalog-title doc-list-title">Word</h4>
 
           <div id="newDocRow" class="new-group-row">
             <button id="newDocBtn" class="doc-new-btn doc-new-btn-toggle">
-              <span>➕ Nytt dokument</span>
+              <span id="newDocBtnLabel">➕ Nytt Word-dokument</span>
               <span class="doc-new-btn-arrow">▾</span>
             </button>
             <div id="newDocForm" class="new-group-form" hidden>
@@ -289,10 +302,6 @@
                 <option value="Fysik 2">Fysik 2</option>
                 <option value="Historia 1b">Historia 1b</option>
                 <option value="Programmering 1">Programmering 1</option>
-              </select>
-              <select id="newDocType" class="group-subject-select">
-                <option value="text">📝 Dokument</option>
-                <option value="draw">🎨 Ritning</option>
               </select>
               <button id="confirmNewDocBtn" class="doc-new-btn">Skapa</button>
             </div>
@@ -327,7 +336,15 @@
 
         <div class="page-body">
           <div class="panel mindmap-panel">
-            <h3>Mindmap</h3>
+            <div class="office-header">
+              <span id="officeAppBadge" class="office-app-badge">W</span>
+              <div class="office-header-text">
+                <h3 id="officeAppName">Word</h3>
+                <p id="officeAppTagline" class="muted office-app-tagline"></p>
+              </div>
+              <button id="officeSwitchBtn" type="button" class="draw-tool-btn office-switch-btn"
+                title="Byt Microsoft-app">Byt app ▾</button>
+            </div>
 
             <div id="docToolbar" class="doc-toolbar" hidden>
               <input id="docTitleInput" class="doc-title-input" type="text" placeholder="Namnlöst dokument" />
@@ -427,6 +444,73 @@
                     <button id="colorPickerCancelBtn" type="button" class="draw-tool-btn">Avbryt</button>
                     <button id="colorPickerApplyBtn" type="button" class="doc-new-btn">Använd</button>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="sheetArea" class="sheet-area" hidden>
+              <div class="sheet-toolbar">
+                <span id="sheetCellRef" class="sheet-cell-ref">A1</span>
+                <input id="sheetFormula" class="doc-title-input sheet-formula" type="text"
+                  placeholder="Skriv i cellen, eller =SUMMA(A1:A5)" />
+                <button id="sheetAddRowBtn" type="button" class="draw-tool-btn" title="Lägg till rad">＋ Rad</button>
+                <button id="sheetAddColBtn" type="button" class="draw-tool-btn" title="Lägg till kolumn">＋ Kolumn</button>
+              </div>
+              <div class="sheet-scroll">
+                <table id="sheetTable" class="sheet-table"></table>
+              </div>
+            </div>
+
+            <div id="slidesArea" class="slides-area" hidden>
+              <aside class="slides-strip">
+                <div id="slidesList" class="slides-list"></div>
+                <button id="addSlideBtn" type="button" class="doc-new-btn slides-add-btn">➕ Ny bild</button>
+              </aside>
+              <div class="slides-stage">
+                <div id="slideCanvas" class="slide-canvas">
+                  <div id="slideTitle" class="slide-title" contenteditable="true"
+                    data-placeholder="Rubrik"></div>
+                  <div id="slideBody" class="slide-body" contenteditable="true"
+                    data-placeholder="Skriv punkter här…"></div>
+                </div>
+                <div class="slides-stage-actions">
+                  <p id="slideCounter" class="muted slide-counter"></p>
+                  <button id="deleteSlideBtn" type="button" class="draw-tool-btn">🗑 Ta bort bilden</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="officeEmbedView" class="office-embed" hidden>
+              <div class="office-embed-bar">
+                <span id="officeEmbedBadge" class="office-app-badge office-app-badge-sm">W</span>
+                <input id="officeEmbedUrl" class="doc-title-input office-embed-url" type="text"
+                  spellcheck="false" />
+                <button id="officeEmbedLoadBtn" type="button" class="draw-tool-btn">↻ Ladda</button>
+                <button id="officeEmbedOpenBtn" type="button" class="doc-new-btn">↗ Öppna i ny flik</button>
+              </div>
+
+              <div class="office-embed-frame-wrap">
+                <iframe id="officeFrame" class="office-embed-frame" title="Microsoft 365"
+                  referrerpolicy="no-referrer"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+
+                <div id="officeEmbedBlocked" class="office-embed-blocked">
+                  <span id="officeEmbedBlockedIcon" class="office-app-badge office-app-badge-lg">W</span>
+                  <h4 id="officeEmbedBlockedTitle">Word kan inte visas i en iframe</h4>
+                  <p class="office-embed-blocked-text">
+                    Microsoft skickar <code>X-Frame-Options</code> på sina 365-appar, vilket säger åt
+                    webbläsaren att vägra rita upp dem inuti en annan sida. Det är en spärr i
+                    webbläsaren och går inte att kringgå från den här sidan.
+                  </p>
+                  <p class="office-embed-blocked-text muted">
+                    Ramen ovan är en riktig iframe och laddar adressen i fältet. Klistra in en
+                    inbäddningslänk som tillåter det — t.ex. en delad OneDrive-länk via
+                    <code>view.officeapps.live.com/op/embed.aspx</code> — så ritas dokumentet upp här.
+                    Annars öppnar knappen appen i en egen flik.
+                  </p>
+                  <button id="officeEmbedBlockedOpenBtn" type="button" class="doc-new-btn">
+                    ↗ Öppna Word i en ny flik
+                  </button>
                 </div>
               </div>
             </div>

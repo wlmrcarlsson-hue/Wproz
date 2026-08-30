@@ -1,3 +1,11 @@
+/* A layout class with its own `display` outranks the browser's [hidden]
+   rule, so any element given `display: flex` here would stay on screen
+   while its .hidden flag said otherwise. Settling it once, up front,
+   keeps every panel in the app honest about being hidden. */
+[hidden] {
+  display: none !important;
+}
+
 :root {
   --hue: 224;
   --sat: 63%;
@@ -2788,4 +2796,513 @@ body {
   width: 100%;
   height: auto;
   border-radius: 4px;
+}
+
+/* ---------- Microsoft 365 workspace ---------- */
+
+/* The arrow that opens the app launcher, sitting inside the tab button. */
+/* The app arrow rides next to the label rather than dropping onto the
+   row below it -- the tab is a column flex (the nested-tab chip sits
+   under the name), so an inline child would otherwise land dead centre
+   and swallow clicks aimed at the tab itself. */
+.tab-btn-line {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-btn-apps {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  border-radius: 5px;
+  font-size: 0.7rem;
+  line-height: 1;
+  color: var(--text-dim);
+  background: var(--surface-2);
+  border: 1px solid var(--line-soft);
+  transition: background 0.16s var(--ease), color 0.16s var(--ease);
+}
+
+.tab-btn-apps:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+.tab-btn.active .tab-btn-apps {
+  color: var(--text-strong);
+}
+
+.app-switcher {
+  position: fixed;
+  z-index: 60;
+  min-width: 250px;
+  padding: 6px;
+  background: var(--popover-bg);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: var(--blur);
+}
+
+.app-switcher-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.app-switcher-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.86rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.16s var(--ease);
+}
+
+.app-switcher-item:hover {
+  background: var(--surface-hover);
+}
+
+.app-switcher-item.is-active {
+  border-color: var(--accent-line);
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.app-switcher-sep {
+  height: 1px;
+  margin: 6px 4px;
+  background: var(--line);
+}
+
+.app-switcher-embed {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+}
+
+.app-switcher-embed-icon {
+  width: 26px;
+  text-align: center;
+  font-size: 1rem;
+}
+
+/* The square initial Microsoft uses as an app mark. */
+.office-app-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  background: #2b579a;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1.05rem;
+  flex: none;
+}
+
+.office-app-badge-sm {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  font-size: 0.72rem;
+}
+
+.office-app-badge-lg {
+  width: 52px;
+  height: 52px;
+  border-radius: 11px;
+  font-size: 1.6rem;
+}
+
+.office-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.office-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.office-header-text h3 {
+  margin: 0;
+}
+
+.office-app-tagline {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+}
+
+.office-switch-btn {
+  flex: none;
+}
+
+/* ---------- Excel ---------- */
+
+.sheet-area {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  flex: 1;
+}
+
+.sheet-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sheet-cell-ref {
+  flex: none;
+  min-width: 52px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  color: var(--text-strong);
+  font-weight: 650;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.sheet-formula {
+  flex: 1;
+  min-width: 0;
+  font-family: "Cascadia Code", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.82rem;
+}
+
+.sheet-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+}
+
+.sheet-table {
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.sheet-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  min-width: 34px;
+  padding: 5px 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--text-faint);
+  font-weight: 650;
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.sheet-table tr > th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+
+.sheet-table td {
+  min-width: 96px;
+  max-width: 200px;
+  height: 26px;
+  padding: 4px 8px;
+  border: 1px solid var(--line-soft);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: cell;
+}
+
+/* Numbers right-align, the way a spreadsheet reads. */
+.sheet-table td.is-number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A computed cell shows its result; the formula lives in the bar above. */
+.sheet-table td.is-formula {
+  color: var(--accent);
+}
+
+.sheet-table td.is-selected {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: var(--accent-soft);
+}
+
+/* ---------- PowerPoint ---------- */
+
+.slides-area {
+  display: flex;
+  gap: 14px;
+  min-height: 0;
+  flex: 1;
+}
+
+.slides-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 168px;
+  flex: none;
+  min-height: 0;
+}
+
+.slides-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+}
+
+.slide-thumb {
+  display: flex;
+  align-items: stretch;
+  gap: 7px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.slide-thumb-number {
+  width: 16px;
+  flex: none;
+  padding-top: 4px;
+  color: var(--text-faint);
+  font-size: 0.7rem;
+  text-align: right;
+}
+
+.slide-thumb-preview {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  aspect-ratio: 16 / 9;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.slide-thumb.is-active .slide-thumb-preview {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-line);
+}
+
+.slide-thumb-title {
+  color: var(--text-strong);
+  font-size: 0.66rem;
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slide-thumb-body {
+  color: var(--text-faint);
+  font-size: 0.58rem;
+  line-height: 1.35;
+  overflow: hidden;
+}
+
+.slides-add-btn {
+  flex: none;
+}
+
+.slides-stage {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* A real 16:9 sheet, so what you type is laid out like a slide. */
+.slide-canvas {
+  flex: none;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  max-height: 100%;
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 34px 40px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  overflow: auto;
+}
+
+.slide-title {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--text-strong);
+  outline: none;
+  line-height: 1.2;
+}
+
+.slide-body {
+  flex: 1;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--text);
+  outline: none;
+  white-space: pre-wrap;
+}
+
+.slide-title:empty::before,
+.slide-body:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-faint);
+}
+
+.slides-stage-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.slide-counter {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+/* ---------- The Microsoft 365 frame ---------- */
+
+.office-embed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  flex: 1;
+}
+
+.office-embed-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.office-embed-url {
+  flex: 1;
+  min-width: 0;
+  font-family: "Cascadia Code", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.78rem;
+}
+
+.office-embed-frame-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 320px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.office-embed-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+/* Sits over the frame rather than replacing it: the iframe underneath is
+   real and still loads, this explains what you will (not) see in it. */
+.office-embed-blocked {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 18px 20px;
+  background: var(--popover-bg);
+  border-top: 1px solid var(--line);
+  backdrop-filter: var(--blur);
+}
+
+.office-embed-blocked h4 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 0.95rem;
+}
+
+.office-embed-blocked-text {
+  margin: 0;
+  max-width: 68ch;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.office-embed-blocked code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  font-family: "Cascadia Code", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.76rem;
+}
+
+/* A shared spreadsheet or deck in the read-only viewer. */
+.doc-preview-sheet td {
+  min-width: 72px;
+}
+
+.doc-preview-slide {
+  padding: 12px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  background: var(--surface-2);
+}
+
+.doc-preview-slide + .doc-preview-slide {
+  margin-top: 10px;
+}
+
+.doc-preview-slide-title {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+  color: var(--text-strong);
+}
+
+.doc-preview-slide-body {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.6;
+  color: var(--text-dim);
+  white-space: pre-wrap;
 }
