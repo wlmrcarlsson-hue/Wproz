@@ -397,6 +397,113 @@ assignmentsCatalog.querySelectorAll("li").forEach((li) => {
   });
 });
 
+// ---------- Startup screen (role picker + login gate) ----------
+
+// The login is deliberately decorative: this is a local prototype with no
+// server and no accounts, so it validates that both fields are filled and
+// nothing more. Only the chosen role is remembered -- the password is
+// never stored anywhere.
+const SESSION_KEY = "schoolos-session";
+
+const ROLE_LABELS = {
+  larare: "Lärare",
+  elev: "Elev",
+  foralder: "Förälder",
+};
+
+const startupScreen = document.getElementById("startupScreen");
+const startupRoleStep = document.getElementById("startupRoleStep");
+const startupLoginStep = document.getElementById("startupLoginStep");
+const startupLoginRole = document.getElementById("startupLoginRole");
+const startupUser = document.getElementById("startupUser");
+const startupPass = document.getElementById("startupPass");
+const startupError = document.getElementById("startupError");
+const startupBackBtn = document.getElementById("startupBackBtn");
+const backToStartBtn = document.getElementById("backToStartBtn");
+
+let pendingRole = null;
+
+function loadSession() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SESSION_KEY));
+    if (saved && ROLE_LABELS[saved.role]) return saved;
+  } catch (e) {
+    // ignore malformed storage
+  }
+  return null;
+}
+
+function showRoleStep() {
+  pendingRole = null;
+  startupLoginStep.hidden = true;
+  startupRoleStep.hidden = false;
+  startupError.hidden = true;
+  startupUser.value = "";
+  startupPass.value = "";
+}
+
+function showLoginStep(role) {
+  pendingRole = role;
+  startupLoginRole.textContent = `Loggar in som ${ROLE_LABELS[role]}`;
+  startupRoleStep.hidden = true;
+  startupLoginStep.hidden = false;
+  startupError.hidden = true;
+  startupUser.focus();
+}
+
+function openStartupScreen() {
+  startupScreen.hidden = false;
+  backToStartBtn.hidden = true;
+  showRoleStep();
+}
+
+function closeStartupScreen() {
+  startupScreen.hidden = true;
+  backToStartBtn.hidden = false;
+}
+
+function signIn(role, user) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ role, user }));
+  backToStartBtn.title = `${ROLE_LABELS[role]} · Till startmenyn`;
+  closeStartupScreen();
+}
+
+function signOut() {
+  localStorage.removeItem(SESSION_KEY);
+  openStartupScreen();
+}
+
+document.querySelectorAll(".startup-role").forEach((btn) => {
+  btn.addEventListener("click", () => showLoginStep(btn.dataset.role));
+});
+
+startupBackBtn.addEventListener("click", showRoleStep);
+
+startupLoginStep.addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (!pendingRole) return;
+
+  const user = startupUser.value.trim();
+  if (!user || !startupPass.value) {
+    startupError.hidden = false;
+    return;
+  }
+
+  signIn(pendingRole, user);
+});
+
+// The arrow returns to the start menu, which is also the login gate -- so
+// going back means signing out and picking a role again.
+backToStartBtn.addEventListener("click", signOut);
+
+const existingSession = loadSession();
+if (existingSession) {
+  backToStartBtn.title = `${ROLE_LABELS[existingSession.role]} · Till startmenyn`;
+  closeStartupScreen();
+} else {
+  openStartupScreen();
+}
+
 // ---------- UI style ----------
 
 // Each style is a token block in the stylesheet, selected by an attribute

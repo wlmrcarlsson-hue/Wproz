@@ -8,6 +8,66 @@
 </head>
 <body>
 
+  <div id="startupScreen" class="startup-screen" hidden>
+    <div class="startup-card">
+      <h1 class="startup-logo">SCHOOL OS</h1>
+
+      <div id="startupRoleStep">
+        <p class="startup-lead">Välj hur du vill logga in.</p>
+        <div class="startup-role-list">
+          <button type="button" class="startup-role" data-role="larare">
+            <span class="startup-role-icon">👩‍🏫</span>
+            <span class="startup-role-body">
+              <span class="startup-role-name">Lärare</span>
+              <span class="startup-role-desc">Planering, klasser och elevernas inlämningar</span>
+            </span>
+          </button>
+          <button type="button" class="startup-role" data-role="elev">
+            <span class="startup-role-icon">🎓</span>
+            <span class="startup-role-body">
+              <span class="startup-role-name">Elev</span>
+              <span class="startup-role-desc">Schema, uppgifter, anteckningar och läromedel</span>
+            </span>
+          </button>
+          <button type="button" class="startup-role" data-role="foralder">
+            <span class="startup-role-icon">👪</span>
+            <span class="startup-role-body">
+              <span class="startup-role-name">Förälder</span>
+              <span class="startup-role-desc">Följ ditt barns schema, uppgifter och omdömen</span>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <form id="startupLoginStep" class="startup-login" hidden autocomplete="off">
+        <p class="startup-login-role"><span id="startupLoginRole"></span></p>
+
+        <label class="startup-field">
+          <span class="startup-field-label">Användarnamn</span>
+          <input id="startupUser" type="text" class="doc-title-input" placeholder="fornamn.efternamn" autocomplete="off" />
+        </label>
+
+        <label class="startup-field">
+          <span class="startup-field-label">Lösenord</span>
+          <input id="startupPass" type="password" class="doc-title-input" placeholder="••••••••" autocomplete="off" />
+        </label>
+
+        <p id="startupError" class="startup-error" hidden>Fyll i både användarnamn och lösenord.</p>
+
+        <div class="startup-login-actions">
+          <button id="startupBackBtn" type="button" class="draw-tool-btn">← Tillbaka</button>
+          <button type="submit" class="doc-new-btn startup-submit">Logga in</button>
+        </div>
+
+        <p class="startup-note muted">
+          Prototyp — inloggningen är inte kopplad till något konto och sparar inget lösenord.
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <button id="backToStartBtn" class="start-menu-btn" aria-label="Till startmenyn" title="Till startmenyn">←</button>
+
   <header class="topbar">
     <h1 class="logo">SCHOOL OS</h1>
 

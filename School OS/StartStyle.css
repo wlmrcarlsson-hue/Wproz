@@ -1317,6 +1317,193 @@ body {
 
 /* ---------- Theme settings ---------- */
 
+/* ---------- Startup screen (role picker + login gate) ---------- */
+
+.startup-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow-y: auto;
+  background: var(--app-bg);
+  background-attachment: fixed;
+}
+
+.startup-screen[hidden] {
+  display: none;
+}
+
+.startup-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 28px 26px 24px;
+  background: var(--popover-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.startup-logo {
+  margin: 0 0 6px;
+  font-size: 1.35rem;
+  letter-spacing: 0.16em;
+  font-weight: 650;
+  text-align: center;
+  background: var(--logo-bg);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.startup-lead {
+  margin: 0 0 18px;
+  font-size: 0.88rem;
+  text-align: center;
+  color: var(--text-faint);
+}
+
+.startup-role-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.startup-role {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  font: inherit;
+  text-align: left;
+  color: var(--text-dim);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.2s var(--ease), border-color 0.2s var(--ease),
+    color 0.2s var(--ease), transform 0.2s var(--ease);
+}
+
+.startup-role:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent-line);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.startup-role-icon {
+  flex-shrink: 0;
+  font-size: 1.6rem;
+}
+
+.startup-role-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.startup-role-name {
+  font-size: 0.98rem;
+  font-weight: 650;
+  color: var(--text-strong);
+}
+
+.startup-role-desc {
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}
+
+.startup-login {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.startup-login[hidden] {
+  display: none;
+}
+
+.startup-login-role {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 550;
+  text-align: center;
+  color: var(--text-dim);
+}
+
+.startup-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.startup-field-label {
+  font-size: 0.72rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-faint);
+}
+
+.startup-error {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--status-fail);
+}
+
+.startup-error[hidden] {
+  display: none;
+}
+
+.startup-login-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.startup-submit {
+  flex: 1;
+  text-align: center;
+}
+
+.startup-note {
+  margin: 4px 0 0;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+/* Mirrors the settings button in the opposite corner, so neither affects
+   the page layout. */
+.start-menu-btn {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: var(--text);
+  background: radial-gradient(circle at 50% 30%, hsl(var(--hue) 60% 55% / 0.4), hsl(var(--hue) 50% 25% / 0.3));
+  border: 1px solid hsl(var(--hue) 55% 65% / 0.3);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.25s ease;
+  z-index: 30;
+}
+
+.start-menu-btn:hover {
+  transform: translateX(-2px);
+  border-color: var(--accent-line);
+}
+
 .settings-btn {
   position: fixed;
   top: 20px;
